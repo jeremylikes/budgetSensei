@@ -1,61 +1,87 @@
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
-const Database = require('better-sqlite3');
+const initSqlJs = require('sql.js');
+const fs = require('fs');
 
 const app = express();
 const PORT = 3000;
 const DB_FILE = path.join(__dirname, 'budget.db');
 
+let db = null;
+
 // Initialize database
-const db = new Database(DB_FILE);
-
-// Create tables if they don't exist
-function initializeDatabase() {
-    // Transactions table
-    db.exec(`
-        CREATE TABLE IF NOT EXISTS transactions (
-            id INTEGER PRIMARY KEY,
-            date TEXT NOT NULL,
-            description TEXT NOT NULL,
-            category TEXT NOT NULL,
-            method TEXT NOT NULL,
-            type TEXT NOT NULL,
-            amount REAL NOT NULL
-        )
-    `);
-
-    // Categories table
-    db.exec(`
-        CREATE TABLE IF NOT EXISTS categories (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE NOT NULL
-        )
-    `);
-
-    // Methods table
-    db.exec(`
-        CREATE TABLE IF NOT EXISTS methods (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE NOT NULL
-        )
-    `);
-
-    // Initialize default categories if table is empty
-    const categoryCount = db.prepare('SELECT COUNT(*) as count FROM categories').get();
-    if (categoryCount.count === 0) {
-        const insertCategory = db.prepare('INSERT INTO categories (name) VALUES (?)');
-        const defaultCategories = ['Groceries', 'Rent', 'Utilities', 'Work Income'];
-        defaultCategories.forEach(cat => insertCategory.run(cat));
+async function initializeDatabase() {
+    try {
+        const SQL = await initSqlJs();
+        
+        // Load existing database or create new one
+        if (fs.existsSync(DB_FILE)) {
+            const buffer = fs.readFileSync(DB_FILE);
+            db = new SQL.Database(buffer);
+        } else {
+            db = new SQL.Database();
+            
+            // Create tables
+            db.run(`
+                CREATE TABLE transactions (
+                    id INTEGER PRIMARY KEY,
+                    date TEXT NOT NULL,
+                    description TEXT NOT NULL,
+                    category TEXT NOT NULL,
+                    method TEXT NOT NULL,
+                    type TEXT NOT NULL,
+                    amount REAL NOT NULL
+                )
+            `);
+            
+            db.run(`
+                CREATE TABLE categories (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT UNIQUE NOT NULL
+                )
+            `);
+            
+            db.run(`
+                CREATE TABLE methods (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT UNIQUE NOT NULL
+                )
+            `);
+            
+                // Insert default categories
+            const defaultCategories = ['Groceries', 'Rent', 'Utilities', 'Work Income'];
+            defaultCategories.forEach(cat => {
+                db.run(`INSERT INTO categories (name) VALUES ('${escapeSql(cat)}')`);
+            });
+            
+            // Insert default methods
+            const defaultMethods = ['Cash', 'Credit Card', 'Debit Card', 'Bank Transfer'];
+            defaultMethods.forEach(method => {
+                db.run(`INSERT INTO methods (name) VALUES ('${escapeSql(method)}')`);
+            });
+            
+            saveDatabase();
+        }
+    } catch (error) {
+        console.error('Error initializing database:', error);
+        throw error;
     }
+}
 
-    // Initialize default methods if table is empty
-    const methodCount = db.prepare('SELECT COUNT(*) as count FROM methods').get();
-    if (methodCount.count === 0) {
-        const insertMethod = db.prepare('INSERT INTO methods (name) VALUES (?)');
-        const defaultMethods = ['Cash', 'Credit Card', 'Debit Card', 'Bank Transfer'];
-        defaultMethods.forEach(method => insertMethod.run(method));
+// Save database to file
+function saveDatabase() {
+    if (db) {
+        const data = db.export();
+        const buffer = Buffer.from(data);
+        fs.writeFileSync(DB_FILE, buffer);
     }
+}
+
+// Helper function to escape SQL strings
+function escapeSql(str) {
+    if (typeof str !== 'string') return str;
+    return str.replace(/'/g, "''");
 }
 
 // Middleware
@@ -63,19 +89,31 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname)); // Serve static files (HTML, CSS, JS)
 
-// Initialize database
-initializeDatabase();
+// Initialize database on startup
+initializeDatabase().catch(console.error);
 
 // API Routes
 
 // Get all data
 app.get('/api/data', (req, res) => {
     try {
-        const transactions = db.prepare('SELECT * FROM transactions ORDER BY date DESC').all();
-        const categories = db.prepare('SELECT name FROM categories ORDER BY name').all().map(r => r.name);
-        const methods = db.prepare('SELECT name FROM methods ORDER BY name').all().map(r => r.name);
+        const transactions = db.exec('SELECT * FROM transactions ORDER BY date DESC');
+        const categories = db.exec('SELECT name FROM categories ORDER BY name');
+        const methods = db.exec('SELECT name FROM methods ORDER BY name');
         
-        res.json({ transactions, categories, methods });
+        res.json({
+            transactions: transactions[0] ? transactions[0].values.map(row => ({
+                id: row[0],
+                date: row[1],
+                description: row[2],
+                category: row[3],
+                method: row[4],
+                type: row[5],
+                amount: row[6]
+            })) : [],
+            categories: categories[0] ? categories[0].values.map(row => row[0]) : [],
+            methods: methods[0] ? methods[0].values.map(row => row[0]) : []
+        });
     } catch (error) {
         console.error('Error reading data:', error);
         res.status(500).json({ error: 'Failed to read data' });
@@ -85,7 +123,16 @@ app.get('/api/data', (req, res) => {
 // Get transactions
 app.get('/api/transactions', (req, res) => {
     try {
-        const transactions = db.prepare('SELECT * FROM transactions ORDER BY date DESC').all();
+        const result = db.exec('SELECT * FROM transactions ORDER BY date DESC');
+        const transactions = result[0] ? result[0].values.map(row => ({
+            id: row[0],
+            date: row[1],
+            description: row[2],
+            category: row[3],
+            method: row[4],
+            type: row[5],
+            amount: row[6]
+        })) : [];
         res.json(transactions);
     } catch (error) {
         console.error('Error reading transactions:', error);
@@ -99,10 +146,8 @@ app.post('/api/transactions', (req, res) => {
         const { date, description, category, method, type, amount } = req.body;
         const id = Date.now();
         
-        db.prepare(`
-            INSERT INTO transactions (id, date, description, category, method, type, amount)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        `).run(id, date, description, category, method, type, amount);
+        db.run(`INSERT INTO transactions (id, date, description, category, method, type, amount) VALUES (${id}, '${escapeSql(date)}', '${escapeSql(description)}', '${escapeSql(category)}', '${escapeSql(method)}', '${escapeSql(type)}', ${amount})`);
+        saveDatabase();
         
         const transaction = { id, date, description, category, method, type, amount };
         res.json(transaction);
@@ -118,15 +163,14 @@ app.put('/api/transactions/:id', (req, res) => {
         const id = parseInt(req.params.id);
         const { date, description, category, method, type, amount } = req.body;
         
-        const result = db.prepare(`
-            UPDATE transactions 
-            SET date = ?, description = ?, category = ?, method = ?, type = ?, amount = ?
-            WHERE id = ?
-        `).run(date, description, category, method, type, amount, id);
-        
-        if (result.changes === 0) {
+        // Check if transaction exists
+        const existing = db.exec(`SELECT id FROM transactions WHERE id = ${id}`);
+        if (!existing[0] || existing[0].values.length === 0) {
             return res.status(404).json({ error: 'Transaction not found' });
         }
+        
+        db.run(`UPDATE transactions SET date = '${escapeSql(date)}', description = '${escapeSql(description)}', category = '${escapeSql(category)}', method = '${escapeSql(method)}', type = '${escapeSql(type)}', amount = ${amount} WHERE id = ${id}`);
+        saveDatabase();
         
         const transaction = { id, date, description, category, method, type, amount };
         res.json(transaction);
@@ -140,12 +184,15 @@ app.put('/api/transactions/:id', (req, res) => {
 app.delete('/api/transactions/:id', (req, res) => {
     try {
         const id = parseInt(req.params.id);
-        const result = db.prepare('DELETE FROM transactions WHERE id = ?').run(id);
         
-        if (result.changes === 0) {
+        // Check if transaction exists
+        const existing = db.exec(`SELECT id FROM transactions WHERE id = ${id}`);
+        if (!existing[0] || existing[0].values.length === 0) {
             return res.status(404).json({ error: 'Transaction not found' });
         }
         
+        db.run(`DELETE FROM transactions WHERE id = ${id}`);
+        saveDatabase();
         res.json({ success: true });
     } catch (error) {
         console.error('Error deleting transaction:', error);
@@ -156,7 +203,8 @@ app.delete('/api/transactions/:id', (req, res) => {
 // Get categories
 app.get('/api/categories', (req, res) => {
     try {
-        const categories = db.prepare('SELECT name FROM categories ORDER BY name').all().map(r => r.name);
+        const result = db.exec('SELECT name FROM categories ORDER BY name');
+        const categories = result[0] ? result[0].values.map(row => row[0]) : [];
         res.json(categories);
     } catch (error) {
         console.error('Error reading categories:', error);
@@ -174,11 +222,14 @@ app.post('/api/categories', (req, res) => {
         }
         
         try {
-            db.prepare('INSERT INTO categories (name) VALUES (?)').run(category);
-            const categories = db.prepare('SELECT name FROM categories ORDER BY name').all().map(r => r.name);
+            db.run(`INSERT INTO categories (name) VALUES ('${escapeSql(category)}')`);
+            saveDatabase();
+            
+            const result = db.exec('SELECT name FROM categories ORDER BY name');
+            const categories = result[0] ? result[0].values.map(row => row[0]) : [];
             res.json(categories);
         } catch (error) {
-            if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+            if (error.message && error.message.includes('UNIQUE')) {
                 return res.status(400).json({ error: 'Category already exists' });
             }
             throw error;
@@ -195,32 +246,39 @@ app.put('/api/categories/:index', (req, res) => {
         const index = parseInt(req.params.index);
         const newName = req.body.name;
         
-        // Get current category at index
-        const categories = db.prepare('SELECT id, name FROM categories ORDER BY name').all();
+        // Get all categories
+        const result = db.exec('SELECT id, name FROM categories ORDER BY name');
+        const categories = result[0] ? result[0].values : [];
+        
         if (index < 0 || index >= categories.length) {
             return res.status(404).json({ error: 'Category not found' });
         }
         
-        const oldName = categories[index].name;
-        const categoryId = categories[index].id;
+        const oldName = categories[index][1];
+        const categoryId = categories[index][0];
         
         if (newName === oldName) {
-            return res.json(categories.map(r => r.name));
+            const catResult = db.exec('SELECT name FROM categories ORDER BY name');
+            const catList = catResult[0] ? catResult[0].values.map(row => row[0]) : [];
+            return res.json(catList);
         }
         
         // Check if new name already exists
-        const existing = db.prepare('SELECT id FROM categories WHERE name = ?').get(newName);
-        if (existing && existing.id !== categoryId) {
+        const existing = db.exec(`SELECT id FROM categories WHERE name = '${escapeSql(newName)}'`);
+        if (existing[0] && existing[0].values.length > 0 && existing[0].values[0][0] !== categoryId) {
             return res.status(400).json({ error: 'Category name already exists' });
         }
         
         // Update category
-        db.prepare('UPDATE categories SET name = ? WHERE id = ?').run(newName, categoryId);
+        db.run(`UPDATE categories SET name = '${escapeSql(newName)}' WHERE id = ${categoryId}`);
         
         // Update all transactions with this category
-        db.prepare('UPDATE transactions SET category = ? WHERE category = ?').run(newName, oldName);
+        db.run(`UPDATE transactions SET category = '${escapeSql(newName)}' WHERE category = '${escapeSql(oldName)}'`);
         
-        const updatedCategories = db.prepare('SELECT name FROM categories ORDER BY name').all().map(r => r.name);
+        saveDatabase();
+        
+        const updatedResult = db.exec('SELECT name FROM categories ORDER BY name');
+        const updatedCategories = updatedResult[0] ? updatedResult[0].values.map(row => row[0]) : [];
         res.json(updatedCategories);
     } catch (error) {
         console.error('Error updating category:', error);
@@ -232,12 +290,15 @@ app.put('/api/categories/:index', (req, res) => {
 app.delete('/api/categories/:name', (req, res) => {
     try {
         const categoryName = decodeURIComponent(req.params.name);
-        const result = db.prepare('DELETE FROM categories WHERE name = ?').run(categoryName);
         
-        if (result.changes === 0) {
+        // Check if category exists
+        const existing = db.exec(`SELECT id FROM categories WHERE name = '${escapeSql(categoryName)}'`);
+        if (!existing[0] || existing[0].values.length === 0) {
             return res.status(404).json({ error: 'Category not found' });
         }
         
+        db.run(`DELETE FROM categories WHERE name = '${escapeSql(categoryName)}'`);
+        saveDatabase();
         res.json({ success: true });
     } catch (error) {
         console.error('Error deleting category:', error);
@@ -248,7 +309,8 @@ app.delete('/api/categories/:name', (req, res) => {
 // Get methods
 app.get('/api/methods', (req, res) => {
     try {
-        const methods = db.prepare('SELECT name FROM methods ORDER BY name').all().map(r => r.name);
+        const result = db.exec('SELECT name FROM methods ORDER BY name');
+        const methods = result[0] ? result[0].values.map(row => row[0]) : [];
         res.json(methods);
     } catch (error) {
         console.error('Error reading methods:', error);
@@ -266,11 +328,14 @@ app.post('/api/methods', (req, res) => {
         }
         
         try {
-            db.prepare('INSERT INTO methods (name) VALUES (?)').run(method);
-            const methods = db.prepare('SELECT name FROM methods ORDER BY name').all().map(r => r.name);
+            db.run(`INSERT INTO methods (name) VALUES ('${escapeSql(method)}')`);
+            saveDatabase();
+            
+            const result = db.exec('SELECT name FROM methods ORDER BY name');
+            const methods = result[0] ? result[0].values.map(row => row[0]) : [];
             res.json(methods);
         } catch (error) {
-            if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+            if (error.message && error.message.includes('UNIQUE')) {
                 return res.status(400).json({ error: 'Method already exists' });
             }
             throw error;
@@ -287,32 +352,39 @@ app.put('/api/methods/:index', (req, res) => {
         const index = parseInt(req.params.index);
         const newName = req.body.name;
         
-        // Get current method at index
-        const methods = db.prepare('SELECT id, name FROM methods ORDER BY name').all();
+        // Get all methods
+        const result = db.exec('SELECT id, name FROM methods ORDER BY name');
+        const methods = result[0] ? result[0].values : [];
+        
         if (index < 0 || index >= methods.length) {
             return res.status(404).json({ error: 'Method not found' });
         }
         
-        const oldName = methods[index].name;
-        const methodId = methods[index].id;
+        const oldName = methods[index][1];
+        const methodId = methods[index][0];
         
         if (newName === oldName) {
-            return res.json(methods.map(r => r.name));
+            const methodResult = db.exec('SELECT name FROM methods ORDER BY name');
+            const methodList = methodResult[0] ? methodResult[0].values.map(row => row[0]) : [];
+            return res.json(methodList);
         }
         
         // Check if new name already exists
-        const existing = db.prepare('SELECT id FROM methods WHERE name = ?').get(newName);
-        if (existing && existing.id !== methodId) {
+        const existing = db.exec(`SELECT id FROM methods WHERE name = '${escapeSql(newName)}'`);
+        if (existing[0] && existing[0].values.length > 0 && existing[0].values[0][0] !== methodId) {
             return res.status(400).json({ error: 'Method name already exists' });
         }
         
         // Update method
-        db.prepare('UPDATE methods SET name = ? WHERE id = ?').run(newName, methodId);
+        db.run(`UPDATE methods SET name = '${escapeSql(newName)}' WHERE id = ${methodId}`);
         
         // Update all transactions with this method
-        db.prepare('UPDATE transactions SET method = ? WHERE method = ?').run(newName, oldName);
+        db.run(`UPDATE transactions SET method = '${escapeSql(newName)}' WHERE method = '${escapeSql(oldName)}'`);
         
-        const updatedMethods = db.prepare('SELECT name FROM methods ORDER BY name').all().map(r => r.name);
+        saveDatabase();
+        
+        const updatedResult = db.exec('SELECT name FROM methods ORDER BY name');
+        const updatedMethods = updatedResult[0] ? updatedResult[0].values.map(row => row[0]) : [];
         res.json(updatedMethods);
     } catch (error) {
         console.error('Error updating method:', error);
@@ -324,12 +396,15 @@ app.put('/api/methods/:index', (req, res) => {
 app.delete('/api/methods/:name', (req, res) => {
     try {
         const methodName = decodeURIComponent(req.params.name);
-        const result = db.prepare('DELETE FROM methods WHERE name = ?').run(methodName);
         
-        if (result.changes === 0) {
+        // Check if method exists
+        const existing = db.exec(`SELECT id FROM methods WHERE name = '${escapeSql(methodName)}'`);
+        if (!existing[0] || existing[0].values.length === 0) {
             return res.status(404).json({ error: 'Method not found' });
         }
         
+        db.run(`DELETE FROM methods WHERE name = '${escapeSql(methodName)}'`);
+        saveDatabase();
         res.json({ success: true });
     } catch (error) {
         console.error('Error deleting method:', error);
@@ -345,6 +420,9 @@ app.listen(PORT, () => {
 
 // Graceful shutdown
 process.on('SIGINT', () => {
-    db.close();
+    if (db) {
+        saveDatabase();
+        db.close();
+    }
     process.exit(0);
 });

@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "stop": "taskkill /F /IM node.exe"
   },
   "keywords": ["budget", "finance", "tracking"],
   "author": "",
@@ -13,7 +14,7 @@
   "dependencies": {
     "express": "^4.18.2",
     "cors": "^2.8.5",
-    "better-sqlite3": "^9.2.2"
+    "sql.js": "^1.10.3"
   }
 }
 
