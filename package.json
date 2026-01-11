@@ -1,0 +1,19 @@
+{
+  "name": "budget-sensei",
+  "version": "1.0.0",
+  "description": "Budget tracking web application",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["budget", "finance", "tracking"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "better-sqlite3": "^9.2.2"
+  }
+}
+

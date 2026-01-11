@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Budget Sensei</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+            <button class="tab-btn" data-tab="ledger">Ledger</button>
+            <button class="tab-btn" data-tab="data">Data</button>
+        </nav>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content active">
+            <div class="date-selector">
+                <label>
+                    Year:
+                    <select id="dashboard-year" class="year-select"></select>
+                </label>
+                <label>
+                    Month:
+                    <select id="dashboard-month" class="month-select"></select>
+                </label>
+            </div>
+
+            <div class="tiles">
+                <div class="tile">
+                    <h3>Net Income</h3>
+                    <p id="net-income" class="amount">$0.00</p>
+                </div>
+                <div class="tile">
+                    <h3>Total Income</h3>
+                    <p id="total-income" class="amount">$0.00</p>
+                </div>
+                <div class="tile">
+                    <h3>Total Expenses</h3>
+                    <p id="total-expenses" class="amount">$0.00</p>
+                </div>
+            </div>
+
+            <div class="charts-container">
+                <div class="chart-box">
+                    <h3>Income Composition</h3>
+                    <canvas id="income-chart"></canvas>
+                </div>
+                <div class="chart-box">
+                    <h3>Expense Composition</h3>
+                    <canvas id="expense-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="payment-section">
+                <h3>Payment Methods</h3>
+                <div id="payment-methods-list"></div>
+            </div>
+        </div>
+
+        <!-- Ledger Tab -->
+        <div id="ledger" class="tab-content">
+            <div class="date-selector">
+                <label>
+                    Year:
+                    <select id="ledger-year" class="year-select"></select>
+                </label>
+                <label>
+                    Month:
+                    <select id="ledger-month" class="month-select"></select>
+                </label>
+            </div>
+
+            <button id="add-transaction-btn" class="add-btn">Add New</button>
+
+            <div class="ledger-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th>Method</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledger-tbody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Data Tab -->
+        <div id="data" class="tab-content">
+            <div class="data-section">
+                <h2>Categories</h2>
+                <div class="input-group">
+                    <input type="text" id="new-category" placeholder="Enter new category" maxlength="50">
+                    <button id="add-category-btn" class="add-btn">Add Category</button>
+                </div>
+                <ul id="categories-list" class="data-list"></ul>
+            </div>
+
+            <div class="data-section">
+                <h2>Payment Methods</h2>
+                <div class="input-group">
+                    <input type="text" id="new-method" placeholder="Enter new payment method" maxlength="50">
+                    <button id="add-method-btn" class="add-btn">Add Method</button>
+                </div>
+                <ul id="methods-list" class="data-list"></ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add New Transaction Modal -->
+    <div id="transaction-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Add New Transaction</h2>
+            <form id="transaction-form">
+                <div class="form-group">
+                    <label for="transaction-date">Date:</label>
+                    <input type="date" id="transaction-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="transaction-description">Description:</label>
+                    <input type="text" id="transaction-description" maxlength="20" required>
+                </div>
+                <div class="form-group">
+                    <label for="transaction-category">Category:</label>
+                    <select id="transaction-category" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="transaction-method">Method:</label>
+                    <select id="transaction-method" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="transaction-type">Type:</label>
+                    <select id="transaction-type" required>
+                        <option value="Income">Income</option>
+                        <option value="Expense">Expense</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="transaction-amount">Amount:</label>
+                    <input type="number" id="transaction-amount" step="0.01" min="0" max="9999999.99" pattern="^\d{1,7}(\.\d{1,2})?$" required>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="submit-btn">Save</button>
+                    <button type="button" class="cancel-btn" id="cancel-transaction">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
