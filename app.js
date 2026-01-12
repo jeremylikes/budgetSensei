@@ -320,8 +320,17 @@ function updateDashboard() {
 
 function getTransactionsForMonth(year, month) {
     return transactions.filter(t => {
-        const tDate = new Date(t.date);
-        return tDate.getFullYear() === year && tDate.getMonth() + 1 === month;
+        // Parse date string directly to avoid timezone issues
+        // Date is stored as YYYY-MM-DD format
+        const dateParts = t.date.split('-');
+        if (dateParts.length !== 3) {
+            // Fallback to Date object if format is unexpected
+            const tDate = new Date(t.date);
+            return tDate.getFullYear() === year && tDate.getMonth() + 1 === month;
+        }
+        const tYear = parseInt(dateParts[0], 10);
+        const tMonth = parseInt(dateParts[1], 10);
+        return tYear === year && tMonth === month;
     });
 }
 
