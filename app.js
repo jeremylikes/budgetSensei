@@ -444,7 +444,7 @@ function updateLedger() {
     });
 }
 
-// Data Tab
+// Customize Tab
 function setupDataTab() {
     // Categories
     document.getElementById('add-category-btn').addEventListener('click', async () => {

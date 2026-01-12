@@ -92,16 +92,30 @@ function saveDatabase() {
     }
 }
 
-// Helper function to escape SQL strings
+// Helper function to escape SQL strings (preserves multibyte/UTF-8 characters)
 function escapeSql(str) {
     if (typeof str !== 'string') return str;
+    // Only escape single quotes for SQL injection prevention
+    // This preserves all multibyte characters (UTF-8)
     return str.replace(/'/g, "''");
 }
 
 // Middleware
 app.use(cors());
-app.use(express.json());
-app.use(express.static(__dirname)); // Serve static files (HTML, CSS, JS)
+app.use(express.json({ limit: '10mb' })); // Support larger payloads for multibyte characters
+app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Support URL-encoded data
+app.use(express.static(__dirname, {
+    setHeaders: (res, path) => {
+        // Ensure UTF-8 charset for text-based files
+        if (path.endsWith('.html')) {
+            res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        } else if (path.endsWith('.js')) {
+            res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+        } else if (path.endsWith('.css')) {
+            res.setHeader('Content-Type', 'text/css; charset=utf-8');
+        }
+    }
+})); // Serve static files (HTML, CSS, JS) with UTF-8
 
 // API Routes
 
