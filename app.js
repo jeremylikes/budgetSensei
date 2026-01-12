@@ -151,10 +151,11 @@ function setupTransactionModal() {
     const amountInput = document.getElementById('transaction-amount');
     amountInput.addEventListener('input', (e) => {
         let value = e.target.value;
-        // Remove any non-digit or non-decimal characters
+        
+        // Remove any non-digit or non-decimal characters (allow digits and single decimal point)
         value = value.replace(/[^\d.]/g, '');
         
-        // Prevent multiple decimal points
+        // Prevent multiple decimal points - keep only the first one
         const parts = value.split('.');
         if (parts.length > 2) {
             value = parts[0] + '.' + parts.slice(1).join('');
@@ -175,6 +176,18 @@ function setupTransactionModal() {
         
         // Reconstruct value
         e.target.value = finalParts.join('.');
+    });
+    
+    // Format on blur to ensure 2 decimal places if decimal entered
+    amountInput.addEventListener('blur', (e) => {
+        let value = e.target.value.trim();
+        if (value && !isNaN(value)) {
+            const num = parseFloat(value);
+            if (!isNaN(num)) {
+                // Format to 2 decimal places
+                e.target.value = num.toFixed(2);
+            }
+        }
     });
 }
 
@@ -225,7 +238,13 @@ async function saveTransaction() {
     const category = document.getElementById('transaction-category').value;
     const method = document.getElementById('transaction-method').value;
     const type = document.getElementById('transaction-type').value;
-    const amount = parseFloat(document.getElementById('transaction-amount').value);
+    const amountValue = document.getElementById('transaction-amount').value.trim();
+    const amount = parseFloat(amountValue);
+    
+    if (isNaN(amount) || amount <= 0) {
+        alert('Please enter a valid amount greater than 0');
+        return;
+    }
 
     try {
         if (editingTransactionId !== null) {

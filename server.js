@@ -103,18 +103,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname)); // Serve static files (HTML, CSS, JS)
 
-// Initialize database on startup
-let dbReady = false;
-initializeDatabase()
-    .then(() => {
-        dbReady = true;
-        console.log('Database initialized successfully');
-    })
-    .catch((error) => {
-        console.error('Database initialization failed:', error);
-        process.exit(1);
-    });
-
 // API Routes
 
 // Get all data
@@ -435,12 +423,25 @@ app.delete('/api/methods/:name', (req, res) => {
     }
 });
 
-// Start server
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Database file: ${DB_FILE}`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-});
+// Start server - wait for database initialization
+async function startServer() {
+    try {
+        await initializeDatabase();
+        console.log('Database initialized successfully');
+        
+        app.listen(PORT, '0.0.0.0', () => {
+            console.log(`Server running on port ${PORT}`);
+            console.log(`Database file: ${DB_FILE}`);
+            console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+            console.log(`Server is ready to accept connections`);
+        });
+    } catch (error) {
+        console.error('Failed to start server:', error);
+        process.exit(1);
+    }
+}
+
+startServer();
 
 // Graceful shutdown
 process.on('SIGINT', () => {
