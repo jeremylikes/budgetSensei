@@ -2,13 +2,25 @@
 
 ## Simplest Options (Recommended)
 
-### Option 1: Railway.app (Easiest - Free tier available)
-1. Sign up at https://railway.app
-2. Click "New Project" → "Deploy from GitHub repo"
+### Option 1: Render.com (Best Free Option - Web Services Supported)
+1. Sign up at https://render.com (free tier supports web services)
+2. Click "New" → "Web Service"
 3. Connect your GitHub account and select this repository
-4. Add environment variable: `BUDGET_PASSWORD` = your desired password
-5. Railway automatically deploys and gives you a URL like `https://your-app.railway.app`
-6. Done! Your app is live with HTTPS
+4. Settings:
+   - **Name:** budget-sensei (or any name)
+   - **Environment:** Node
+   - **Build Command:** `npm install`
+   - **Start Command:** `node server.js`
+   - **Plan:** Free (or paid if you want)
+5. Click "Advanced" → "Add Environment Variable":
+   - Key: `BUDGET_PASSWORD`
+   - Value: (your desired password)
+6. Click "Create Web Service"
+7. Render will deploy and give you a URL like `https://budget-sensei.onrender.com`
+8. **Note:** Free tier services spin down after 15 minutes of inactivity, but spin up automatically on first request (may take 30-60 seconds)
+
+### Option 2: Railway.app (Requires Paid Plan for Web Services)
+⚠️ **Note:** Railway's free tier only supports databases, not web services. You'll need to upgrade to deploy this app.
 
 ### Option 2: Render.com (Free tier available)
 1. Sign up at https://render.com

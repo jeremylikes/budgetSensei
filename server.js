@@ -104,7 +104,16 @@ app.use(express.json());
 app.use(express.static(__dirname)); // Serve static files (HTML, CSS, JS)
 
 // Initialize database on startup
-initializeDatabase().catch(console.error);
+let dbReady = false;
+initializeDatabase()
+    .then(() => {
+        dbReady = true;
+        console.log('Database initialized successfully');
+    })
+    .catch((error) => {
+        console.error('Database initialization failed:', error);
+        process.exit(1);
+    });
 
 // API Routes
 
@@ -427,9 +436,10 @@ app.delete('/api/methods/:name', (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT}`);
     console.log(`Database file: ${DB_FILE}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
 // Graceful shutdown
