@@ -2,4 +2,6 @@ node_modules/
 data.json
 budget.db
 *.log
+.env
+.DS_Store
 

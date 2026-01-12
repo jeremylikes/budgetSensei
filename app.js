@@ -1,5 +1,5 @@
-// API Base URL
-const API_BASE = 'http://localhost:3000/api';
+// API Base URL - automatically detects if running locally or on server
+const API_BASE = window.location.origin + '/api';
 
 // Data Storage - Load from API
 let transactions = [];

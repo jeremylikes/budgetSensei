@@ -3,10 +3,24 @@ const path = require('path');
 const cors = require('cors');
 const initSqlJs = require('sql.js');
 const fs = require('fs');
+const basicAuth = require('express-basic-auth');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const DB_FILE = path.join(__dirname, 'budget.db');
+
+// Simple password authentication (set via environment variable)
+// To set password: export BUDGET_PASSWORD=yourpassword (or set in hosting platform)
+const BUDGET_PASSWORD = process.env.BUDGET_PASSWORD || '';
+
+// Add basic auth if password is set
+if (BUDGET_PASSWORD) {
+    app.use(basicAuth({
+        users: { 'admin': BUDGET_PASSWORD },
+        challenge: true,
+        realm: 'Budget Sensei'
+    }));
+}
 
 let db = null;
 
