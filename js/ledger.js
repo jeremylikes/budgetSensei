@@ -518,6 +518,9 @@ const Ledger = {
                 // Update the specific field
                 if (field === 'amount') {
                     updateData.amount = parseFloat(value);
+                } else if (field === 'note') {
+                    // For notes, ensure empty string is saved (not null/undefined)
+                    updateData.note = value || '';
                 } else {
                     updateData[field] = value;
                 }
@@ -565,6 +568,9 @@ const Ledger = {
         // Update the specific field
         if (field === 'amount') {
             updateData.amount = parseFloat(value);
+        } else if (field === 'note') {
+            // For notes, ensure empty string is saved (not null/undefined)
+            updateData.note = value || '';
         } else {
             updateData[field] = value;
         }
