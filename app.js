@@ -642,7 +642,24 @@ function formatCurrency(amount) {
 }
 
 function formatDate(dateString) {
-    const date = new Date(dateString);
+    // Parse date string directly to avoid timezone issues
+    // Date is stored as YYYY-MM-DD format
+    const dateParts = dateString.split('-');
+    if (dateParts.length !== 3) {
+        // Fallback to Date object if format is unexpected
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    }
+    
+    const year = parseInt(dateParts[0], 10);
+    const month = parseInt(dateParts[1], 10) - 1; // JavaScript months are 0-indexed
+    const day = parseInt(dateParts[2], 10);
+    
+    const date = new Date(year, month, day);
     return date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',

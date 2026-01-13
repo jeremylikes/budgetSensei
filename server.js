@@ -9,15 +9,30 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Determine database file path - use persistent storage if available
-// Priority: 1) DB_PATH env var, 2) /data directory (persistent on most platforms), 3) /tmp, 4) project directory (local dev)
+// Local development always uses a separate local database file to avoid affecting production
+// Priority: 1) DB_PATH env var, 2) Local dev detection, 3) /data directory (production), 4) /tmp, 5) project directory
 let DB_DIR;
+let DB_FILENAME = 'budget.db';
+
+// Check if we're in local development mode
+// Local dev: Windows platform OR NODE_ENV not set to 'production' (and no explicit DB_PATH)
+const isLocalDev = (process.platform === 'win32' || process.env.NODE_ENV !== 'production') && !process.env.DB_PATH;
+
 if (process.env.DB_PATH) {
+    // Explicit path set via environment variable (production/cloud)
     DB_DIR = process.env.DB_PATH;
+} else if (isLocalDev) {
+    // Local development - use project directory with separate local filename
+    DB_DIR = __dirname;
+    DB_FILENAME = 'budget-local.db'; // Separate file for local dev - won't affect production
 } else if (fs.existsSync('/data')) {
+    // Production: /data directory exists (Render with persistent disk)
     DB_DIR = '/data';
 } else if (fs.existsSync('/tmp')) {
+    // Fallback: /tmp directory
     DB_DIR = '/tmp';
 } else {
+    // Final fallback: project directory
     DB_DIR = __dirname;
 }
 
@@ -31,7 +46,7 @@ if (!fs.existsSync(DB_DIR)) {
     }
 }
 
-const DB_FILE = path.join(DB_DIR, 'budget.db');
+const DB_FILE = path.join(DB_DIR, DB_FILENAME);
 
 // Simple password authentication (set via environment variable)
 // To set password: export BUDGET_PASSWORD=yourpassword (or set in hosting platform)
@@ -471,7 +486,9 @@ async function startServer() {
             console.log(`Server running on port ${PORT}`);
             console.log(`Database file: ${DB_FILE}`);
             console.log(`Database directory: ${DB_DIR}`);
-            if (DB_DIR !== __dirname) {
+            if (isLocalDev) {
+                console.log(`✓ LOCAL DEVELOPMENT MODE - Using local database (${DB_FILENAME}) - will NOT affect production`);
+            } else if (DB_DIR !== __dirname) {
                 console.log(`✓ Using persistent storage location (data will survive deployments)`);
             } else {
                 console.log(`⚠ Using project directory (data may be lost on deployment - set DB_PATH env var for persistence)`);
