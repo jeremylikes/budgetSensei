@@ -7,7 +7,31 @@ const basicAuth = require('express-basic-auth');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DB_FILE = path.join(__dirname, 'budget.db');
+
+// Determine database file path - use persistent storage if available
+// Priority: 1) DB_PATH env var, 2) /data directory (persistent on most platforms), 3) /tmp, 4) project directory (local dev)
+let DB_DIR;
+if (process.env.DB_PATH) {
+    DB_DIR = process.env.DB_PATH;
+} else if (fs.existsSync('/data')) {
+    DB_DIR = '/data';
+} else if (fs.existsSync('/tmp')) {
+    DB_DIR = '/tmp';
+} else {
+    DB_DIR = __dirname;
+}
+
+// Ensure directory exists
+if (!fs.existsSync(DB_DIR)) {
+    try {
+        fs.mkdirSync(DB_DIR, { recursive: true });
+    } catch (error) {
+        console.warn(`Could not create DB directory ${DB_DIR}, using project directory`);
+        DB_DIR = __dirname;
+    }
+}
+
+const DB_FILE = path.join(DB_DIR, 'budget.db');
 
 // Simple password authentication (set via environment variable)
 // To set password: export BUDGET_PASSWORD=yourpassword (or set in hosting platform)
@@ -446,6 +470,12 @@ async function startServer() {
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`Server running on port ${PORT}`);
             console.log(`Database file: ${DB_FILE}`);
+            console.log(`Database directory: ${DB_DIR}`);
+            if (DB_DIR !== __dirname) {
+                console.log(`✓ Using persistent storage location (data will survive deployments)`);
+            } else {
+                console.log(`⚠ Using project directory (data may be lost on deployment - set DB_PATH env var for persistence)`);
+            }
             console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
             console.log(`Server is ready to accept connections`);
         });
