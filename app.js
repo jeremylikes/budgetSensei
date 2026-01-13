@@ -228,7 +228,6 @@ async function editTransaction(id) {
     document.getElementById('transaction-method').value = transaction.method;
     document.getElementById('transaction-type').value = transaction.type;
     document.getElementById('transaction-amount').value = transaction.amount;
-    document.getElementById('transaction-note').value = transaction.note || '';
 
     document.getElementById('transaction-modal').style.display = 'block';
 }
@@ -241,7 +240,6 @@ async function saveTransaction() {
     const type = document.getElementById('transaction-type').value;
     const amountValue = document.getElementById('transaction-amount').value.trim();
     const amount = parseFloat(amountValue);
-    const note = document.getElementById('transaction-note').value.trim();
     
     if (isNaN(amount) || amount <= 0) {
         alert('Please enter a valid amount greater than 0');
@@ -254,7 +252,7 @@ async function saveTransaction() {
             const response = await fetch(`${API_BASE}/transactions/${editingTransactionId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ date, description, category, method, type, amount, note })
+                body: JSON.stringify({ date, description, category, method, type, amount })
             });
             if (!response.ok) throw new Error('Failed to update transaction');
         } else {
@@ -262,7 +260,7 @@ async function saveTransaction() {
             const response = await fetch(`${API_BASE}/transactions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ date, description, category, method, type, amount, note })
+                body: JSON.stringify({ date, description, category, method, type, amount })
             });
             if (!response.ok) throw new Error('Failed to add transaction');
         }
@@ -435,12 +433,6 @@ function updateLedger() {
 
     filtered.forEach(t => {
         const row = document.createElement('tr');
-        const note = t.note || '';
-        // Add class and title attribute for rows with notes
-        if (note) {
-            row.classList.add('has-note');
-            row.setAttribute('title', note);
-        }
         row.innerHTML = `
             <td>${formatDate(t.date)}</td>
             <td>${t.description}</td>

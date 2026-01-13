@@ -57,16 +57,6 @@ async function initializeDatabase() {
         if (fs.existsSync(DB_FILE)) {
             const buffer = fs.readFileSync(DB_FILE);
             db = new SQL.Database(buffer);
-            
-            // Check if 'note' column exists, add it if not (migration for existing databases)
-            try {
-                db.exec('SELECT note FROM transactions LIMIT 1');
-            } catch (error) {
-                // Column doesn't exist, add it
-                console.log('Adding note column to transactions table...');
-                db.run('ALTER TABLE transactions ADD COLUMN note TEXT');
-                saveDatabase();
-            }
         } else {
             db = new SQL.Database();
             
@@ -79,8 +69,7 @@ async function initializeDatabase() {
                     category TEXT NOT NULL,
                     method TEXT NOT NULL,
                     type TEXT NOT NULL,
-                    amount REAL NOT NULL,
-                    note TEXT
+                    amount REAL NOT NULL
                 )
             `);
             
@@ -169,8 +158,7 @@ app.get('/api/data', (req, res) => {
                 category: row[3],
                 method: row[4],
                 type: row[5],
-                amount: row[6],
-                note: row[7] || '' // Note field (may not exist in old databases)
+                amount: row[6]
             })) : [],
             categories: categories[0] ? categories[0].values.map(row => row[0]) : [],
             methods: methods[0] ? methods[0].values.map(row => row[0]) : []
@@ -192,8 +180,7 @@ app.get('/api/transactions', (req, res) => {
             category: row[3],
             method: row[4],
             type: row[5],
-            amount: row[6],
-            note: row[7] || '' // Note field (may not exist in old databases)
+            amount: row[6]
         })) : [];
         res.json(transactions);
     } catch (error) {
@@ -205,14 +192,13 @@ app.get('/api/transactions', (req, res) => {
 // Add transaction
 app.post('/api/transactions', (req, res) => {
     try {
-        const { date, description, category, method, type, amount, note } = req.body;
+        const { date, description, category, method, type, amount } = req.body;
         const id = Date.now();
-        const noteValue = note || '';
         
-        db.run(`INSERT INTO transactions (id, date, description, category, method, type, amount, note) VALUES (${id}, '${escapeSql(date)}', '${escapeSql(description)}', '${escapeSql(category)}', '${escapeSql(method)}', '${escapeSql(type)}', ${amount}, '${escapeSql(noteValue)}')`);
+        db.run(`INSERT INTO transactions (id, date, description, category, method, type, amount) VALUES (${id}, '${escapeSql(date)}', '${escapeSql(description)}', '${escapeSql(category)}', '${escapeSql(method)}', '${escapeSql(type)}', ${amount})`);
         saveDatabase();
         
-        const transaction = { id, date, description, category, method, type, amount, note: noteValue };
+        const transaction = { id, date, description, category, method, type, amount };
         res.json(transaction);
     } catch (error) {
         console.error('Error adding transaction:', error);
@@ -224,8 +210,7 @@ app.post('/api/transactions', (req, res) => {
 app.put('/api/transactions/:id', (req, res) => {
     try {
         const id = parseInt(req.params.id);
-        const { date, description, category, method, type, amount, note } = req.body;
-        const noteValue = note || '';
+        const { date, description, category, method, type, amount } = req.body;
         
         // Check if transaction exists
         const existing = db.exec(`SELECT id FROM transactions WHERE id = ${id}`);
@@ -233,10 +218,10 @@ app.put('/api/transactions/:id', (req, res) => {
             return res.status(404).json({ error: 'Transaction not found' });
         }
         
-        db.run(`UPDATE transactions SET date = '${escapeSql(date)}', description = '${escapeSql(description)}', category = '${escapeSql(category)}', method = '${escapeSql(method)}', type = '${escapeSql(type)}', amount = ${amount}, note = '${escapeSql(noteValue)}' WHERE id = ${id}`);
+        db.run(`UPDATE transactions SET date = '${escapeSql(date)}', description = '${escapeSql(description)}', category = '${escapeSql(category)}', method = '${escapeSql(method)}', type = '${escapeSql(type)}', amount = ${amount} WHERE id = ${id}`);
         saveDatabase();
         
-        const transaction = { id, date, description, category, method, type, amount, note: noteValue };
+        const transaction = { id, date, description, category, method, type, amount };
         res.json(transaction);
     } catch (error) {
         console.error('Error updating transaction:', error);
