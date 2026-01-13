@@ -34,3 +34,6 @@ const API = {
         }
     }
 };
+
+// Make API available globally
+window.API = API;

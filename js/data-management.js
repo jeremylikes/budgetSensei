@@ -158,9 +158,14 @@ const DataManagement = {
         const list = document.getElementById('categories-list');
         list.innerHTML = '';
 
-        DataStore.categories.forEach((cat, index) => {
+        // Sort categories alphabetically
+        const sortedCategories = [...DataStore.categories].sort((a, b) => a.localeCompare(b));
+
+        sortedCategories.forEach((cat, index) => {
+            // Find the original index in DataStore.categories for data operations
+            const originalIndex = DataStore.categories.indexOf(cat);
             const li = document.createElement('li');
-            li.dataset.index = index;
+            li.dataset.index = originalIndex;
             li.dataset.originalValue = cat;
             
             const isDefault = cat === 'Default';
@@ -188,7 +193,7 @@ const DataManagement = {
                 nameSpan.style.flex = '1';
                 nameSpan.addEventListener('click', (e) => {
                     if (!li.classList.contains('editing')) {
-                        this.enterEditMode(li, nameSpan, 'category', index, cat);
+                        this.enterEditMode(li, nameSpan, 'category', originalIndex, cat);
                     }
                 });
             }

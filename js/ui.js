@@ -185,7 +185,9 @@ const UI = {
 
         if (categorySelect) {
             categorySelect.innerHTML = '';
-            DataStore.categories.forEach(cat => {
+            // Sort categories alphabetically
+            const sortedCategories = [...DataStore.categories].sort((a, b) => a.localeCompare(b));
+            sortedCategories.forEach(cat => {
                 const option = document.createElement('option');
                 option.value = cat;
                 option.textContent = cat;
@@ -195,7 +197,9 @@ const UI = {
 
         if (methodSelect) {
             methodSelect.innerHTML = '';
-            DataStore.methods.forEach(method => {
+            // Sort methods alphabetically
+            const sortedMethods = [...DataStore.methods].sort((a, b) => a.localeCompare(b));
+            sortedMethods.forEach(method => {
                 const option = document.createElement('option');
                 option.value = method;
                 option.textContent = method;

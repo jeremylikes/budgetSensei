@@ -48,7 +48,9 @@ const LedgerNewRow = {
         catSelect.required = true;
         catSelect.dataset.field = 'category';
         catSelect.addEventListener('change', () => this.validate());
-        DataStore.categories.forEach(cat => {
+        // Sort categories alphabetically
+        const sortedCategories = [...DataStore.categories].sort((a, b) => a.localeCompare(b));
+        sortedCategories.forEach(cat => {
             const option = document.createElement('option');
             option.value = cat;
             option.textContent = cat;

@@ -17,11 +17,13 @@ const dataRoutes = require('./routes');
 const transactionRoutes = require('./routes/transactions');
 const categoryRoutes = require('./routes/categories');
 const methodRoutes = require('./routes/methods');
+const budgetRoutes = require('./routes/budgets');
 
 app.use(dataRoutes);
 app.use(transactionRoutes);
 app.use(categoryRoutes);
 app.use(methodRoutes);
+app.use(budgetRoutes);
 
 // Start server - wait for database initialization
 async function startServer() {

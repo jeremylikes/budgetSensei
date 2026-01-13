@@ -223,7 +223,9 @@ const LedgerEditing = {
         
         if (field === 'category') {
             input = document.createElement('select');
-            DataStore.categories.forEach(cat => {
+            // Sort categories alphabetically
+            const sortedCategories = [...DataStore.categories].sort((a, b) => a.localeCompare(b));
+            sortedCategories.forEach(cat => {
                 const option = document.createElement('option');
                 option.value = cat;
                 option.textContent = cat;

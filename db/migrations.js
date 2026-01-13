@@ -54,6 +54,39 @@ function runMigrations(db) {
             }
         }
         
+        // Migration: Create budget table if it doesn't exist
+        const budgetTableCheck = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='budgets'");
+        if (!budgetTableCheck[0] || budgetTableCheck[0].values.length === 0) {
+            try {
+                console.log('Creating budgets table...');
+                db.run(`
+                    CREATE TABLE budgets (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        category TEXT NOT NULL,
+                        year INTEGER NOT NULL,
+                        month INTEGER NOT NULL,
+                        planned_amount REAL NOT NULL,
+                        UNIQUE(category, year, month)
+                    )
+                `);
+                saveDatabase();
+                console.log('✓ Migration completed: budgets table created');
+                
+                // Verify table was created
+                const verifyCheck = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='budgets'");
+                if (verifyCheck[0] && verifyCheck[0].values.length > 0) {
+                    console.log('✓ Verified: budgets table exists');
+                } else {
+                    console.error('⚠ Warning: budgets table creation may have failed - verification failed');
+                }
+            } catch (error) {
+                console.error('Error creating budgets table:', error);
+                console.error('Error details:', error.message);
+            }
+        } else {
+            console.log('✓ Migration check completed: budgets table already exists');
+        }
+        
         // Add more migrations here as needed in the future
         // Example: ensureColumn('transactions', 'tags', 'TEXT');
         

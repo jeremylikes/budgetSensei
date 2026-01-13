@@ -54,6 +54,17 @@ async function initializeDatabase() {
                 )
             `);
             
+            db.run(`
+                CREATE TABLE budgets (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    category TEXT NOT NULL,
+                    year INTEGER NOT NULL,
+                    month INTEGER NOT NULL,
+                    planned_amount REAL NOT NULL,
+                    UNIQUE(category, year, month)
+                )
+            `);
+            
             // Insert default categories (Default must be first)
             const defaultCategories = ['Default', 'Groceries', 'Rent', 'Utilities', 'Work Income'];
             defaultCategories.forEach(cat => {
