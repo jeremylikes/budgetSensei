@@ -13,8 +13,9 @@ router.get('/api/data', (req, res) => {
         }
         
         const transactions = db.exec('SELECT * FROM transactions ORDER BY date DESC');
-        const categories = db.exec('SELECT name FROM categories ORDER BY name');
-        const methods = db.exec('SELECT name FROM methods ORDER BY name');
+        // Sort with "Default" first, then alphabetically
+        const categories = db.exec("SELECT name FROM categories ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
+        const methods = db.exec("SELECT name FROM methods ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
         
         res.json({
             transactions: transactions[0] ? transactions[0].values.map(row => ({

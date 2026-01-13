@@ -122,8 +122,9 @@
         <div id="data" class="tab-content">
             <div class="data-section">
                 <h2>Categories</h2>
+                <p style="font-size: 12px; color: #666; margin-bottom: 8px;">Separate with comma to add multiple</p>
                 <div class="input-group">
-                    <input type="text" id="new-category" placeholder="Enter new category" maxlength="50">
+                    <input type="text" id="new-category" placeholder="Enter new category (or multiple separated by comma)" maxlength="200">
                     <button id="add-category-btn" class="add-btn">Add Category</button>
                 </div>
                 <ul id="categories-list" class="data-list"></ul>
@@ -131,8 +132,9 @@
 
             <div class="data-section">
                 <h2>Payment Methods</h2>
+                <p style="font-size: 12px; color: #666; margin-bottom: 8px;">Separate with comma to add multiple</p>
                 <div class="input-group">
-                    <input type="text" id="new-method" placeholder="Enter new payment method" maxlength="50">
+                    <input type="text" id="new-method" placeholder="Enter new payment method (or multiple separated by comma)" maxlength="200">
                     <button id="add-method-btn" class="add-btn">Add Method</button>
                 </div>
                 <ul id="methods-list" class="data-list"></ul>
@@ -195,7 +197,17 @@
     <script src="js/api.js"></script>
     <script src="js/data.js"></script>
     <script src="js/dashboard.js"></script>
-    <script src="js/ledger.js"></script>
+    
+    <!-- Ledger modules (in dependency order) -->
+    <script src="js/ledger/tooltips.js"></script>
+    <script src="js/ledger/sum.js"></script>
+    <script src="js/ledger/sorting.js"></script>
+    <script src="js/ledger/new-row.js"></script>
+    <script src="js/ledger/bulk.js"></script>
+    <script src="js/ledger/table.js"></script>
+    <script src="js/ledger/editing.js"></script>
+    <script src="js/ledger-main.js"></script>
+    
     <script src="js/transactions.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/data-management.js"></script>

@@ -531,6 +531,11 @@ tbody tr.new-row .note-input:focus {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 10px;
+}
+
+.data-list li.editing {
+    background-color: #e3f2fd;
 }
 
 .data-list li:last-child {
@@ -551,6 +556,20 @@ tbody tr.new-row .note-input:focus {
 .category-name,
 .method-name {
     flex: 1;
+}
+
+.editable-name {
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.editable-name:hover {
+    background-color: #e8f4f8;
+}
+
+.data-list li.editing .editable-name {
+    padding: 0;
 }
 
 /* Modal Styles */

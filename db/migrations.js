@@ -1,7 +1,7 @@
 // Database Migrations
 // Handles database schema migrations
 
-const { getDb } = require('./database');
+const { getDb, saveDatabase } = require('./database');
 const { ensureColumn } = require('./helpers');
 
 // Run database migrations
@@ -27,6 +27,31 @@ function runMigrations(db) {
             console.log('✓ Migration completed: note column added');
         } else {
             console.log('✓ Migration check completed: note column already exists');
+        }
+        
+        // Migration: Ensure "Default" category exists
+        const { escapeSql } = require('./helpers');
+        const defaultCatCheck = db.exec("SELECT id FROM categories WHERE name = 'Default'");
+        if (!defaultCatCheck[0] || defaultCatCheck[0].values.length === 0) {
+            try {
+                db.run("INSERT INTO categories (name) VALUES ('Default')");
+                saveDatabase();
+                console.log('✓ Migration completed: Default category added');
+            } catch (error) {
+                console.error('Error adding Default category:', error);
+            }
+        }
+        
+        // Migration: Ensure "Default" method exists
+        const defaultMethodCheck = db.exec("SELECT id FROM methods WHERE name = 'Default'");
+        if (!defaultMethodCheck[0] || defaultMethodCheck[0].values.length === 0) {
+            try {
+                db.run("INSERT INTO methods (name) VALUES ('Default')");
+                saveDatabase();
+                console.log('✓ Migration completed: Default payment method added');
+            } catch (error) {
+                console.error('Error adding Default payment method:', error);
+            }
         }
         
         // Add more migrations here as needed in the future

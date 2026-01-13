@@ -14,7 +14,8 @@ router.get('/api/methods', (req, res) => {
             return res.status(500).json({ error: 'Database not initialized' });
         }
         
-        const result = db.exec('SELECT name FROM methods ORDER BY name');
+        // Sort with "Default" first, then alphabetically
+        const result = db.exec("SELECT name FROM methods ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
         const methods = result[0] ? result[0].values.map(row => row[0]) : [];
         res.json(methods);
     } catch (error) {
@@ -90,6 +91,11 @@ router.put('/api/methods/:index', (req, res) => {
             return res.status(400).json({ error: 'Method name already exists' });
         }
         
+        // Prevent renaming "Default"
+        if (oldName === 'Default') {
+            return res.status(400).json({ error: 'Cannot rename the Default payment method' });
+        }
+        
         // Update method
         db.run(`UPDATE methods SET name = '${escapeSql(newName)}' WHERE id = ${methodId}`);
         
@@ -117,12 +123,21 @@ router.delete('/api/methods/:name', (req, res) => {
         
         const methodName = decodeURIComponent(req.params.name);
         
+        // Prevent deletion of "Default"
+        if (methodName === 'Default') {
+            return res.status(400).json({ error: 'Cannot delete the Default payment method' });
+        }
+        
         // Check if method exists
         const existing = db.exec(`SELECT id FROM methods WHERE name = '${escapeSql(methodName)}'`);
         if (!existing[0] || existing[0].values.length === 0) {
             return res.status(404).json({ error: 'Method not found' });
         }
         
+        // Update all transactions with this method to "Default"
+        db.run(`UPDATE transactions SET method = 'Default' WHERE method = '${escapeSql(methodName)}'`);
+        
+        // Delete the method
         db.run(`DELETE FROM methods WHERE name = '${escapeSql(methodName)}'`);
         saveDatabase();
         res.json({ success: true });

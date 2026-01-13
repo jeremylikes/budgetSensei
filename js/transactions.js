@@ -184,3 +184,6 @@ const Transactions = {
         }
     }
 };
+
+// Make available globally
+window.Transactions = Transactions;

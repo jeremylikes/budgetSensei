@@ -2,51 +2,151 @@
 
 const DataManagement = {
     setup() {
-        // Categories
-        document.getElementById('add-category-btn').addEventListener('click', async () => {
+        // Categories - Add button handler
+        const addCategoryHandler = async () => {
             const input = document.getElementById('new-category');
             const value = input.value.trim();
-            if (value && !DataStore.categories.includes(value)) {
+            if (!value) return;
+            
+            // Split by comma and process each item
+            const items = value.split(',')
+                .map(item => item.trim())
+                .filter(item => item.length > 0);
+            
+            if (items.length === 0) return;
+            
+            let successCount = 0;
+            let failCount = 0;
+            const errors = [];
+            
+            // Add each item
+            for (const item of items) {
+                // Skip if already exists
+                if (DataStore.categories.includes(item)) {
+                    failCount++;
+                    errors.push(`"${item}" already exists`);
+                    continue;
+                }
+                
                 try {
                     const response = await fetch(`${API.BASE}/categories`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name: value })
+                        body: JSON.stringify({ name: item })
                     });
-                    if (!response.ok) throw new Error('Failed to add category');
-                    
-                    const data = await API.loadData();
-                    DataStore.init(data);
-                    input.value = '';
-                    this.updateCategoriesList();
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.error || 'Failed to add category');
+                    }
+                    successCount++;
                 } catch (error) {
-                    console.error('Error adding category:', error);
-                    alert('Failed to add category. It may already exist.');
+                    console.error(`Error adding category "${item}":`, error);
+                    failCount++;
+                    errors.push(`"${item}": ${error.message || 'Failed to add'}`);
                 }
+            }
+            
+            // Reload data after all additions
+            if (successCount > 0) {
+                const data = await API.loadData();
+                DataStore.init(data);
+                this.updateCategoriesList();
+            }
+            
+            // Clear input
+            input.value = '';
+            
+            // Show feedback
+            if (successCount > 0 && failCount === 0) {
+                // All succeeded - no message needed
+            } else if (successCount > 0 && failCount > 0) {
+                alert(`Added ${successCount} categor${successCount === 1 ? 'y' : 'ies'} successfully.\n\nFailed to add ${failCount}:\n${errors.join('\n')}`);
+            } else {
+                alert(`Failed to add categor${items.length === 1 ? 'y' : 'ies'}:\n${errors.join('\n')}`);
+            }
+        };
+        
+        document.getElementById('add-category-btn').addEventListener('click', addCategoryHandler);
+        
+        // Categories - Enter key support
+        document.getElementById('new-category').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addCategoryHandler();
             }
         });
 
-        // Methods
-        document.getElementById('add-method-btn').addEventListener('click', async () => {
+        // Methods - Add button handler
+        const addMethodHandler = async () => {
             const input = document.getElementById('new-method');
             const value = input.value.trim();
-            if (value && !DataStore.methods.includes(value)) {
+            if (!value) return;
+            
+            // Split by comma and process each item
+            const items = value.split(',')
+                .map(item => item.trim())
+                .filter(item => item.length > 0);
+            
+            if (items.length === 0) return;
+            
+            let successCount = 0;
+            let failCount = 0;
+            const errors = [];
+            
+            // Add each item
+            for (const item of items) {
+                // Skip if already exists
+                if (DataStore.methods.includes(item)) {
+                    failCount++;
+                    errors.push(`"${item}" already exists`);
+                    continue;
+                }
+                
                 try {
                     const response = await fetch(`${API.BASE}/methods`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name: value })
+                        body: JSON.stringify({ name: item })
                     });
-                    if (!response.ok) throw new Error('Failed to add method');
-                    
-                    const data = await API.loadData();
-                    DataStore.init(data);
-                    input.value = '';
-                    this.updateMethodsList();
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.error || 'Failed to add method');
+                    }
+                    successCount++;
                 } catch (error) {
-                    console.error('Error adding method:', error);
-                    alert('Failed to add payment method. It may already exist.');
+                    console.error(`Error adding method "${item}":`, error);
+                    failCount++;
+                    errors.push(`"${item}": ${error.message || 'Failed to add'}`);
                 }
+            }
+            
+            // Reload data after all additions
+            if (successCount > 0) {
+                const data = await API.loadData();
+                DataStore.init(data);
+                this.updateMethodsList();
+            }
+            
+            // Clear input
+            input.value = '';
+            
+            // Show feedback
+            if (successCount > 0 && failCount === 0) {
+                // All succeeded - no message needed
+            } else if (successCount > 0 && failCount > 0) {
+                alert(`Added ${successCount} payment method${successCount === 1 ? '' : 's'} successfully.\n\nFailed to add ${failCount}:\n${errors.join('\n')}`);
+            } else {
+                alert(`Failed to add payment method${items.length === 1 ? '' : 's'}:\n${errors.join('\n')}`);
+            }
+        };
+        
+        document.getElementById('add-method-btn').addEventListener('click', addMethodHandler);
+        
+        // Methods - Enter key support
+        document.getElementById('new-method').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addMethodHandler();
             }
         });
 
@@ -60,13 +160,64 @@ const DataManagement = {
 
         DataStore.categories.forEach((cat, index) => {
             const li = document.createElement('li');
-            li.innerHTML = `
-                <span class="category-name">${cat}</span>
-                <div class="action-buttons">
-                    <button class="edit-btn" onclick="DataManagement.editCategory(${index})" title="Edit">✏️</button>
-                    <button class="delete-btn" onclick="DataManagement.deleteCategory('${cat}')" title="Delete">🗑️</button>
-                </div>
-            `;
+            li.dataset.index = index;
+            li.dataset.originalValue = cat;
+            
+            const isDefault = cat === 'Default';
+            
+            // Checkbox (disabled for Default)
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'row-checkbox';
+            checkbox.style.marginRight = '10px';
+            if (isDefault) {
+                checkbox.disabled = true;
+                checkbox.title = 'Default category cannot be selected';
+            }
+            
+            // Editable name span (not editable for Default)
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'category-name editable-name';
+            nameSpan.textContent = cat;
+            if (isDefault) {
+                nameSpan.style.cursor = 'not-allowed';
+                nameSpan.style.opacity = '0.6';
+                nameSpan.title = 'Default category cannot be edited';
+            } else {
+                nameSpan.style.cursor = 'pointer';
+                nameSpan.style.flex = '1';
+                nameSpan.addEventListener('click', (e) => {
+                    if (!li.classList.contains('editing')) {
+                        this.enterEditMode(li, nameSpan, 'category', index, cat);
+                    }
+                });
+            }
+            
+            // Delete button (disabled for Default)
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.textContent = '🗑️';
+            if (isDefault) {
+                deleteBtn.disabled = true;
+                deleteBtn.style.opacity = '0.5';
+                deleteBtn.style.cursor = 'not-allowed';
+                deleteBtn.title = 'Default category cannot be deleted';
+            } else {
+                deleteBtn.title = 'Delete';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    this.deleteCategory(cat);
+                };
+            }
+            
+            // Action buttons container
+            const actionButtons = document.createElement('div');
+            actionButtons.className = 'action-buttons';
+            actionButtons.appendChild(deleteBtn);
+            
+            li.appendChild(checkbox);
+            li.appendChild(nameSpan);
+            li.appendChild(actionButtons);
             list.appendChild(li);
         });
     },
@@ -77,113 +228,470 @@ const DataManagement = {
 
         DataStore.methods.forEach((method, index) => {
             const li = document.createElement('li');
-            li.innerHTML = `
-                <span class="method-name">${method}</span>
-                <div class="action-buttons">
-                    <button class="edit-btn" onclick="DataManagement.editMethod(${index})" title="Edit">✏️</button>
-                    <button class="delete-btn" onclick="DataManagement.deleteMethod('${method}')" title="Delete">🗑️</button>
-                </div>
-            `;
+            li.dataset.index = index;
+            li.dataset.originalValue = method;
+            
+            const isDefault = method === 'Default';
+            
+            // Checkbox (disabled for Default)
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'row-checkbox';
+            checkbox.style.marginRight = '10px';
+            if (isDefault) {
+                checkbox.disabled = true;
+                checkbox.title = 'Default payment method cannot be selected';
+            }
+            
+            // Editable name span (not editable for Default)
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'method-name editable-name';
+            nameSpan.textContent = method;
+            if (isDefault) {
+                nameSpan.style.cursor = 'not-allowed';
+                nameSpan.style.opacity = '0.6';
+                nameSpan.title = 'Default payment method cannot be edited';
+            } else {
+                nameSpan.style.cursor = 'pointer';
+                nameSpan.style.flex = '1';
+                nameSpan.addEventListener('click', (e) => {
+                    if (!li.classList.contains('editing')) {
+                        this.enterEditMode(li, nameSpan, 'method', index, method);
+                    }
+                });
+            }
+            
+            // Delete button (disabled for Default)
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.textContent = '🗑️';
+            if (isDefault) {
+                deleteBtn.disabled = true;
+                deleteBtn.style.opacity = '0.5';
+                deleteBtn.style.cursor = 'not-allowed';
+                deleteBtn.title = 'Default payment method cannot be deleted';
+            } else {
+                deleteBtn.title = 'Delete';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    this.deleteMethod(method);
+                };
+            }
+            
+            // Action buttons container
+            const actionButtons = document.createElement('div');
+            actionButtons.className = 'action-buttons';
+            actionButtons.appendChild(deleteBtn);
+            
+            li.appendChild(checkbox);
+            li.appendChild(nameSpan);
+            li.appendChild(actionButtons);
             list.appendChild(li);
         });
     },
 
-    async editCategory(index) {
-        const data = await API.loadData();
-        DataStore.init(data);
-        const oldValue = DataStore.categories[index];
-        const newValue = prompt('Edit category:', oldValue);
-        
-        if (newValue && newValue.trim() && newValue.trim() !== oldValue) {
-            const trimmedValue = newValue.trim();
-            try {
-                const response = await fetch(`${API.BASE}/categories/${index}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: trimmedValue })
-                });
-                if (!response.ok) {
-                    const error = await response.json();
-                    alert(error.error || 'Failed to update category');
-                    return;
+    enterEditMode(li, nameSpan, type, index, currentValue) {
+        // Close any other editing fields first
+        const list = li.parentElement;
+        const otherEditing = list.querySelector('li.editing');
+        if (otherEditing && otherEditing !== li) {
+            const otherInput = otherEditing.querySelector('input.inline-edit-input');
+            if (otherInput) {
+                const otherValue = otherInput.value.trim();
+                const otherOriginal = otherEditing.dataset.originalValue;
+                if (otherValue !== otherOriginal) {
+                    // Save the other edit first
+                    this.saveEdit(otherEditing, otherInput, type, otherValue, otherOriginal);
+                } else {
+                    // Just cancel
+                    this.exitEditMode(otherEditing, otherOriginal);
                 }
+            }
+        }
+        
+        li.classList.add('editing');
+        
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'inline-edit-input';
+        input.value = currentValue;
+        input.maxLength = 50;
+        input.style.width = '100%';
+        input.style.padding = '4px 8px';
+        input.style.border = '2px solid #2196F3';
+        input.style.borderRadius = '4px';
+        input.style.fontSize = '14px';
+        
+        nameSpan.textContent = '';
+        nameSpan.appendChild(input);
+        input.focus();
+        input.select();
+        
+        const saveEdit = async () => {
+            const newValue = input.value.trim();
+            if (newValue === currentValue) {
+                this.exitEditMode(li, currentValue);
+                return;
+            }
+            
+            // If empty, delete the item(s) instead
+            if (!newValue) {
+                // Exit edit mode first to avoid issues
+                this.exitEditMode(li, currentValue);
                 
-                const refreshedData = await API.loadData();
-                DataStore.init(refreshedData);
+                // Check if bulk editing
+                const checkbox = li.querySelector('.row-checkbox');
+                const isChecked = checkbox && checkbox.checked;
+                
+                if (isChecked) {
+                    // Bulk delete all checked items
+                    const list = li.parentElement;
+                    const checkedBoxes = list.querySelectorAll('.row-checkbox:checked');
+                    const itemsToDelete = Array.from(checkedBoxes).map(cb => {
+                        const itemLi = cb.closest('li');
+                        // Use originalValue from dataset (reliable even if editing)
+                        return itemLi.dataset.originalValue;
+                    });
+                    
+                    // Include current item if not already in list
+                    if (!itemsToDelete.includes(currentValue)) {
+                        itemsToDelete.push(currentValue);
+                    }
+                    
+                    const count = itemsToDelete.length;
+                    if (confirm(`Delete ${count} ${type}${count === 1 ? '' : 's'}?`)) {
+                        if (type === 'category') {
+                            for (const item of itemsToDelete) {
+                                await this.deleteCategory(item, true); // true = skip confirmation
+                            }
+                        } else {
+                            for (const item of itemsToDelete) {
+                                await this.deleteMethod(item, true); // true = skip confirmation
+                            }
+                        }
+                    }
+                } else {
+                    // Single delete
+                    if (confirm(`Delete "${currentValue}"?`)) {
+                        if (type === 'category') {
+                            await this.deleteCategory(currentValue, true); // true = skip confirmation
+                        } else {
+                            await this.deleteMethod(currentValue, true); // true = skip confirmation
+                        }
+                    }
+                }
+                return;
+            }
+            
+            // Check if bulk editing
+            const checkbox = li.querySelector('.row-checkbox');
+            const isChecked = checkbox && checkbox.checked;
+            
+            if (isChecked) {
+                // Bulk edit: apply to all checked items
+                await this.bulkEdit(type, newValue, index, currentValue);
+            } else {
+                // Single edit
+                await this.saveEdit(li, input, type, newValue, currentValue);
+            }
+        };
+        
+        const cancelEdit = () => {
+            this.exitEditMode(li, currentValue);
+        };
+        
+        let shouldCancel = false;
+        
+        input.addEventListener('blur', () => {
+            setTimeout(() => {
+                if (!shouldCancel) {
+                    saveEdit();
+                } else {
+                    shouldCancel = false;
+                }
+            }, 10);
+        });
+        
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                input.blur();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                shouldCancel = true;
+                input.blur();
+                cancelEdit();
+            }
+        });
+    },
+
+    exitEditMode(li, value) {
+        li.classList.remove('editing');
+        const nameSpan = li.querySelector('.editable-name');
+        if (nameSpan) {
+            nameSpan.textContent = value;
+        }
+    },
+
+    async saveEdit(li, input, type, newValue, oldValue) {
+        // Prevent editing "Default"
+        if (oldValue === 'Default') {
+            this.exitEditMode(li, oldValue);
+            return;
+        }
+        
+        const index = parseInt(li.dataset.index);
+        
+        try {
+            const endpoint = type === 'category' ? 'categories' : 'methods';
+            const response = await fetch(`${API.BASE}/${endpoint}/${index}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newValue })
+            });
+            
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.error || `Failed to update ${type}`);
+            }
+            
+            // Reload data
+            const data = await API.loadData();
+            DataStore.init(data);
+            
+            if (type === 'category') {
                 this.updateCategoriesList();
-                Dashboard.update();
-                Ledger.update();
-            } catch (error) {
-                console.error('Error updating category:', error);
-                alert('Failed to update category. Please try again.');
+            } else {
+                this.updateMethodsList();
             }
+            
+            // Update other views
+            if (window.Dashboard) Dashboard.update();
+            if (window.Ledger) Ledger.update();
+        } catch (error) {
+            console.error(`Error updating ${type}:`, error);
+            alert(`Failed to update ${type}. ${error.message || 'Please try again.'}`);
+            // Restore original value on error
+            this.exitEditMode(li, oldValue);
         }
     },
 
-    async editMethod(index) {
-        const data = await API.loadData();
-        DataStore.init(data);
-        const oldValue = DataStore.methods[index];
-        const newValue = prompt('Edit payment method:', oldValue);
+    async bulkEdit(type, newValue, currentIndex, oldValue) {
+        const listId = type === 'category' ? 'categories-list' : 'methods-list';
+        const list = document.getElementById(listId);
+        const checkedBoxes = list.querySelectorAll('.row-checkbox:checked');
         
-        if (newValue && newValue.trim() && newValue.trim() !== oldValue) {
-            const trimmedValue = newValue.trim();
+        if (checkedBoxes.length === 0) {
+            // No checked items, just do single edit
+            const li = list.querySelector(`li[data-index="${currentIndex}"]`);
+            const input = li.querySelector('.inline-edit-input');
+            await this.saveEdit(li, input, type, newValue, oldValue);
+            return;
+        }
+        
+        const checkedIndices = Array.from(checkedBoxes).map(cb => {
+            return parseInt(cb.closest('li').dataset.index);
+        });
+        
+        // Ensure current index is included
+        if (!checkedIndices.includes(currentIndex)) {
+            checkedIndices.push(currentIndex);
+        }
+        
+        // Filter out "Default" from bulk edit
+        const filteredIndices = checkedIndices.filter(idx => {
+            const li = list.querySelector(`li[data-index="${idx}"]`);
+            return li && li.dataset.originalValue !== 'Default';
+        });
+        
+        if (filteredIndices.length === 0) {
+            // All were Default, just do single edit if current is not Default
+            if (oldValue !== 'Default') {
+                const li = list.querySelector(`li[data-index="${currentIndex}"]`);
+                const input = li.querySelector('.inline-edit-input');
+                await this.saveEdit(li, input, type, newValue, oldValue);
+            }
+            return;
+        }
+        
+        let successCount = 0;
+        let failCount = 0;
+        const errors = [];
+        
+        // Update all checked items (excluding Default)
+        for (const index of filteredIndices) {
             try {
-                const response = await fetch(`${API.BASE}/methods/${index}`, {
+                const endpoint = type === 'category' ? 'categories' : 'methods';
+                const response = await fetch(`${API.BASE}/${endpoint}/${index}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: trimmedValue })
+                    body: JSON.stringify({ name: newValue })
                 });
-                if (!response.ok) {
-                    const error = await response.json();
-                    alert(error.error || 'Failed to update payment method');
-                    return;
-                }
                 
-                const refreshedData = await API.loadData();
-                DataStore.init(refreshedData);
-                this.updateMethodsList();
-                Dashboard.update();
-                Ledger.update();
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({}));
+                    throw new Error(error.error || `Failed to update ${type}`);
+                }
+                successCount++;
             } catch (error) {
-                console.error('Error updating method:', error);
-                alert('Failed to update payment method. Please try again.');
+                console.error(`Error bulk updating ${type} at index ${index}:`, error);
+                failCount++;
+                errors.push(`Index ${index}: ${error.message || 'Failed'}`);
             }
+        }
+        
+        // Reload data
+        const data = await API.loadData();
+        DataStore.init(data);
+        
+        if (type === 'category') {
+            this.updateCategoriesList();
+        } else {
+            this.updateMethodsList();
+        }
+        
+        // Update other views
+        if (window.Dashboard) Dashboard.update();
+        if (window.Ledger) Ledger.update();
+        
+        // Show feedback if there were failures
+        if (failCount > 0) {
+            alert(`Updated ${successCount} item${successCount === 1 ? '' : 's'} successfully.\n\nFailed to update ${failCount}:\n${errors.join('\n')}`);
         }
     },
 
-    async deleteCategory(category) {
-        if (confirm(`Are you sure you want to delete the category "${category}"?`)) {
-            try {
-                const response = await fetch(`${API.BASE}/categories/${encodeURIComponent(category)}`, {
-                    method: 'DELETE'
-                });
-                if (!response.ok) throw new Error('Failed to delete category');
+    async deleteCategory(category, skipConfirmation = false) {
+        // Check for bulk deletion
+        const list = document.getElementById('categories-list');
+        const checkedBoxes = list.querySelectorAll('.row-checkbox:checked');
+        
+        if (checkedBoxes.length > 0) {
+            // Bulk delete
+            const checkedCategories = Array.from(checkedBoxes).map(cb => {
+                return cb.closest('li').querySelector('.category-name').textContent;
+            });
+            
+            // Include current if not already in list
+            if (!checkedCategories.includes(category)) {
+                checkedCategories.push(category);
+            }
+            
+            const count = checkedCategories.length;
+            if (skipConfirmation || confirm(`Are you sure you want to delete ${count} categor${count === 1 ? 'y' : 'ies'}?`)) {
+                let successCount = 0;
+                let failCount = 0;
+                
+                for (const cat of checkedCategories) {
+                    try {
+                        const response = await fetch(`${API.BASE}/categories/${encodeURIComponent(cat)}`, {
+                            method: 'DELETE'
+                        });
+                        if (!response.ok) throw new Error('Failed to delete category');
+                        successCount++;
+                    } catch (error) {
+                        console.error(`Error deleting category "${cat}":`, error);
+                        failCount++;
+                    }
+                }
                 
                 const data = await API.loadData();
                 DataStore.init(data);
                 this.updateCategoriesList();
-            } catch (error) {
-                console.error('Error deleting category:', error);
-                alert('Failed to delete category. Please try again.');
+                
+                if (window.Dashboard) Dashboard.update();
+                if (window.Ledger) Ledger.update();
+                
+                if (failCount > 0) {
+                    alert(`Deleted ${successCount} categor${successCount === 1 ? 'y' : 'ies'} successfully. Failed to delete ${failCount}.`);
+                }
+            }
+        } else {
+            // Single delete
+            if (skipConfirmation || confirm(`Are you sure you want to delete the category "${category}"?`)) {
+                try {
+                    const response = await fetch(`${API.BASE}/categories/${encodeURIComponent(category)}`, {
+                        method: 'DELETE'
+                    });
+                    if (!response.ok) throw new Error('Failed to delete category');
+                    
+                    const data = await API.loadData();
+                    DataStore.init(data);
+                    this.updateCategoriesList();
+                    
+                    if (window.Dashboard) Dashboard.update();
+                    if (window.Ledger) Ledger.update();
+                } catch (error) {
+                    console.error('Error deleting category:', error);
+                    alert('Failed to delete category. Please try again.');
+                }
             }
         }
     },
 
-    async deleteMethod(method) {
-        if (confirm(`Are you sure you want to delete the payment method "${method}"?`)) {
-            try {
-                const response = await fetch(`${API.BASE}/methods/${encodeURIComponent(method)}`, {
-                    method: 'DELETE'
-                });
-                if (!response.ok) throw new Error('Failed to delete method');
+    async deleteMethod(method, skipConfirmation = false) {
+        // Check for bulk deletion
+        const list = document.getElementById('methods-list');
+        const checkedBoxes = list.querySelectorAll('.row-checkbox:checked');
+        
+        if (checkedBoxes.length > 0) {
+            // Bulk delete
+            const checkedMethods = Array.from(checkedBoxes).map(cb => {
+                return cb.closest('li').querySelector('.method-name').textContent;
+            });
+            
+            // Include current if not already in list
+            if (!checkedMethods.includes(method)) {
+                checkedMethods.push(method);
+            }
+            
+            const count = checkedMethods.length;
+            if (skipConfirmation || confirm(`Are you sure you want to delete ${count} payment method${count === 1 ? '' : 's'}?`)) {
+                let successCount = 0;
+                let failCount = 0;
+                
+                for (const meth of checkedMethods) {
+                    try {
+                        const response = await fetch(`${API.BASE}/methods/${encodeURIComponent(meth)}`, {
+                            method: 'DELETE'
+                        });
+                        if (!response.ok) throw new Error('Failed to delete method');
+                        successCount++;
+                    } catch (error) {
+                        console.error(`Error deleting method "${meth}":`, error);
+                        failCount++;
+                    }
+                }
                 
                 const data = await API.loadData();
                 DataStore.init(data);
                 this.updateMethodsList();
-            } catch (error) {
-                console.error('Error deleting method:', error);
-                alert('Failed to delete payment method. Please try again.');
+                
+                if (window.Dashboard) Dashboard.update();
+                if (window.Ledger) Ledger.update();
+                
+                if (failCount > 0) {
+                    alert(`Deleted ${successCount} payment method${successCount === 1 ? '' : 's'} successfully. Failed to delete ${failCount}.`);
+                }
+            }
+        } else {
+            // Single delete
+            if (skipConfirmation || confirm(`Are you sure you want to delete the payment method "${method}"?`)) {
+                try {
+                    const response = await fetch(`${API.BASE}/methods/${encodeURIComponent(method)}`, {
+                        method: 'DELETE'
+                    });
+                    if (!response.ok) throw new Error('Failed to delete method');
+                    
+                    const data = await API.loadData();
+                    DataStore.init(data);
+                    this.updateMethodsList();
+                    
+                    if (window.Dashboard) Dashboard.update();
+                    if (window.Ledger) Ledger.update();
+                } catch (error) {
+                    console.error('Error deleting method:', error);
+                    alert('Failed to delete payment method. Please try again.');
+                }
             }
         }
     }

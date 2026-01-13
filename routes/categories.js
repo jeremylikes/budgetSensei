@@ -14,7 +14,8 @@ router.get('/api/categories', (req, res) => {
             return res.status(500).json({ error: 'Database not initialized' });
         }
         
-        const result = db.exec('SELECT name FROM categories ORDER BY name');
+        // Sort with "Default" first, then alphabetically
+        const result = db.exec("SELECT name FROM categories ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
         const categories = result[0] ? result[0].values.map(row => row[0]) : [];
         res.json(categories);
     } catch (error) {
@@ -90,6 +91,11 @@ router.put('/api/categories/:index', (req, res) => {
             return res.status(400).json({ error: 'Category name already exists' });
         }
         
+        // Prevent renaming "Default"
+        if (oldName === 'Default') {
+            return res.status(400).json({ error: 'Cannot rename the Default category' });
+        }
+        
         // Update category
         db.run(`UPDATE categories SET name = '${escapeSql(newName)}' WHERE id = ${categoryId}`);
         
@@ -117,12 +123,21 @@ router.delete('/api/categories/:name', (req, res) => {
         
         const categoryName = decodeURIComponent(req.params.name);
         
+        // Prevent deletion of "Default"
+        if (categoryName === 'Default') {
+            return res.status(400).json({ error: 'Cannot delete the "Default" category' });
+        }
+        
         // Check if category exists
         const existing = db.exec(`SELECT id FROM categories WHERE name = '${escapeSql(categoryName)}'`);
         if (!existing[0] || existing[0].values.length === 0) {
             return res.status(404).json({ error: 'Category not found' });
         }
         
+        // Update all transactions with this category to "Default"
+        db.run(`UPDATE transactions SET category = 'Default' WHERE category = '${escapeSql(categoryName)}'`);
+        
+        // Delete the category
         db.run(`DELETE FROM categories WHERE name = '${escapeSql(categoryName)}'`);
         saveDatabase();
         res.json({ success: true });

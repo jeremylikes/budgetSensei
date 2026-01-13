@@ -54,14 +54,14 @@ async function initializeDatabase() {
                 )
             `);
             
-            // Insert default categories
-            const defaultCategories = ['Groceries', 'Rent', 'Utilities', 'Work Income'];
+            // Insert default categories (Default must be first)
+            const defaultCategories = ['Default', 'Groceries', 'Rent', 'Utilities', 'Work Income'];
             defaultCategories.forEach(cat => {
                 db.run(`INSERT INTO categories (name) VALUES ('${escapeSql(cat)}')`);
             });
             
-            // Insert default methods
-            const defaultMethods = ['Cash', 'Credit Card', 'Debit Card', 'Bank Transfer'];
+            // Insert default methods (Default must be first)
+            const defaultMethods = ['Default', 'Cash', 'Credit Card', 'Debit Card', 'Bank Transfer'];
             defaultMethods.forEach(method => {
                 db.run(`INSERT INTO methods (name) VALUES ('${escapeSql(method)}')`);
             });
