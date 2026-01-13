@@ -76,14 +76,20 @@
                     Month:
                     <select id="ledger-month" class="month-select"></select>
                 </label>
+                <div id="ledger-sum" class="sum-display" style="display: none;">
+                    <strong>Sum: <span id="ledger-sum-amount">$0.00</span></strong>
+                </div>
             </div>
-
-            <button id="add-transaction-btn" class="add-btn">Add New</button>
 
             <div class="ledger-table">
                 <table>
                     <thead>
                         <tr>
+                            <th style="width: 40px;">
+                                <button id="add-transaction-inline-btn" class="add-inline-btn" title="Add New Transaction">
+                                    <span class="plus-icon"></span>
+                                </button>
+                            </th>
                             <th class="sortable" data-sort="date" data-default="desc">
                                 Date <span class="sort-indicator">▼</span>
                             </th>
@@ -102,6 +108,7 @@
                             <th class="sortable" data-sort="amount" data-default="desc">
                                 Amount <span class="sort-indicator">▼</span>
                             </th>
+                            <th>Note</th>
                             <th>Delete</th>
                         </tr>
                     </thead>
@@ -145,7 +152,7 @@
                 </div>
                 <div class="form-group">
                     <label for="transaction-description">Description:</label>
-                    <input type="text" id="transaction-description" maxlength="20" required>
+                    <input type="text" id="transaction-description" maxlength="40" required>
                 </div>
                 <div class="form-group">
                     <label for="transaction-category">Category:</label>

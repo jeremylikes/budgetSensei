@@ -13,6 +13,9 @@ let sortDirection = 'desc'; // 'asc' or 'desc'
 async function loadDataFromAPI() {
     try {
         const response = await fetch(`${API_BASE}/data`);
+        if (!response.ok) {
+            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+        }
         const data = await response.json();
         transactions = data.transactions || [];
         categories = data.categories || ['Groceries', 'Rent', 'Utilities', 'Work Income'];
@@ -20,6 +23,18 @@ async function loadDataFromAPI() {
         return data;
     } catch (error) {
         console.error('Error loading data:', error);
+        
+        // Check if server is not running
+        if (error.message === 'Failed to fetch' || error.message.includes('fetch')) {
+            console.error('Server connection failed. Make sure the server is running on port 3000.');
+            // Show a warning to the user
+            const warningShown = sessionStorage.getItem('serverWarningShown');
+            if (!warningShown) {
+                alert('Warning: Cannot connect to the server. Please make sure the server is running.\n\nStart the server with: npm start\n\nThis warning will not show again during this session.');
+                sessionStorage.setItem('serverWarningShown', 'true');
+            }
+        }
+        
         // Fallback to defaults if API fails
         transactions = [];
         categories = ['Groceries', 'Rent', 'Utilities', 'Work Income'];
@@ -34,14 +49,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function initializeApp() {
-    await loadDataFromAPI();
-    setupTabs();
-    setupDateSelectors();
-    setupDataTab();
-    setupTransactionModal();
-    setupSortableColumns();
-    updateDashboard();
-    updateLedger();
+    try {
+        await loadDataFromAPI();
+        setupTabs();
+        setupDateSelectors();
+        setupDataTab();
+        setupTransactionModal();
+        setupSortableColumns();
+        updateDashboard();
+        updateLedger();
+    } catch (error) {
+        console.error('Error initializing app:', error);
+        // Still try to set up tabs even if other initialization fails
+        setupTabs();
+    }
 }
 
 // Tab Navigation
@@ -51,18 +72,40 @@ function setupTabs() {
 
     tabButtons.forEach(btn => {
         btn.addEventListener('click', () => {
-            const targetTab = btn.getAttribute('data-tab');
-            
-            tabButtons.forEach(b => b.classList.remove('active'));
-            tabContents.forEach(c => c.classList.remove('active'));
-            
-            btn.classList.add('active');
-            document.getElementById(targetTab).classList.add('active');
-            
-            if (targetTab === 'dashboard') {
-                updateDashboard();
-            } else if (targetTab === 'ledger') {
-                updateLedger();
+            try {
+                const targetTab = btn.getAttribute('data-tab');
+                
+                if (!targetTab) {
+                    console.error('Tab button missing data-tab attribute');
+                    return;
+                }
+                
+                const targetElement = document.getElementById(targetTab);
+                if (!targetElement) {
+                    console.error(`Tab content element not found: ${targetTab}`);
+                    return;
+                }
+                
+                tabButtons.forEach(b => b.classList.remove('active'));
+                tabContents.forEach(c => c.classList.remove('active'));
+                
+                btn.classList.add('active');
+                targetElement.classList.add('active');
+                
+                // Update content after a brief delay to ensure tab is visible first
+                setTimeout(() => {
+                    try {
+                        if (targetTab === 'dashboard') {
+                            updateDashboard();
+                        } else if (targetTab === 'ledger') {
+                            updateLedger();
+                        }
+                    } catch (error) {
+                        console.error(`Error updating ${targetTab} tab:`, error);
+                    }
+                }, 0);
+            } catch (error) {
+                console.error('Error switching tabs:', error);
             }
         });
     });
@@ -112,88 +155,97 @@ function setupDateSelectors() {
 let editingTransactionId = null;
 
 function setupTransactionModal() {
+    // Setup inline add button
+    const addInlineBtn = document.getElementById('add-transaction-inline-btn');
+    if (addInlineBtn) {
+        addInlineBtn.addEventListener('click', () => {
+            addNewInlineRow();
+        });
+    }
+
+    // Keep modal setup for backward compatibility (if modal still exists)
     const modal = document.getElementById('transaction-modal');
-    const addBtn = document.getElementById('add-transaction-btn');
-    const cancelBtn = document.getElementById('cancel-transaction');
-    const form = document.getElementById('transaction-form');
-    const closeBtn = document.querySelector('.close');
+    if (modal) {
+        const cancelBtn = document.getElementById('cancel-transaction');
+        const form = document.getElementById('transaction-form');
+        const closeBtn = document.querySelector('.close');
 
-    addBtn.addEventListener('click', () => {
-        editingTransactionId = null;
-        document.querySelector('#transaction-modal h2').textContent = 'Add New Transaction';
-        populateCategoryMethodDropdowns();
-        document.getElementById('transaction-date').valueAsDate = new Date();
-        form.reset();
-        modal.style.display = 'block';
-    });
-
-    cancelBtn.addEventListener('click', () => {
-        modal.style.display = 'none';
-        form.reset();
-        editingTransactionId = null;
-    });
-
-    closeBtn.addEventListener('click', () => {
-        modal.style.display = 'none';
-        form.reset();
-        editingTransactionId = null;
-    });
-
-    window.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.style.display = 'none';
-            form.reset();
-            editingTransactionId = null;
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                modal.style.display = 'none';
+                form.reset();
+                editingTransactionId = null;
+            });
         }
-    });
 
-    form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        saveTransaction();
-    });
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                modal.style.display = 'none';
+                form.reset();
+                editingTransactionId = null;
+            });
+        }
+
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                saveTransaction();
+            });
+        }
+
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+                if (form) form.reset();
+                editingTransactionId = null;
+            }
+        });
+    }
 
     // Validate amount input (7 whole numbers, 2 decimals)
     const amountInput = document.getElementById('transaction-amount');
-    amountInput.addEventListener('input', (e) => {
-        let value = e.target.value;
-        
-        // Remove any non-digit or non-decimal characters (allow digits and single decimal point)
-        value = value.replace(/[^\d.]/g, '');
-        
-        // Prevent multiple decimal points - keep only the first one
-        const parts = value.split('.');
-        if (parts.length > 2) {
-            value = parts[0] + '.' + parts.slice(1).join('');
-        }
-        
-        // Split by decimal point
-        const finalParts = value.split('.');
-        
-        // Limit whole number part to 7 digits
-        if (finalParts[0].length > 7) {
-            finalParts[0] = finalParts[0].substring(0, 7);
-        }
-        
-        // Limit decimal part to 2 digits
-        if (finalParts.length > 1 && finalParts[1].length > 2) {
-            finalParts[1] = finalParts[1].substring(0, 2);
-        }
-        
-        // Reconstruct value
-        e.target.value = finalParts.join('.');
-    });
-    
-    // Format on blur to ensure 2 decimal places if decimal entered
-    amountInput.addEventListener('blur', (e) => {
-        let value = e.target.value.trim();
-        if (value && !isNaN(value)) {
-            const num = parseFloat(value);
-            if (!isNaN(num)) {
-                // Format to 2 decimal places
-                e.target.value = num.toFixed(2);
+    if (amountInput) {
+        amountInput.addEventListener('input', (e) => {
+            let value = e.target.value;
+            
+            // Remove any non-digit or non-decimal characters (allow digits and single decimal point)
+            value = value.replace(/[^\d.]/g, '');
+            
+            // Prevent multiple decimal points - keep only the first one
+            const parts = value.split('.');
+            if (parts.length > 2) {
+                value = parts[0] + '.' + parts.slice(1).join('');
             }
-        }
-    });
+            
+            // Split by decimal point
+            const finalParts = value.split('.');
+            
+            // Limit whole number part to 7 digits
+            if (finalParts[0].length > 7) {
+                finalParts[0] = finalParts[0].substring(0, 7);
+            }
+            
+            // Limit decimal part to 2 digits
+            if (finalParts.length > 1 && finalParts[1].length > 2) {
+                finalParts[1] = finalParts[1].substring(0, 2);
+            }
+            
+            // Reconstruct value
+            e.target.value = finalParts.join('.');
+        });
+        
+        // Format on blur to ensure 2 decimal places if decimal entered
+        amountInput.addEventListener('blur', (e) => {
+            let value = e.target.value.trim();
+            if (value && !isNaN(value)) {
+                const num = parseFloat(value);
+                if (!isNaN(num)) {
+                    // Format to 2 decimal places
+                    e.target.value = num.toFixed(2);
+                }
+            }
+        });
+    }
 }
 
 function populateCategoryMethodDropdowns() {
@@ -294,24 +346,63 @@ async function saveTransaction() {
         updateLedger();
     } catch (error) {
         console.error('Error saving transaction:', error);
-        alert(error.message || 'Failed to save transaction. Please try again.');
+        
+        // Provide more helpful error messages
+        let errorMessage = 'Failed to save transaction. ';
+        if (error.message === 'Failed to fetch' || error.message.includes('fetch')) {
+            errorMessage += 'The server may not be running. Please make sure the server is started on port 3000.';
+        } else {
+            errorMessage += error.message || 'Please try again.';
+        }
+        
+        alert(errorMessage);
     }
 }
 
 async function deleteTransaction(id) {
-    if (confirm('Are you sure you want to delete this transaction?')) {
-        try {
-            const response = await fetch(`${API_BASE}/transactions/${id}`, {
-                method: 'DELETE'
-            });
-            if (!response.ok) throw new Error('Failed to delete transaction');
-            
-            await loadDataFromAPI(); // Refresh data from server
-            updateDashboard();
-            updateLedger();
-        } catch (error) {
-            console.error('Error deleting transaction:', error);
-            alert('Failed to delete transaction. Please try again.');
+    // Check for bulk deletion
+    const tbody = document.getElementById('ledger-tbody');
+    const checkedRows = tbody.querySelectorAll('tr:not(.new-row) .row-checkbox:checked');
+    
+    if (checkedRows.length > 0) {
+        // Bulk delete
+        const checkedIds = Array.from(checkedRows).map(checkbox => {
+            const row = checkbox.closest('tr');
+            return parseInt(row.dataset.id);
+        });
+        
+        const count = checkedIds.length;
+        if (confirm(`Are you sure you want to delete ${count} transaction${count > 1 ? 's' : ''}?`)) {
+            try {
+                // Delete all checked transactions
+                await Promise.all(checkedIds.map(id => 
+                    fetch(`${API_BASE}/transactions/${id}`, { method: 'DELETE' })
+                ));
+                
+                await loadDataFromAPI();
+                updateDashboard();
+                updateLedger();
+            } catch (error) {
+                console.error('Error deleting transactions:', error);
+                alert('Failed to delete transactions. Please try again.');
+            }
+        }
+    } else {
+        // Single delete
+        if (confirm('Are you sure you want to delete this transaction?')) {
+            try {
+                const response = await fetch(`${API_BASE}/transactions/${id}`, {
+                    method: 'DELETE'
+                });
+                if (!response.ok) throw new Error('Failed to delete transaction');
+                
+                await loadDataFromAPI(); // Refresh data from server
+                updateDashboard();
+                updateLedger(); // This will also update the sum
+            } catch (error) {
+                console.error('Error deleting transaction:', error);
+                alert('Failed to delete transaction. Please try again.');
+            }
         }
     }
 }
@@ -448,7 +539,7 @@ function updateLedger() {
     tbody.innerHTML = '';
 
     if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No transactions found for this month.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">No transactions found for this month.</td></tr>';
         return;
     }
 
@@ -459,6 +550,306 @@ function updateLedger() {
     
     // Update sort indicators
     updateSortIndicators();
+    
+    // Update sum display
+    updateSum();
+}
+
+// Add new inline row for creating a transaction
+function addNewInlineRow() {
+    const tbody = document.getElementById('ledger-tbody');
+    
+    // Remove any existing new row
+    const existingNewRow = tbody.querySelector('tr.new-row');
+    if (existingNewRow) {
+        existingNewRow.remove();
+    }
+    
+    const row = document.createElement('tr');
+    row.className = 'new-row';
+    row.dataset.isNew = 'true';
+    
+    // Checkbox cell (disabled for new rows)
+    const checkboxCell = document.createElement('td');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'row-checkbox';
+    checkbox.disabled = true;
+    checkboxCell.appendChild(checkbox);
+    
+    // Date cell
+    const dateCell = document.createElement('td');
+    const dateInput = document.createElement('input');
+    dateInput.type = 'date';
+    dateInput.valueAsDate = new Date();
+    dateInput.required = true;
+    dateInput.dataset.field = 'date';
+    dateInput.addEventListener('input', validateNewRow);
+    dateCell.appendChild(dateInput);
+    
+    // Description cell
+    const descCell = document.createElement('td');
+    const descInput = document.createElement('input');
+    descInput.type = 'text';
+    descInput.maxLength = 40;
+    descInput.required = true;
+    descInput.dataset.field = 'description';
+    descInput.addEventListener('input', validateNewRow);
+    descCell.appendChild(descInput);
+    
+    // Category cell
+    const catCell = document.createElement('td');
+    const catSelect = document.createElement('select');
+    catSelect.required = true;
+    catSelect.dataset.field = 'category';
+    catSelect.addEventListener('change', validateNewRow);
+    categories.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat;
+        option.textContent = cat;
+        catSelect.appendChild(option);
+    });
+    catCell.appendChild(catSelect);
+    
+    // Method cell
+    const methodCell = document.createElement('td');
+    const methodSelect = document.createElement('select');
+    methodSelect.required = true;
+    methodSelect.dataset.field = 'method';
+    methodSelect.addEventListener('change', validateNewRow);
+    methods.forEach(method => {
+        const option = document.createElement('option');
+        option.value = method;
+        option.textContent = method;
+        methodSelect.appendChild(option);
+    });
+    methodCell.appendChild(methodSelect);
+    
+    // Type cell
+    const typeCell = document.createElement('td');
+    const typeSelect = document.createElement('select');
+    typeSelect.required = true;
+    typeSelect.dataset.field = 'type';
+    typeSelect.addEventListener('change', validateNewRow);
+    ['Income', 'Expense'].forEach(type => {
+        const option = document.createElement('option');
+        option.value = type;
+        option.textContent = type;
+        if (type === 'Expense') option.selected = true;
+        typeSelect.appendChild(option);
+    });
+    typeCell.appendChild(typeSelect);
+    
+    // Amount cell
+    const amountCell = document.createElement('td');
+    const amountInput = document.createElement('input');
+    amountInput.type = 'text';
+    amountInput.placeholder = '0.00';
+    amountInput.required = true;
+    amountInput.dataset.field = 'amount';
+    amountInput.addEventListener('input', (e) => {
+        validateNewRow();
+        // Format amount input
+        let value = e.target.value;
+        value = value.replace(/[^\d.]/g, '');
+        const parts = value.split('.');
+        if (parts.length > 2) {
+            value = parts[0] + '.' + parts.slice(1).join('');
+        }
+        const finalParts = value.split('.');
+        if (finalParts[0].length > 7) {
+            finalParts[0] = finalParts[0].substring(0, 7);
+        }
+        if (finalParts.length > 1 && finalParts[1].length > 2) {
+            finalParts[1] = finalParts[1].substring(0, 2);
+        }
+        e.target.value = finalParts.join('.');
+    });
+    amountInput.addEventListener('blur', (e) => {
+        let value = e.target.value.trim();
+        if (value && !isNaN(value)) {
+            const num = parseFloat(value);
+            if (!isNaN(num)) {
+                e.target.value = num.toFixed(2);
+            }
+        }
+        validateNewRow();
+    });
+    amountCell.appendChild(amountInput);
+    
+    // Note cell
+    const noteCell = document.createElement('td');
+    const noteInput = document.createElement('textarea');
+    noteInput.className = 'note-input';
+    noteInput.rows = 1;
+    noteInput.maxLength = 500;
+    noteInput.placeholder = 'Optional note...';
+    noteCell.appendChild(noteInput);
+    
+    // Delete/Save button cell (Save button for new row)
+    const deleteCell = document.createElement('td');
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'save-inline-btn';
+    saveBtn.innerHTML = '✓';
+    saveBtn.title = 'Save';
+    saveBtn.disabled = true;
+    saveBtn.addEventListener('click', () => saveNewInlineRow(row));
+    deleteCell.appendChild(saveBtn);
+    
+    row.appendChild(checkboxCell);
+    row.appendChild(dateCell);
+    row.appendChild(descCell);
+    row.appendChild(catCell);
+    row.appendChild(methodCell);
+    row.appendChild(typeCell);
+    row.appendChild(amountCell);
+    row.appendChild(noteCell);
+    row.appendChild(deleteCell);
+    
+    // Insert at the beginning of tbody
+    tbody.insertBefore(row, tbody.firstChild);
+    
+    // Focus on description field
+    descInput.focus();
+}
+
+// Validate new row and enable/disable save button
+function validateNewRow() {
+    const newRow = document.querySelector('tr.new-row');
+    if (!newRow) return;
+    
+    const saveBtn = newRow.querySelector('.save-inline-btn');
+    if (!saveBtn) return;
+    
+    // Get inputs and selects using data attributes for reliability
+    const dateInput = newRow.querySelector('input[data-field="date"]');
+    const descInput = newRow.querySelector('input[data-field="description"]');
+    const amountInput = newRow.querySelector('input[data-field="amount"]');
+    const catSelect = newRow.querySelector('select[data-field="category"]');
+    const methodSelect = newRow.querySelector('select[data-field="method"]');
+    const typeSelect = newRow.querySelector('select[data-field="type"]');
+    
+    const date = dateInput ? dateInput.value : '';
+    const description = descInput ? descInput.value.trim() : '';
+    const amountValue = amountInput ? amountInput.value.trim() : '';
+    const category = catSelect ? catSelect.value : '';
+    const method = methodSelect ? methodSelect.value : '';
+    const type = typeSelect ? typeSelect.value : '';
+    
+    const amount = parseFloat(amountValue);
+    
+    const isValid = date && 
+                   description && 
+                   category && 
+                   method && 
+                   type && 
+                   amountValue &&
+                   !isNaN(amount) && 
+                   amount > 0;
+    
+    saveBtn.disabled = !isValid;
+}
+
+// Save new inline row
+async function saveNewInlineRow(row) {
+    // Use data-field attributes for reliable field selection
+    const dateInput = row.querySelector('input[data-field="date"]');
+    const descInput = row.querySelector('input[data-field="description"]');
+    const amountInput = row.querySelector('input[data-field="amount"]');
+    const catSelect = row.querySelector('select[data-field="category"]');
+    const methodSelect = row.querySelector('select[data-field="method"]');
+    const typeSelect = row.querySelector('select[data-field="type"]');
+    const noteInput = row.querySelector('textarea');
+    
+    if (!dateInput || !descInput || !amountInput || !catSelect || !methodSelect || !typeSelect) {
+        alert('Error: Could not find all required fields. Please refresh the page and try again.');
+        return;
+    }
+    
+    const date = dateInput.value;
+    const description = descInput.value.trim();
+    const category = catSelect.value;
+    const method = methodSelect.value;
+    const type = typeSelect.value;
+    let amountValue = amountInput.value.trim();
+    const note = noteInput ? noteInput.value.trim() : '';
+    
+    // Clean amount value - remove any non-numeric characters except decimal point
+    amountValue = amountValue.replace(/[^\d.]/g, '');
+    
+    // Parse amount
+    const amount = parseFloat(amountValue);
+    
+    // Validate amount
+    if (!amountValue || isNaN(amount) || amount <= 0) {
+        alert('Please enter a valid amount greater than 0');
+        amountInput.focus();
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/transactions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date, description, category, method, type, amount, note })
+        });
+        
+        if (!response.ok) {
+            let errorMessage = 'Failed to save transaction. Please try again.';
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorData.details || errorMessage;
+            } catch (parseError) {
+                console.error('Error parsing error response:', parseError);
+            }
+            throw new Error(errorMessage);
+        }
+        
+        await loadDataFromAPI();
+        updateLedger();
+        updateDashboard();
+    } catch (error) {
+        console.error('Error saving transaction:', error);
+        let errorMessage = 'Failed to save transaction. ';
+        if (error.message === 'Failed to fetch' || error.message.includes('fetch')) {
+            errorMessage += 'The server may not be running. Please make sure the server is started on port 3000.';
+        } else {
+            errorMessage += error.message || 'Please try again.';
+        }
+        alert(errorMessage);
+    }
+}
+
+// Update sum of checked items
+function updateSum() {
+    const tbody = document.getElementById('ledger-tbody');
+    const checkboxes = tbody.querySelectorAll('tr:not(.new-row) .row-checkbox');
+    const sumDisplay = document.getElementById('ledger-sum');
+    const sumAmount = document.getElementById('ledger-sum-amount');
+    
+    let sum = 0;
+    let hasChecked = false;
+    
+    checkboxes.forEach(checkbox => {
+        if (checkbox.checked && !checkbox.disabled) {
+            hasChecked = true;
+            const row = checkbox.closest('tr');
+            const amountCell = row.querySelector('td[data-field="amount"]');
+            if (amountCell) {
+                const amount = parseFloat(amountCell.dataset.value);
+                if (!isNaN(amount)) {
+                    sum += amount;
+                }
+            }
+        }
+    });
+    
+    if (hasChecked) {
+        sumDisplay.style.display = 'block';
+        sumAmount.textContent = formatCurrency(sum);
+    } else {
+        sumDisplay.style.display = 'none';
+    }
 }
 
 // Sort transactions based on column and direction
@@ -555,11 +946,15 @@ function createEditableRow(t) {
     row.dataset.id = t.id;
     const note = t.note || '';
     
-    // Add class and title attribute for rows with notes
-    if (note) {
-        row.classList.add('has-note');
-        row.setAttribute('title', note);
-    }
+    // Note indicator is now in the note cell, not on the row
+    
+    // Checkbox cell
+    const checkboxCell = document.createElement('td');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'row-checkbox';
+    checkbox.addEventListener('change', updateSum);
+    checkboxCell.appendChild(checkbox);
     
     // Date cell
     const dateCell = document.createElement('td');
@@ -603,6 +998,18 @@ function createEditableRow(t) {
     amountCell.dataset.field = 'amount';
     amountCell.dataset.value = t.amount;
     
+    // Note cell (contains a box matching delete button size)
+    const noteCell = document.createElement('td');
+    noteCell.className = 'note-cell';
+    const noteBox = document.createElement('div');
+    noteBox.className = 'note-box';
+    if (note) {
+        noteBox.classList.add('has-note');
+        noteBox.title = note;
+        noteBox.setAttribute('data-note', note);
+    }
+    noteCell.appendChild(noteBox);
+    
     // Delete button cell
     const deleteCell = document.createElement('td');
     const deleteBtn = document.createElement('button');
@@ -612,12 +1019,14 @@ function createEditableRow(t) {
     deleteBtn.onclick = () => deleteTransaction(t.id);
     deleteCell.appendChild(deleteBtn);
     
+    row.appendChild(checkboxCell);
     row.appendChild(dateCell);
     row.appendChild(descCell);
     row.appendChild(catCell);
     row.appendChild(methodCell);
     row.appendChild(typeCell);
     row.appendChild(amountCell);
+    row.appendChild(noteCell);
     row.appendChild(deleteCell);
     
     // Store original values for cancel
@@ -706,7 +1115,7 @@ function enterEditMode(row, cell) {
         input.type = 'text';
         input.value = currentValue;
         if (field === 'description') {
-            input.maxLength = 20;
+            input.maxLength = 40;
         }
     }
     
@@ -734,8 +1143,18 @@ function enterEditMode(row, cell) {
             }
         }
         
-        // Update the transaction
-        await updateTransactionField(transactionId, field, newValue);
+        // Check if this row is checked for bulk editing
+        const checkbox = row.querySelector('.row-checkbox');
+        const isChecked = checkbox && checkbox.checked;
+        
+        if (isChecked) {
+            // Bulk edit: apply to all checked rows
+            await bulkUpdateField(field, newValue, transactionId);
+        } else {
+            // Single row update
+            await updateTransactionField(transactionId, field, newValue);
+        }
+        
         exitEditMode(row, cell, field, newValue);
     };
     
@@ -769,7 +1188,30 @@ function exitEditMode(row, cell, field, value, isCancel = false) {
         value = originalData[field];
     }
     
-    // Update display
+    // Check if bulk editing - update all checked rows visually
+    const checkbox = row.querySelector('.row-checkbox');
+    const isChecked = checkbox && checkbox.checked && !isCancel;
+    
+    if (isChecked) {
+        // Update all checked rows visually
+        const tbody = document.getElementById('ledger-tbody');
+        const checkedRows = tbody.querySelectorAll('tr:not(.new-row) .row-checkbox:checked');
+        
+        checkedRows.forEach(cb => {
+            const checkedRow = cb.closest('tr');
+            const checkedCell = checkedRow.querySelector(`td[data-field="${field}"]`);
+            if (checkedCell && checkedCell !== cell) {
+                updateCellDisplay(checkedCell, field, value);
+            }
+        });
+    }
+    
+    // Update current cell
+    updateCellDisplay(cell, field, value);
+}
+
+// Helper function to update cell display
+function updateCellDisplay(cell, field, value) {
     if (field === 'date') {
         cell.textContent = formatDate(value);
         cell.dataset.value = value;
@@ -779,6 +1221,76 @@ function exitEditMode(row, cell, field, value, isCancel = false) {
     } else {
         cell.textContent = value;
         cell.dataset.value = value;
+    }
+}
+
+// Bulk update a field for all checked transactions
+async function bulkUpdateField(field, value, excludeId = null) {
+    const tbody = document.getElementById('ledger-tbody');
+    const checkedRows = tbody.querySelectorAll('tr:not(.new-row) .row-checkbox:checked');
+    
+    const checkedIds = new Set();
+    
+    // Add all checked transaction IDs
+    checkedRows.forEach(checkbox => {
+        const row = checkbox.closest('tr');
+        const id = parseInt(row.dataset.id);
+        if (id) checkedIds.add(id);
+    });
+    
+    // Include the current row being edited
+    if (excludeId) {
+        checkedIds.add(excludeId);
+    }
+    
+    if (checkedIds.size === 0) {
+        return;
+    }
+    
+    try {
+        // Load latest data first
+        await loadDataFromAPI();
+        
+        // Update all checked transactions in parallel
+        const updatePromises = Array.from(checkedIds).map(async (id) => {
+            const transaction = transactions.find(t => t.id === id);
+            if (!transaction) return;
+            
+            const updateData = {
+                date: transaction.date,
+                description: transaction.description,
+                category: transaction.category,
+                method: transaction.method,
+                type: transaction.type,
+                amount: transaction.amount,
+                note: transaction.note || ''
+            };
+            
+            // Update the specific field
+            if (field === 'amount') {
+                updateData.amount = parseFloat(value);
+            } else {
+                updateData[field] = value;
+            }
+            
+            const response = await fetch(`${API_BASE}/transactions/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updateData)
+            });
+            
+            if (!response.ok) throw new Error(`Failed to update transaction ${id}`);
+        });
+        
+        await Promise.all(updatePromises);
+        
+        // Refresh data once after all updates
+        await loadDataFromAPI();
+        updateDashboard();
+        updateLedger();
+    } catch (error) {
+        console.error('Error bulk updating transactions:', error);
+        alert('Failed to update some transactions. Please try again.');
     }
 }
 
@@ -816,10 +1328,11 @@ async function updateTransactionField(id, field, value) {
         
         await loadDataFromAPI(); // Refresh data
         updateDashboard();
-        updateLedger(); // Refresh the ledger to show updated values
+        updateLedger(); // Refresh the ledger to show updated values (this will also update sum)
     } catch (error) {
         console.error('Error updating transaction:', error);
         alert('Failed to update transaction. Please try again.');
+        throw error; // Re-throw so bulk update can handle it
     }
 }
 
