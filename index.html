@@ -120,9 +120,6 @@
                             <th class="sortable" data-sort="method" data-default="asc">
                                 Method <span class="sort-indicator">▲</span>
                             </th>
-                            <th class="sortable" data-sort="type" data-default="desc">
-                                Type <span class="sort-indicator">▼</span>
-                            </th>
                             <th class="sortable" data-sort="amount" data-default="desc">
                                 Amount <span class="sort-indicator">▼</span>
                             </th>
@@ -139,13 +136,23 @@
         <!-- Customize Tab -->
         <div id="data" class="tab-content">
             <div class="data-section">
-                <h2>Categories</h2>
+                <h2>Income</h2>
                 <p style="font-size: 12px; color: #666; margin-bottom: 8px;">Separate with comma to add multiple</p>
                 <div class="input-group">
-                    <input type="text" id="new-category" placeholder="Enter new category (or multiple separated by comma)" maxlength="200">
-                    <button id="add-category-btn" class="add-btn">Add Category</button>
+                    <input type="text" id="new-income" placeholder="Enter new income category (or multiple separated by comma)" maxlength="200">
+                    <button id="add-income-btn" class="add-btn">Add Income</button>
                 </div>
-                <ul id="categories-list" class="data-list"></ul>
+                <ul id="income-list" class="data-list"></ul>
+            </div>
+
+            <div class="data-section">
+                <h2>Expenses</h2>
+                <p style="font-size: 12px; color: #666; margin-bottom: 8px;">Separate with comma to add multiple</p>
+                <div class="input-group">
+                    <input type="text" id="new-expense" placeholder="Enter new expense category (or multiple separated by comma)" maxlength="200">
+                    <button id="add-expense-btn" class="add-btn">Add Expense</button>
+                </div>
+                <ul id="expenses-list" class="data-list"></ul>
             </div>
 
             <div class="data-section">
@@ -183,11 +190,6 @@
                     <select id="transaction-method" required></select>
                 </div>
                 <div class="form-group">
-                    <label for="transaction-type">Type:</label>
-                    <select id="transaction-type" required>
-                        <option value="Income">Income</option>
-                        <option value="Expense">Expense</option>
-                    </select>
                 </div>
                 <div class="form-group">
                     <label for="transaction-amount">Amount:</label>

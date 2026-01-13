@@ -1,10 +1,18 @@
 // Database Helper Functions
 
-const { getDb, saveDatabase } = require('./database');
-
 // Helper function to check if a column exists in a table
-function columnExists(tableName, columnName) {
-    const db = getDb();
+function columnExists(tableName, columnName, db = null) {
+    // If db not provided, try to get it (for backward compatibility)
+    if (!db) {
+        try {
+            const { getDb } = require('./database');
+            db = getDb();
+        } catch (error) {
+            console.error('Error getting database in columnExists:', error);
+            return false;
+        }
+    }
+    
     if (!db) return false;
     
     try {
@@ -21,12 +29,36 @@ function columnExists(tableName, columnName) {
 }
 
 // Helper function to add a column to a table if it doesn't exist
-function ensureColumn(tableName, columnName, columnDefinition) {
-    if (!columnExists(tableName, columnName)) {
-        const db = getDb();
-        if (!db) return false;
-        
+function ensureColumn(tableName, columnName, columnDefinition, db = null) {
+    // If db not provided, try to get it (for backward compatibility)
+    if (!db) {
         try {
+            const { getDb, saveDatabase } = require('./database');
+            db = getDb();
+            if (!db) return false;
+            
+            if (!columnExists(tableName, columnName, db)) {
+                try {
+                    console.log(`Adding column ${columnName} to ${tableName} table...`);
+                    db.run(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDefinition}`);
+                    saveDatabase();
+                    console.log(`Column ${columnName} added successfully to ${tableName}`);
+                    return true;
+                } catch (error) {
+                    console.error(`Error adding column ${columnName} to ${tableName}:`, error);
+                    return false;
+                }
+            }
+            return false; // Column already exists
+        } catch (error) {
+            console.error('Error getting database in ensureColumn:', error);
+            return false;
+        }
+    }
+    
+    if (!columnExists(tableName, columnName, db)) {
+        try {
+            const { saveDatabase } = require('./database');
             console.log(`Adding column ${columnName} to ${tableName} table...`);
             db.run(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDefinition}`);
             saveDatabase();

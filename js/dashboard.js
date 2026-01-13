@@ -121,8 +121,10 @@ const Dashboard = {
             console.error('Error loading budgets:', error);
         }
 
-        // Get all categories and sort alphabetically
-        const allCategories = (DataStore.categories || []).slice().sort((a, b) => a.localeCompare(b));
+        // Get all categories (income and expenses) and sort alphabetically
+        const allIncome = (DataStore.income || []).slice().sort((a, b) => a.localeCompare(b));
+        const allExpenses = (DataStore.expenses || []).slice().sort((a, b) => a.localeCompare(b));
+        const allCategories = [...allIncome, ...allExpenses];
 
         // Build budget table
         const tbody = document.getElementById('budget-tbody');
@@ -138,6 +140,9 @@ const Dashboard = {
             const actual = actualData[category] || 0;
             const planned = budgetData[category] || null;
             const difference = planned !== null ? planned - actual : null;
+            
+            // Determine category type
+            const categoryType = DataStore.getCategoryType(category);
 
             // Category name
             const categoryCell = document.createElement('td');
@@ -176,19 +181,35 @@ const Dashboard = {
             actualCell.textContent = Utils.formatCurrency(actual);
             row.appendChild(actualCell);
 
-            // Difference
+            // Difference - color code based on category type
             const differenceCell = document.createElement('td');
             if (difference !== null) {
                 differenceCell.textContent = Utils.formatCurrency(difference);
-                // Color code: negative (over budget) = red, zero = black, positive (under budget) = green
-                if (difference < 0) {
-                    differenceCell.style.color = '#d32f2f'; // Red - spent more than planned
-                    differenceCell.style.fontWeight = 'bold';
-                } else if (difference > 0) {
-                    differenceCell.style.color = '#2e7d32'; // Green - spent less than planned
-                    differenceCell.style.fontWeight = 'bold';
-                } else {
-                    differenceCell.style.color = '#000'; // Black - exactly on budget
+                
+                // For Income: Actual > Planned (negative difference) = green (good, earned more)
+                // For Income: Actual < Planned (positive difference) = red (bad, earned less)
+                // For Expense: Actual > Planned (negative difference) = red (bad, spent more)
+                // For Expense: Actual < Planned (positive difference) = green (good, spent less)
+                if (categoryType === 'Income') {
+                    if (difference < 0) {
+                        differenceCell.style.color = '#2e7d32'; // Green - earned more than planned
+                        differenceCell.style.fontWeight = 'bold';
+                    } else if (difference > 0) {
+                        differenceCell.style.color = '#d32f2f'; // Red - earned less than planned
+                        differenceCell.style.fontWeight = 'bold';
+                    } else {
+                        differenceCell.style.color = '#000'; // Black - exactly on budget
+                    }
+                } else { // Expense
+                    if (difference < 0) {
+                        differenceCell.style.color = '#d32f2f'; // Red - spent more than planned
+                        differenceCell.style.fontWeight = 'bold';
+                    } else if (difference > 0) {
+                        differenceCell.style.color = '#2e7d32'; // Green - spent less than planned
+                        differenceCell.style.fontWeight = 'bold';
+                    } else {
+                        differenceCell.style.color = '#000'; // Black - exactly on budget
+                    }
                 }
             } else {
                 differenceCell.textContent = '—';

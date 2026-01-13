@@ -43,7 +43,9 @@ async function initializeDatabase() {
             db.run(`
                 CREATE TABLE categories (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT UNIQUE NOT NULL
+                    name TEXT NOT NULL,
+                    type TEXT NOT NULL,
+                    UNIQUE(name, type)
                 )
             `);
             
@@ -65,10 +67,16 @@ async function initializeDatabase() {
                 )
             `);
             
-            // Insert default categories (Default must be first)
-            const defaultCategories = ['Default', 'Groceries', 'Rent', 'Utilities', 'Work Income'];
-            defaultCategories.forEach(cat => {
-                db.run(`INSERT INTO categories (name) VALUES ('${escapeSql(cat)}')`);
+            // Insert default Income categories
+            const defaultIncomeCategories = ['Default', 'Work Income', 'Freelance', 'Investment'];
+            defaultIncomeCategories.forEach(cat => {
+                db.run(`INSERT INTO categories (name, type) VALUES ('${escapeSql(cat)}', 'Income')`);
+            });
+            
+            // Insert default Expense categories
+            const defaultExpenseCategories = ['Default', 'Groceries', 'Rent', 'Utilities', 'Transportation', 'Entertainment'];
+            defaultExpenseCategories.forEach(cat => {
+                db.run(`INSERT INTO categories (name, type) VALUES ('${escapeSql(cat)}', 'Expense')`);
             });
             
             // Insert default methods (Default must be first)

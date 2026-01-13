@@ -223,14 +223,25 @@ const LedgerEditing = {
         
         if (field === 'category') {
             input = document.createElement('select');
-            // Sort categories alphabetically
-            const sortedCategories = [...DataStore.categories].sort((a, b) => a.localeCompare(b));
-            sortedCategories.forEach(cat => {
+            // Combine income and expenses, sort alphabetically
+            const allCategories = [...(DataStore.income || []), ...(DataStore.expenses || [])].sort((a, b) => a.localeCompare(b));
+            allCategories.forEach(cat => {
                 const option = document.createElement('option');
                 option.value = cat;
                 option.textContent = cat;
                 if (cat === currentValue) option.selected = true;
                 input.appendChild(option);
+            });
+            
+            // Auto-update type when category changes
+            input.addEventListener('change', () => {
+                const row = input.closest('tr');
+                if (row) {
+                    const newCategory = input.value;
+                    const newType = DataStore.getCategoryType(newCategory);
+                    // Update the transaction type in the background (not displayed, but stored)
+                    row.dataset.transactionType = newType;
+                }
             });
         } else if (field === 'method') {
             input = document.createElement('select');
@@ -239,15 +250,6 @@ const LedgerEditing = {
                 option.value = method;
                 option.textContent = method;
                 if (method === currentValue) option.selected = true;
-                input.appendChild(option);
-            });
-        } else if (field === 'type') {
-            input = document.createElement('select');
-            ['Income', 'Expense'].forEach(type => {
-                const option = document.createElement('option');
-                option.value = type;
-                option.textContent = type;
-                if (type === currentValue) option.selected = true;
                 input.appendChild(option);
             });
         } else if (field === 'date') {

@@ -46,13 +46,6 @@ const LedgerTable = {
         methodCell.dataset.field = 'method';
         methodCell.dataset.value = transaction.method;
         
-        // Type cell
-        const typeCell = document.createElement('td');
-        typeCell.className = 'editable-cell';
-        typeCell.textContent = transaction.type;
-        typeCell.dataset.field = 'type';
-        typeCell.dataset.value = transaction.type;
-        
         // Amount cell
         const amountCell = document.createElement('td');
         amountCell.className = 'editable-cell';
@@ -96,7 +89,6 @@ const LedgerTable = {
         row.appendChild(descCell);
         row.appendChild(catCell);
         row.appendChild(methodCell);
-        row.appendChild(typeCell);
         row.appendChild(amountCell);
         row.appendChild(noteCell);
         row.appendChild(deleteCell);
@@ -107,7 +99,7 @@ const LedgerTable = {
             description: transaction.description,
             category: transaction.category,
             method: transaction.method,
-            type: transaction.type,
+            type: transaction.type, // Keep for backward compatibility
             amount: transaction.amount,
             note: note
         });

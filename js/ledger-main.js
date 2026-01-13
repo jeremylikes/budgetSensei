@@ -19,7 +19,7 @@ const Ledger = {
         tbody.innerHTML = '';
 
         if (filtered.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">No transactions found for this month.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No transactions found for this month.</td></tr>';
             if (window.LedgerSum) {
                 LedgerSum.update();
             }

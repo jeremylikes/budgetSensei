@@ -48,9 +48,9 @@ const LedgerNewRow = {
         catSelect.required = true;
         catSelect.dataset.field = 'category';
         catSelect.addEventListener('change', () => this.validate());
-        // Sort categories alphabetically
-        const sortedCategories = [...DataStore.categories].sort((a, b) => a.localeCompare(b));
-        sortedCategories.forEach(cat => {
+        // Combine income and expenses, sort alphabetically
+        const allCategories = [...(DataStore.income || []), ...(DataStore.expenses || [])].sort((a, b) => a.localeCompare(b));
+        allCategories.forEach(cat => {
             const option = document.createElement('option');
             option.value = cat;
             option.textContent = cat;
@@ -71,21 +71,6 @@ const LedgerNewRow = {
             methodSelect.appendChild(option);
         });
         methodCell.appendChild(methodSelect);
-        
-        // Type cell
-        const typeCell = document.createElement('td');
-        const typeSelect = document.createElement('select');
-        typeSelect.required = true;
-        typeSelect.dataset.field = 'type';
-        typeSelect.addEventListener('change', () => this.validate());
-        ['Income', 'Expense'].forEach(type => {
-            const option = document.createElement('option');
-            option.value = type;
-            option.textContent = type;
-            if (type === 'Expense') option.selected = true;
-            typeSelect.appendChild(option);
-        });
-        typeCell.appendChild(typeSelect);
         
         // Amount cell
         const amountCell = document.createElement('td');
@@ -148,7 +133,6 @@ const LedgerNewRow = {
         row.appendChild(descCell);
         row.appendChild(catCell);
         row.appendChild(methodCell);
-        row.appendChild(typeCell);
         row.appendChild(amountCell);
         row.appendChild(noteCell);
         row.appendChild(deleteCell);
@@ -173,14 +157,12 @@ const LedgerNewRow = {
         const amountInput = newRow.querySelector('input[data-field="amount"]');
         const catSelect = newRow.querySelector('select[data-field="category"]');
         const methodSelect = newRow.querySelector('select[data-field="method"]');
-        const typeSelect = newRow.querySelector('select[data-field="type"]');
         
         const date = dateInput ? dateInput.value : '';
         const description = descInput ? descInput.value.trim() : '';
         const amountValue = amountInput ? amountInput.value.trim() : '';
         const category = catSelect ? catSelect.value : '';
         const method = methodSelect ? methodSelect.value : '';
-        const type = typeSelect ? typeSelect.value : '';
         
         const amount = parseFloat(amountValue);
         
@@ -188,7 +170,6 @@ const LedgerNewRow = {
                        description && 
                        category && 
                        method && 
-                       type && 
                        amountValue &&
                        !isNaN(amount) && 
                        amount > 0;
@@ -209,10 +190,9 @@ const LedgerNewRow = {
         const amountInput = row.querySelector('input[data-field="amount"]');
         const catSelect = row.querySelector('select[data-field="category"]');
         const methodSelect = row.querySelector('select[data-field="method"]');
-        const typeSelect = row.querySelector('select[data-field="type"]');
         const noteInput = row.querySelector('textarea');
         
-        if (!dateInput || !descInput || !amountInput || !catSelect || !methodSelect || !typeSelect) {
+        if (!dateInput || !descInput || !amountInput || !catSelect || !methodSelect) {
             alert('Error: Could not find all required fields. Please refresh the page and try again.');
             if (saveBtn) saveBtn.disabled = false;
             return;
@@ -222,7 +202,8 @@ const LedgerNewRow = {
         const description = descInput.value.trim();
         const category = catSelect.value;
         const method = methodSelect.value;
-        const type = typeSelect.value;
+        // Automatically determine type from category
+        const type = DataStore.getCategoryType(category);
         let amountValue = amountInput.value.trim();
         const note = noteInput ? noteInput.value.trim() : '';
         

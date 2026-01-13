@@ -185,9 +185,9 @@ const UI = {
 
         if (categorySelect) {
             categorySelect.innerHTML = '';
-            // Sort categories alphabetically
-            const sortedCategories = [...DataStore.categories].sort((a, b) => a.localeCompare(b));
-            sortedCategories.forEach(cat => {
+            // Combine income and expenses, sort alphabetically
+            const allCategories = [...(DataStore.income || []), ...(DataStore.expenses || [])].sort((a, b) => a.localeCompare(b));
+            allCategories.forEach(cat => {
                 const option = document.createElement('option');
                 option.value = cat;
                 option.textContent = cat;

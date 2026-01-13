@@ -52,6 +52,10 @@ const LedgerBulk = {
                 } else if (field === 'note') {
                     // For notes, ensure empty string is saved (not null/undefined)
                     updateData.note = value || '';
+                } else if (field === 'category') {
+                    // When category changes, automatically update type based on category
+                    updateData.category = value;
+                    updateData.type = DataStore.getCategoryType(value);
                 } else {
                     updateData[field] = value;
                 }
@@ -109,6 +113,10 @@ const LedgerBulk = {
         } else if (field === 'note') {
             // For notes, ensure empty string is saved (not null/undefined)
             updateData.note = value || '';
+        } else if (field === 'category') {
+            // When category changes, automatically update type based on category
+            updateData.category = value;
+            updateData.type = DataStore.getCategoryType(value);
         } else {
             updateData[field] = value;
         }

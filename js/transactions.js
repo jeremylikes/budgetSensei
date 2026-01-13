@@ -20,7 +20,6 @@ const Transactions = {
             document.getElementById('transaction-description').value = transaction.description;
             document.getElementById('transaction-category').value = transaction.category;
             document.getElementById('transaction-method').value = transaction.method;
-            document.getElementById('transaction-type').value = transaction.type;
             document.getElementById('transaction-amount').value = transaction.amount;
             document.getElementById('transaction-note').value = transaction.note || '';
 
@@ -33,7 +32,8 @@ const Transactions = {
         const description = document.getElementById('transaction-description').value;
         const category = document.getElementById('transaction-category').value;
         const method = document.getElementById('transaction-method').value;
-        const type = document.getElementById('transaction-type').value;
+        // Automatically determine type from category
+        const type = DataStore.getCategoryType(category);
         const amountValue = document.getElementById('transaction-amount').value.trim();
         const amount = parseFloat(amountValue);
         const note = document.getElementById('transaction-note').value.trim();

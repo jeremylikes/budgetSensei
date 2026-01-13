@@ -22,23 +22,79 @@ function runMigrations(db) {
         console.log('Running database migrations...');
         
         // Migration: Add 'note' column to transactions table
-        const noteAdded = ensureColumn('transactions', 'note', 'TEXT');
+        const noteAdded = ensureColumn('transactions', 'note', 'TEXT', db);
         if (noteAdded) {
             console.log('✓ Migration completed: note column added');
         } else {
             console.log('✓ Migration check completed: note column already exists');
         }
         
-        // Migration: Ensure "Default" category exists
-        const { escapeSql } = require('./helpers');
-        const defaultCatCheck = db.exec("SELECT id FROM categories WHERE name = 'Default'");
-        if (!defaultCatCheck[0] || defaultCatCheck[0].values.length === 0) {
+        // Migration: Add 'type' column to categories table
+        const typeColumnAdded = ensureColumn('categories', 'type', 'TEXT', db);
+        if (typeColumnAdded) {
+            console.log('✓ Migration completed: type column added to categories');
+            
+            // Set default types for existing categories
+            // Try to infer from existing transactions, or default to Expense
             try {
-                db.run("INSERT INTO categories (name) VALUES ('Default')");
-                saveDatabase();
-                console.log('✓ Migration completed: Default category added');
+                const allCategories = db.exec("SELECT id, name FROM categories");
+                if (allCategories[0] && allCategories[0].values.length > 0) {
+                    const { escapeSql } = require('./helpers');
+                    allCategories[0].values.forEach(row => {
+                        const catId = row[0];
+                        const catName = row[1];
+                        
+                        // Check if category is used in transactions as Income
+                        const incomeCheck = db.exec(`SELECT COUNT(*) FROM transactions WHERE category = '${escapeSql(catName)}' AND type = 'Income'`);
+                        const expenseCheck = db.exec(`SELECT COUNT(*) FROM transactions WHERE category = '${escapeSql(catName)}' AND type = 'Expense'`);
+                        
+                        const incomeCount = incomeCheck[0] && incomeCheck[0].values.length > 0 ? incomeCheck[0].values[0][0] : 0;
+                        const expenseCount = expenseCheck[0] && expenseCheck[0].values.length > 0 ? expenseCheck[0].values[0][0] : 0;
+                        
+                        // Infer type from usage, default to Expense
+                        let categoryType = 'Expense';
+                        if (incomeCount > expenseCount) {
+                            categoryType = 'Income';
+                        } else if (catName.toLowerCase().includes('income') || catName.toLowerCase().includes('salary') || catName.toLowerCase().includes('pay')) {
+                            categoryType = 'Income';
+                        }
+                        
+                        db.run(`UPDATE categories SET type = '${categoryType}' WHERE id = ${catId}`);
+                    });
+                    saveDatabase();
+                    console.log('✓ Migration completed: Set types for existing categories');
+                }
             } catch (error) {
-                console.error('Error adding Default category:', error);
+                console.error('Error setting category types:', error);
+            }
+        } else {
+            console.log('✓ Migration check completed: type column already exists');
+        }
+        
+        // Migration: Ensure "Default" categories exist (one for Income, one for Expense)
+        // Only do this if type column exists (check after ensureColumn)
+        if (columnExists('categories', 'type', db)) {
+            const { escapeSql } = require('./helpers');
+            try {
+                const defaultIncomeCheck = db.exec("SELECT id FROM categories WHERE name = 'Default' AND type = 'Income'");
+                if (!defaultIncomeCheck[0] || defaultIncomeCheck[0].values.length === 0) {
+                    db.run("INSERT INTO categories (name, type) VALUES ('Default', 'Income')");
+                    saveDatabase();
+                    console.log('✓ Migration completed: Default Income category added');
+                }
+            } catch (error) {
+                console.error('Error adding Default Income category:', error);
+            }
+            
+            try {
+                const defaultExpenseCheck = db.exec("SELECT id FROM categories WHERE name = 'Default' AND type = 'Expense'");
+                if (!defaultExpenseCheck[0] || defaultExpenseCheck[0].values.length === 0) {
+                    db.run("INSERT INTO categories (name, type) VALUES ('Default', 'Expense')");
+                    saveDatabase();
+                    console.log('✓ Migration completed: Default Expense category added');
+                }
+            } catch (error) {
+                console.error('Error adding Default Expense category:', error);
             }
         }
         
