@@ -84,13 +84,25 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Date</th>
-                            <th>Description</th>
-                            <th>Category</th>
-                            <th>Method</th>
-                            <th>Type</th>
-                            <th>Amount</th>
-                            <th>Action</th>
+                            <th class="sortable" data-sort="date" data-default="desc">
+                                Date <span class="sort-indicator">▼</span>
+                            </th>
+                            <th class="sortable" data-sort="description" data-default="asc">
+                                Description <span class="sort-indicator">▲</span>
+                            </th>
+                            <th class="sortable" data-sort="category" data-default="asc">
+                                Category <span class="sort-indicator">▲</span>
+                            </th>
+                            <th class="sortable" data-sort="method" data-default="asc">
+                                Method <span class="sort-indicator">▲</span>
+                            </th>
+                            <th class="sortable" data-sort="type" data-default="desc">
+                                Type <span class="sort-indicator">▼</span>
+                            </th>
+                            <th class="sortable" data-sort="amount" data-default="desc">
+                                Amount <span class="sort-indicator">▼</span>
+                            </th>
+                            <th>Delete</th>
                         </tr>
                     </thead>
                     <tbody id="ledger-tbody">
@@ -153,6 +165,10 @@
                 <div class="form-group">
                     <label for="transaction-amount">Amount:</label>
                     <input type="text" id="transaction-amount" placeholder="0.00" required>
+                </div>
+                <div class="form-group">
+                    <label for="transaction-note">Note (optional):</label>
+                    <textarea id="transaction-note" rows="3" placeholder="Add a note about this transaction..." maxlength="500"></textarea>
                 </div>
                 <div class="form-actions">
                     <button type="submit" class="submit-btn">Save</button>

@@ -6,6 +6,10 @@ let transactions = [];
 let categories = [];
 let methods = [];
 
+// Sorting state
+let sortColumn = 'date';
+let sortDirection = 'desc'; // 'asc' or 'desc'
+
 async function loadDataFromAPI() {
     try {
         const response = await fetch(`${API_BASE}/data`);
@@ -35,6 +39,7 @@ async function initializeApp() {
     setupDateSelectors();
     setupDataTab();
     setupTransactionModal();
+    setupSortableColumns();
     updateDashboard();
     updateLedger();
 }
@@ -228,6 +233,7 @@ async function editTransaction(id) {
     document.getElementById('transaction-method').value = transaction.method;
     document.getElementById('transaction-type').value = transaction.type;
     document.getElementById('transaction-amount').value = transaction.amount;
+    document.getElementById('transaction-note').value = transaction.note || '';
 
     document.getElementById('transaction-modal').style.display = 'block';
 }
@@ -240,6 +246,7 @@ async function saveTransaction() {
     const type = document.getElementById('transaction-type').value;
     const amountValue = document.getElementById('transaction-amount').value.trim();
     const amount = parseFloat(amountValue);
+    const note = document.getElementById('transaction-note').value.trim();
     
     if (isNaN(amount) || amount <= 0) {
         alert('Please enter a valid amount greater than 0');
@@ -247,22 +254,34 @@ async function saveTransaction() {
     }
 
     try {
+        let response;
         if (editingTransactionId !== null) {
             // Update existing transaction
-            const response = await fetch(`${API_BASE}/transactions/${editingTransactionId}`, {
+            response = await fetch(`${API_BASE}/transactions/${editingTransactionId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ date, description, category, method, type, amount })
+                body: JSON.stringify({ date, description, category, method, type, amount, note })
             });
-            if (!response.ok) throw new Error('Failed to update transaction');
         } else {
             // Add new transaction
-            const response = await fetch(`${API_BASE}/transactions`, {
+            response = await fetch(`${API_BASE}/transactions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ date, description, category, method, type, amount })
+                body: JSON.stringify({ date, description, category, method, type, amount, note })
             });
-            if (!response.ok) throw new Error('Failed to add transaction');
+        }
+        
+        if (!response.ok) {
+            // Try to get error details from response
+            let errorMessage = 'Failed to save transaction. Please try again.';
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorData.details || errorMessage;
+                console.error('Server error:', errorData);
+            } catch (parseError) {
+                console.error('Error parsing error response:', parseError);
+            }
+            throw new Error(errorMessage);
         }
 
         await loadDataFromAPI(); // Refresh data from server
@@ -275,7 +294,7 @@ async function saveTransaction() {
         updateLedger();
     } catch (error) {
         console.error('Error saving transaction:', error);
-        alert('Failed to save transaction. Please try again.');
+        alert(error.message || 'Failed to save transaction. Please try again.');
     }
 }
 
@@ -420,8 +439,10 @@ function updateLedger() {
     const year = parseInt(document.getElementById('ledger-year').value);
     const month = parseInt(document.getElementById('ledger-month').value);
 
-    const filtered = getTransactionsForMonth(year, month)
-        .sort((a, b) => new Date(b.date) - new Date(a.date));
+    let filtered = getTransactionsForMonth(year, month);
+    
+    // Apply sorting
+    filtered = sortTransactions(filtered, sortColumn, sortDirection);
 
     const tbody = document.getElementById('ledger-tbody');
     tbody.innerHTML = '';
@@ -432,25 +453,374 @@ function updateLedger() {
     }
 
     filtered.forEach(t => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${formatDate(t.date)}</td>
-            <td>${t.description}</td>
-            <td>${t.category}</td>
-            <td>${t.method}</td>
-            <td>${t.type}</td>
-            <td>${formatCurrency(t.amount)}</td>
-            <td>
-                <button class="edit-btn" onclick="editTransaction(${t.id})" title="Edit">
-                    ✏️
-                </button>
-                <button class="delete-btn" onclick="deleteTransaction(${t.id})" title="Delete">
-                    🗑️
-                </button>
-            </td>
-        `;
+        const row = createEditableRow(t);
         tbody.appendChild(row);
     });
+    
+    // Update sort indicators
+    updateSortIndicators();
+}
+
+// Sort transactions based on column and direction
+function sortTransactions(transactions, column, direction) {
+    const sorted = [...transactions];
+    
+    sorted.sort((a, b) => {
+        let comparison = 0;
+        
+        switch (column) {
+            case 'date':
+                const dateA = new Date(a.date);
+                const dateB = new Date(b.date);
+                comparison = dateA - dateB;
+                break;
+            case 'description':
+                comparison = a.description.localeCompare(b.description);
+                break;
+            case 'category':
+                comparison = a.category.localeCompare(b.category);
+                break;
+            case 'method':
+                comparison = a.method.localeCompare(b.method);
+                break;
+            case 'type':
+                // Expense comes before Income in default (desc)
+                if (a.type === b.type) {
+                    comparison = 0;
+                } else if (a.type === 'Expense') {
+                    comparison = -1;
+                } else {
+                    comparison = 1;
+                }
+                break;
+            case 'amount':
+                comparison = a.amount - b.amount;
+                break;
+            default:
+                return 0;
+        }
+        
+        return direction === 'asc' ? comparison : -comparison;
+    });
+    
+    return sorted;
+}
+
+// Setup sortable column headers
+function setupSortableColumns() {
+    const sortableHeaders = document.querySelectorAll('th.sortable');
+    
+    sortableHeaders.forEach(header => {
+        header.addEventListener('click', () => {
+            const column = header.dataset.sort;
+            const defaultDir = header.dataset.default;
+            
+            // If clicking the same column, toggle direction
+            if (sortColumn === column) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                // New column, use its default direction
+                sortColumn = column;
+                sortDirection = defaultDir;
+            }
+            
+            updateLedger();
+        });
+    });
+}
+
+// Update sort indicators in headers
+function updateSortIndicators() {
+    const sortableHeaders = document.querySelectorAll('th.sortable');
+    
+    sortableHeaders.forEach(header => {
+        const indicator = header.querySelector('.sort-indicator');
+        const column = header.dataset.sort;
+        
+        if (sortColumn === column) {
+            indicator.textContent = sortDirection === 'asc' ? '▲' : '▼';
+            indicator.style.opacity = '1';
+        } else {
+            // Show default indicator for other columns
+            const defaultDir = header.dataset.default;
+            indicator.textContent = defaultDir === 'asc' ? '▲' : '▼';
+            indicator.style.opacity = '0.3';
+        }
+    });
+}
+
+// Create an editable row for inline editing
+function createEditableRow(t) {
+    const row = document.createElement('tr');
+    row.dataset.id = t.id;
+    const note = t.note || '';
+    
+    // Add class and title attribute for rows with notes
+    if (note) {
+        row.classList.add('has-note');
+        row.setAttribute('title', note);
+    }
+    
+    // Date cell
+    const dateCell = document.createElement('td');
+    dateCell.className = 'editable-cell';
+    dateCell.textContent = formatDate(t.date);
+    dateCell.dataset.field = 'date';
+    dateCell.dataset.value = t.date;
+    
+    // Description cell
+    const descCell = document.createElement('td');
+    descCell.className = 'editable-cell';
+    descCell.textContent = t.description;
+    descCell.dataset.field = 'description';
+    descCell.dataset.value = t.description;
+    
+    // Category cell
+    const catCell = document.createElement('td');
+    catCell.className = 'editable-cell';
+    catCell.textContent = t.category;
+    catCell.dataset.field = 'category';
+    catCell.dataset.value = t.category;
+    
+    // Method cell
+    const methodCell = document.createElement('td');
+    methodCell.className = 'editable-cell';
+    methodCell.textContent = t.method;
+    methodCell.dataset.field = 'method';
+    methodCell.dataset.value = t.method;
+    
+    // Type cell
+    const typeCell = document.createElement('td');
+    typeCell.className = 'editable-cell';
+    typeCell.textContent = t.type;
+    typeCell.dataset.field = 'type';
+    typeCell.dataset.value = t.type;
+    
+    // Amount cell
+    const amountCell = document.createElement('td');
+    amountCell.className = 'editable-cell';
+    amountCell.textContent = formatCurrency(t.amount);
+    amountCell.dataset.field = 'amount';
+    amountCell.dataset.value = t.amount;
+    
+    // Delete button cell
+    const deleteCell = document.createElement('td');
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'delete-btn';
+    deleteBtn.textContent = '🗑️';
+    deleteBtn.title = 'Delete';
+    deleteBtn.onclick = () => deleteTransaction(t.id);
+    deleteCell.appendChild(deleteBtn);
+    
+    row.appendChild(dateCell);
+    row.appendChild(descCell);
+    row.appendChild(catCell);
+    row.appendChild(methodCell);
+    row.appendChild(typeCell);
+    row.appendChild(amountCell);
+    row.appendChild(deleteCell);
+    
+    // Store original values for cancel
+    row.dataset.originalData = JSON.stringify({
+        date: t.date,
+        description: t.description,
+        category: t.category,
+        method: t.method,
+        type: t.type,
+        amount: t.amount,
+        note: note
+    });
+    
+    // Add click handlers for inline editing
+    setupInlineEditing(row);
+    
+    return row;
+}
+
+// Setup inline editing for a row
+function setupInlineEditing(row) {
+    const cells = row.querySelectorAll('.editable-cell');
+    
+    cells.forEach(cell => {
+        cell.addEventListener('click', (e) => {
+            // Don't edit if already editing another cell in this row
+            if (row.classList.contains('editing')) {
+                return;
+            }
+            
+            e.stopPropagation();
+            enterEditMode(row, cell);
+        });
+    });
+}
+
+// Enter edit mode for a cell
+function enterEditMode(row, cell) {
+    const field = cell.dataset.field;
+    const currentValue = cell.dataset.value;
+    const transactionId = parseInt(row.dataset.id);
+    
+    row.classList.add('editing');
+    cell.classList.add('editing');
+    
+    let input;
+    
+    if (field === 'category') {
+        input = document.createElement('select');
+        categories.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat;
+            option.textContent = cat;
+            if (cat === currentValue) option.selected = true;
+            input.appendChild(option);
+        });
+    } else if (field === 'method') {
+        input = document.createElement('select');
+        methods.forEach(method => {
+            const option = document.createElement('option');
+            option.value = method;
+            option.textContent = method;
+            if (method === currentValue) option.selected = true;
+            input.appendChild(option);
+        });
+    } else if (field === 'type') {
+        input = document.createElement('select');
+        ['Income', 'Expense'].forEach(type => {
+            const option = document.createElement('option');
+            option.value = type;
+            option.textContent = type;
+            if (type === currentValue) option.selected = true;
+            input.appendChild(option);
+        });
+    } else if (field === 'date') {
+        input = document.createElement('input');
+        input.type = 'date';
+        input.value = currentValue;
+    } else if (field === 'amount') {
+        input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentValue;
+        input.style.textAlign = 'right';
+    } else {
+        input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentValue;
+        if (field === 'description') {
+            input.maxLength = 20;
+        }
+    }
+    
+    input.className = 'inline-edit-input';
+    cell.textContent = '';
+    cell.appendChild(input);
+    input.focus();
+    if (input.select) input.select();
+    
+    // Save on blur or Enter key
+    const saveEdit = async () => {
+        const newValue = input.value.trim();
+        if (newValue === currentValue) {
+            cancelEdit(row, cell, currentValue);
+            return;
+        }
+        
+        // Validate amount
+        if (field === 'amount') {
+            const amount = parseFloat(newValue);
+            if (isNaN(amount) || amount <= 0) {
+                alert('Please enter a valid amount greater than 0');
+                cancelEdit(row, cell, currentValue);
+                return;
+            }
+        }
+        
+        // Update the transaction
+        await updateTransactionField(transactionId, field, newValue);
+        exitEditMode(row, cell, field, newValue);
+    };
+    
+    const cancelEdit = (row, cell, originalValue) => {
+        exitEditMode(row, cell, field, originalValue, true);
+    };
+    
+    input.addEventListener('blur', saveEdit);
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            input.blur(); // Triggers saveEdit
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cancelEdit(row, cell, currentValue);
+        }
+    });
+}
+
+// Exit edit mode and update display
+function exitEditMode(row, cell, field, value, isCancel = false) {
+    row.classList.remove('editing');
+    cell.classList.remove('editing');
+    
+    const input = cell.querySelector('.inline-edit-input');
+    if (input) input.remove();
+    
+    if (isCancel) {
+        // Restore original value
+        const originalData = JSON.parse(row.dataset.originalData);
+        value = originalData[field];
+    }
+    
+    // Update display
+    if (field === 'date') {
+        cell.textContent = formatDate(value);
+        cell.dataset.value = value;
+    } else if (field === 'amount') {
+        cell.textContent = formatCurrency(parseFloat(value));
+        cell.dataset.value = value;
+    } else {
+        cell.textContent = value;
+        cell.dataset.value = value;
+    }
+}
+
+// Update a single field of a transaction
+async function updateTransactionField(id, field, value) {
+    await loadDataFromAPI(); // Refresh to get latest data
+    const transaction = transactions.find(t => t.id === id);
+    if (!transaction) return;
+    
+    const updateData = {
+        date: transaction.date,
+        description: transaction.description,
+        category: transaction.category,
+        method: transaction.method,
+        type: transaction.type,
+        amount: transaction.amount,
+        note: transaction.note || ''
+    };
+    
+    // Update the specific field
+    if (field === 'amount') {
+        updateData.amount = parseFloat(value);
+    } else {
+        updateData[field] = value;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/transactions/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updateData)
+        });
+        
+        if (!response.ok) throw new Error('Failed to update transaction');
+        
+        await loadDataFromAPI(); // Refresh data
+        updateDashboard();
+        updateLedger(); // Refresh the ledger to show updated values
+    } catch (error) {
+        console.error('Error updating transaction:', error);
+        alert('Failed to update transaction. Please try again.');
+    }
 }
 
 // Customize Tab

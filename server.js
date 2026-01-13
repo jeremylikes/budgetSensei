@@ -10,24 +10,25 @@ const PORT = process.env.PORT || 3000;
 
 // Determine database file path - use persistent storage if available
 // Local development always uses a separate local database file to avoid affecting production
-// Priority: 1) DB_PATH env var, 2) Local dev detection, 3) /data directory (production), 4) /tmp, 5) project directory
+// Priority: 1) DB_PATH env var, 2) /data directory (production - most reliable), 3) Local dev detection, 4) /tmp, 5) project directory
 let DB_DIR;
 let DB_FILENAME = 'budget.db';
 
 // Check if we're in local development mode
-// Local dev: Windows platform OR NODE_ENV not set to 'production' (and no explicit DB_PATH)
-const isLocalDev = (process.platform === 'win32' || process.env.NODE_ENV !== 'production') && !process.env.DB_PATH;
+// Local dev: NODE_ENV not set to 'production' AND /data doesn't exist (and no explicit DB_PATH)
+// The /data check is most reliable - it only exists on Render with mounted persistent disk
+const isLocalDev = process.env.NODE_ENV !== 'production' && !fs.existsSync('/data') && !process.env.DB_PATH;
 
 if (process.env.DB_PATH) {
     // Explicit path set via environment variable (production/cloud)
     DB_DIR = process.env.DB_PATH;
+} else if (fs.existsSync('/data')) {
+    // Production: /data directory exists (Render with persistent disk) - most reliable indicator
+    DB_DIR = '/data';
 } else if (isLocalDev) {
     // Local development - use project directory with separate local filename
     DB_DIR = __dirname;
     DB_FILENAME = 'budget-local.db'; // Separate file for local dev - won't affect production
-} else if (fs.existsSync('/data')) {
-    // Production: /data directory exists (Render with persistent disk)
-    DB_DIR = '/data';
 } else if (fs.existsSync('/tmp')) {
     // Fallback: /tmp directory
     DB_DIR = '/tmp';
@@ -63,6 +64,74 @@ if (BUDGET_PASSWORD) {
 
 let db = null;
 
+// Helper function to check if a column exists in a table
+function columnExists(tableName, columnName) {
+    try {
+        const result = db.exec(`PRAGMA table_info(${tableName})`);
+        if (!result[0] || result[0].values.length === 0) {
+            return false;
+        }
+        const columns = result[0].values.map(row => row[1]);
+        return columns.includes(columnName);
+    } catch (error) {
+        console.error(`Error checking column ${columnName} in ${tableName}:`, error);
+        return false;
+    }
+}
+
+// Helper function to add a column to a table if it doesn't exist
+function ensureColumn(tableName, columnName, columnDefinition) {
+    if (!columnExists(tableName, columnName)) {
+        try {
+            console.log(`Adding column ${columnName} to ${tableName} table...`);
+            db.run(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDefinition}`);
+            saveDatabase();
+            console.log(`Column ${columnName} added successfully to ${tableName}`);
+            return true;
+        } catch (error) {
+            console.error(`Error adding column ${columnName} to ${tableName}:`, error);
+            return false;
+        }
+    }
+    return false; // Column already exists
+}
+
+// Run database migrations
+function runMigrations() {
+    if (!db) {
+        console.warn('Database not initialized, skipping migrations');
+        return;
+    }
+    
+    try {
+        // Verify database is valid by checking if transactions table exists
+        const tables = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='transactions'");
+        if (!tables[0] || tables[0].values.length === 0) {
+            console.log('Transactions table does not exist yet, migrations will run after table creation');
+            return;
+        }
+        
+        console.log('Running database migrations...');
+        
+        // Migration: Add 'note' column to transactions table
+        const noteAdded = ensureColumn('transactions', 'note', 'TEXT');
+        if (noteAdded) {
+            console.log('✓ Migration completed: note column added');
+        } else {
+            console.log('✓ Migration check completed: note column already exists');
+        }
+        
+        // Add more migrations here as needed in the future
+        // Example: ensureColumn('transactions', 'tags', 'TEXT');
+        
+        console.log('All migrations completed successfully');
+    } catch (error) {
+        console.error('Error running migrations:', error);
+        console.error('Database will continue to function, but some features may not work');
+        // Don't throw - allow server to start even if migration fails
+    }
+}
+
 // Initialize database
 async function initializeDatabase() {
     try {
@@ -70,8 +139,13 @@ async function initializeDatabase() {
         
         // Load existing database or create new one
         if (fs.existsSync(DB_FILE)) {
+            console.log(`Loading existing database from: ${DB_FILE}`);
             const buffer = fs.readFileSync(DB_FILE);
             db = new SQL.Database(buffer);
+            console.log('Database loaded successfully');
+            
+            // Run migrations to add any missing columns (safe - won't delete data)
+            runMigrations();
         } else {
             db = new SQL.Database();
             
@@ -84,7 +158,8 @@ async function initializeDatabase() {
                     category TEXT NOT NULL,
                     method TEXT NOT NULL,
                     type TEXT NOT NULL,
-                    amount REAL NOT NULL
+                    amount REAL NOT NULL,
+                    note TEXT
                 )
             `);
             
@@ -173,7 +248,8 @@ app.get('/api/data', (req, res) => {
                 category: row[3],
                 method: row[4],
                 type: row[5],
-                amount: row[6]
+                amount: row[6],
+                note: row[7] || '' // Note field (may not exist in old databases)
             })) : [],
             categories: categories[0] ? categories[0].values.map(row => row[0]) : [],
             methods: methods[0] ? methods[0].values.map(row => row[0]) : []
@@ -195,7 +271,8 @@ app.get('/api/transactions', (req, res) => {
             category: row[3],
             method: row[4],
             type: row[5],
-            amount: row[6]
+            amount: row[6],
+            note: row[7] || '' // Note field (may not exist in old databases)
         })) : [];
         res.json(transactions);
     } catch (error) {
@@ -207,17 +284,31 @@ app.get('/api/transactions', (req, res) => {
 // Add transaction
 app.post('/api/transactions', (req, res) => {
     try {
-        const { date, description, category, method, type, amount } = req.body;
-        const id = Date.now();
+        const { date, description, category, method, type, amount, note } = req.body;
         
-        db.run(`INSERT INTO transactions (id, date, description, category, method, type, amount) VALUES (${id}, '${escapeSql(date)}', '${escapeSql(description)}', '${escapeSql(category)}', '${escapeSql(method)}', '${escapeSql(type)}', ${amount})`);
+        // Validate required fields
+        if (!date || !description || !category || !method || !type || amount === undefined || amount === null) {
+            return res.status(400).json({ error: 'All fields are required' });
+        }
+        
+        // Validate amount is a number
+        const amountNum = parseFloat(amount);
+        if (isNaN(amountNum) || amountNum <= 0) {
+            return res.status(400).json({ error: 'Amount must be a positive number' });
+        }
+        
+        const id = Date.now();
+        const noteValue = note || '';
+        
+        db.run(`INSERT INTO transactions (id, date, description, category, method, type, amount, note) VALUES (${id}, '${escapeSql(date)}', '${escapeSql(description)}', '${escapeSql(category)}', '${escapeSql(method)}', '${escapeSql(type)}', ${amountNum}, '${escapeSql(noteValue)}')`);
         saveDatabase();
         
-        const transaction = { id, date, description, category, method, type, amount };
+        const transaction = { id, date, description, category, method, type, amount: amountNum, note: noteValue };
         res.json(transaction);
     } catch (error) {
         console.error('Error adding transaction:', error);
-        res.status(500).json({ error: 'Failed to add transaction' });
+        console.error('Error details:', error.message);
+        res.status(500).json({ error: 'Failed to add transaction', details: error.message });
     }
 });
 
@@ -225,7 +316,8 @@ app.post('/api/transactions', (req, res) => {
 app.put('/api/transactions/:id', (req, res) => {
     try {
         const id = parseInt(req.params.id);
-        const { date, description, category, method, type, amount } = req.body;
+        const { date, description, category, method, type, amount, note } = req.body;
+        const noteValue = note || '';
         
         // Check if transaction exists
         const existing = db.exec(`SELECT id FROM transactions WHERE id = ${id}`);
@@ -233,10 +325,10 @@ app.put('/api/transactions/:id', (req, res) => {
             return res.status(404).json({ error: 'Transaction not found' });
         }
         
-        db.run(`UPDATE transactions SET date = '${escapeSql(date)}', description = '${escapeSql(description)}', category = '${escapeSql(category)}', method = '${escapeSql(method)}', type = '${escapeSql(type)}', amount = ${amount} WHERE id = ${id}`);
+        db.run(`UPDATE transactions SET date = '${escapeSql(date)}', description = '${escapeSql(description)}', category = '${escapeSql(category)}', method = '${escapeSql(method)}', type = '${escapeSql(type)}', amount = ${amount}, note = '${escapeSql(noteValue)}' WHERE id = ${id}`);
         saveDatabase();
         
-        const transaction = { id, date, description, category, method, type, amount };
+        const transaction = { id, date, description, category, method, type, amount, note: noteValue };
         res.json(transaction);
     } catch (error) {
         console.error('Error updating transaction:', error);
