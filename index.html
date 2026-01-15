@@ -3,15 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Budget Sensei</title>
-    <link rel="icon" type="image/png" href="images/budgetPiggy.png">
+    <title>BudgetSensei</title>
+    <link rel="icon" type="image/png" href="images/budgetPiggy.png" id="favicon">
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Create rounded favicon
+        (function() {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const size = 32; // Favicon size
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                
+                // Create rounded rectangle path
+                const radius = size / 2;
+                ctx.beginPath();
+                ctx.arc(radius, radius, radius, 0, 2 * Math.PI);
+                ctx.closePath();
+                ctx.clip();
+                
+                // Draw the image
+                ctx.drawImage(img, 0, 0, size, size);
+                
+                // Convert to data URL and set as favicon
+                const dataUrl = canvas.toDataURL('image/png');
+                const link = document.getElementById('favicon');
+                link.href = dataUrl;
+            };
+            img.src = 'images/budgetPiggy.png';
+        })();
+    </script>
 </head>
 <body>
     <div class="container">
         <header class="app-header">
             <div class="logo-container">
+                <img src="images/budgetPiggy.png" alt="Budget Sensei Logo" class="logo-image">
                 <h1 class="logo-text">BudgetSensei</h1>
             </div>
         </header>

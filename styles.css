@@ -20,28 +20,59 @@ body {
 }
 
 .app-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: white;
     padding: 25px 30px;
     text-align: center;
     border-bottom: 3px solid rgba(255, 255, 255, 0.2);
     position: sticky;
     top: 0;
     z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-sizing: border-box;
 }
 
 .logo-container {
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
+    gap: 30px;
+    flex: 1;
+    padding-left: 80px;
+    position: relative;
+    z-index: 2;
+}
+
+.logo-image {
+    position: absolute;
+    left: 5px;
+    top: 50%;
+    transform: translateY(-50%) scale(1.5);
+    height: calc(100% - 10px);
+    width: auto;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    box-sizing: border-box;
+    object-fit: contain;
+    z-index: 1;
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
 }
 
 .logo-text {
-    color: white;
+    color: #333;
     font-size: 42px;
     font-weight: 700;
     margin: 0;
     letter-spacing: 2px;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    text-shadow: none;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
