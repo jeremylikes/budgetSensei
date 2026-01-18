@@ -28,6 +28,7 @@ const Dashboard = {
         this.updateCharts(income, expenses);
         this.updatePaymentMethods(filtered);
         this.updateBudget(filtered, year, month);
+        this.updateCashFlowChart(year);
     },
 
     updateCharts(income, expenses) {
@@ -282,5 +283,114 @@ const Dashboard = {
             alert('Failed to save budget amount. Please try again.');
             input.focus();
         }
+    },
+
+    updateCashFlowChart(year) {
+        // Calculate monthly savings for the selected year
+        const monthlySavings = [];
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        
+        for (let month = 1; month <= 12; month++) {
+            const monthTransactions = Utils.getTransactionsForMonth(DataStore.transactions, year, month);
+            const monthIncome = monthTransactions.filter(t => t.type === 'Income').reduce((sum, t) => sum + t.amount, 0);
+            const monthExpenses = monthTransactions.filter(t => t.type === 'Expense').reduce((sum, t) => sum + t.amount, 0);
+            const savings = monthIncome - monthExpenses;
+            monthlySavings.push(savings);
+        }
+
+        // Calculate yearly average - only average months that have transactions
+        // Count months with data (where there are transactions)
+        const monthsWithData = [];
+        for (let month = 1; month <= 12; month++) {
+            const monthTransactions = Utils.getTransactionsForMonth(DataStore.transactions, year, month);
+            if (monthTransactions.length > 0) {
+                monthsWithData.push(monthlySavings[month - 1]);
+            }
+        }
+        
+        // If we have months with data, average those; otherwise use 0
+        let yearlyAverage = 0;
+        if (monthsWithData.length > 0) {
+            const totalSavings = monthsWithData.reduce((sum, val) => sum + val, 0);
+            yearlyAverage = totalSavings / monthsWithData.length;
+        }
+
+        // Create chart
+        const ctx = document.getElementById('cash-flow-chart');
+        if (!ctx) return;
+
+        // Destroy existing chart if it exists
+        if (window.cashFlowChart) {
+            window.cashFlowChart.destroy();
+        }
+
+        window.cashFlowChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: monthNames,
+                datasets: [
+                    {
+                        label: 'Total Savings',
+                        type: 'bar',
+                        data: monthlySavings,
+                        backgroundColor: monthlySavings.map(val => val >= 0 ? '#2e7d32' : '#d32f2f'),
+                        borderColor: monthlySavings.map(val => val >= 0 ? '#2e7d32' : '#d32f2f'),
+                        borderWidth: 1,
+                        order: 2
+                    },
+                    {
+                        label: 'Yearly Average',
+                        type: 'line',
+                        data: Array(12).fill(yearlyAverage),
+                        borderColor: '#333',
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        order: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                if (context.datasetIndex === 0) {
+                                    return 'Total Savings: ' + Utils.formatCurrency(context.parsed.y);
+                                } else {
+                                    return 'Yearly Average: ' + Utils.formatCurrency(context.parsed.y);
+                                }
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        ticks: {
+                            callback: function(value) {
+                                return Utils.formatCurrency(value);
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
     }
 };

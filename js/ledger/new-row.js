@@ -14,19 +14,42 @@ const LedgerNewRow = {
         row.className = 'new-row';
         row.dataset.isNew = 'true';
         
-        // Checkbox cell (disabled for new rows)
+        // Cancel button cell (replaces checkbox for new rows)
         const checkboxCell = document.createElement('td');
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.className = 'row-checkbox';
-        checkbox.disabled = true;
-        checkboxCell.appendChild(checkbox);
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'cancel-new-row-btn';
+        cancelBtn.innerHTML = '×';
+        cancelBtn.title = 'Cancel';
+        cancelBtn.addEventListener('click', () => {
+            row.remove();
+        });
+        checkboxCell.appendChild(cancelBtn);
         
         // Date cell
         const dateCell = document.createElement('td');
         const dateInput = document.createElement('input');
         dateInput.type = 'date';
-        dateInput.valueAsDate = new Date();
+        
+        // Default to the selected year and month from the date selectors
+        const yearSelect = document.getElementById('ledger-year');
+        const monthSelect = document.getElementById('ledger-month');
+        const selectedYear = yearSelect ? parseInt(yearSelect.value) : new Date().getFullYear();
+        const selectedMonth = monthSelect ? parseInt(monthSelect.value) : new Date().getMonth() + 1;
+        
+        // If selected month/year matches current month/year, use current day; otherwise use day 1
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+        const currentDay = now.getDate();
+        
+        let dayToUse = 1; // Default to day 1
+        if (selectedYear === currentYear && selectedMonth === currentMonth) {
+            dayToUse = currentDay; // Use current day if same month/year
+        }
+        
+        const defaultDate = new Date(selectedYear, selectedMonth - 1, dayToUse);
+        dateInput.valueAsDate = defaultDate;
+        
         dateInput.required = true;
         dateInput.dataset.field = 'date';
         dateInput.addEventListener('input', () => this.validate());
@@ -139,6 +162,18 @@ const LedgerNewRow = {
         
         // Insert at the beginning of tbody
         tbody.insertBefore(row, tbody.firstChild);
+        
+        // Add Escape key handler to cancel adding new transaction
+        const escapeHandler = (e) => {
+            if (e.key === 'Escape') {
+                const newRow = document.querySelector('tr.new-row');
+                if (newRow) {
+                    newRow.remove();
+                    document.removeEventListener('keydown', escapeHandler);
+                }
+            }
+        };
+        document.addEventListener('keydown', escapeHandler);
         
         // Focus on description field
         descInput.focus();

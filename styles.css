@@ -182,11 +182,22 @@ body {
     font-weight: bold;
 }
 
+.allocation-section {
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    margin-bottom: 30px;
+}
+
+.allocation-section h3 {
+    margin-bottom: 15px;
+}
+
 .charts-container {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 20px;
-    margin-bottom: 30px;
 }
 
 .chart-box {
@@ -221,6 +232,24 @@ body {
 
 .payment-item:last-child {
     border-bottom: none;
+}
+
+.cash-flow-section {
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    margin-bottom: 30px;
+}
+
+.cash-flow-section h3 {
+    margin-bottom: 15px;
+}
+
+.cash-flow-chart-container {
+    position: relative;
+    height: 400px;
+    width: 100%;
 }
 
 .budget-section {
@@ -535,6 +564,34 @@ th.sortable:hover .sort-indicator {
 
 td:last-child {
     white-space: nowrap;
+}
+
+/* Cancel button for new transaction row */
+.cancel-new-row-btn {
+    background: none;
+    border: none;
+    color: #d32f2f;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    transition: all 0.2s;
+    border-radius: 4px;
+}
+
+.cancel-new-row-btn:hover {
+    background-color: #ffebee;
+    transform: scale(1.1);
+}
+
+.cancel-new-row-btn:active {
+    transform: scale(0.95);
 }
 
 tbody tr:hover {
