@@ -55,12 +55,16 @@ const Dashboard = {
 
         const incomeCtx = document.getElementById('income-chart').getContext('2d');
         if (window.incomeChart) window.incomeChart.destroy();
+        
+        const incomeValues = Object.values(incomeData);
+        const incomeTotal = incomeValues.reduce((sum, val) => sum + val, 0);
+        
         window.incomeChart = new Chart(incomeCtx, {
             type: 'pie',
             data: {
                 labels: Object.keys(incomeData),
                 datasets: [{
-                    data: Object.values(incomeData),
+                    data: incomeValues,
                     backgroundColor: [
                         '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
                         '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
@@ -69,7 +73,19 @@ const Dashboard = {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true
+                maintainAspectRatio: true,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const percentage = incomeTotal > 0 ? ((value / incomeTotal) * 100).toFixed(1) : '0.0';
+                                return `${label}: ${Utils.formatCurrency(value)} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
             }
         });
 
@@ -81,12 +97,16 @@ const Dashboard = {
 
         const expenseCtx = document.getElementById('expense-chart').getContext('2d');
         if (window.expenseChart) window.expenseChart.destroy();
+        
+        const expenseValues = Object.values(expenseData);
+        const expenseTotal = expenseValues.reduce((sum, val) => sum + val, 0);
+        
         window.expenseChart = new Chart(expenseCtx, {
             type: 'pie',
             data: {
                 labels: Object.keys(expenseData),
                 datasets: [{
-                    data: Object.values(expenseData),
+                    data: expenseValues,
                     backgroundColor: [
                         '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
                         '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
@@ -95,7 +115,19 @@ const Dashboard = {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true
+                maintainAspectRatio: true,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const percentage = expenseTotal > 0 ? ((value / expenseTotal) * 100).toFixed(1) : '0.0';
+                                return `${label}: ${Utils.formatCurrency(value)} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
             }
         });
     },
