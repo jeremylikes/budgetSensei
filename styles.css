@@ -301,6 +301,20 @@ body {
     background-color: #45a049;
 }
 
+/* Select All Checkbox */
+.select-all-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #4CAF50;
+    flex-shrink: 0;
+}
+
+.select-all-checkbox:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
 .add-inline-btn {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;

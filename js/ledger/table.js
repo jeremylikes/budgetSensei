@@ -15,6 +15,10 @@ const LedgerTable = {
             if (window.LedgerSum) {
                 window.LedgerSum.update();
             }
+            // Update select all checkbox state
+            if (window.Ledger) {
+                window.Ledger.updateSelectAllCheckbox();
+            }
         });
         checkboxCell.appendChild(checkbox);
         

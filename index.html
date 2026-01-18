@@ -135,10 +135,13 @@
                 <table>
                     <thead>
                         <tr>
-                            <th style="width: 40px;">
-                                <button id="add-transaction-inline-btn" class="add-inline-btn" title="Add New Transaction">
-                                    <span class="plus-icon"></span>
-                                </button>
+                            <th style="width: 80px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <input type="checkbox" id="select-all-checkbox" class="select-all-checkbox" title="Select All">
+                                    <button id="add-transaction-inline-btn" class="add-inline-btn" title="Add New Transaction">
+                                        <span class="plus-icon"></span>
+                                    </button>
+                                </div>
                             </th>
                             <th class="sortable" data-sort="date" data-default="desc">
                                 Date <span class="sort-indicator">▼</span>

@@ -19,6 +19,9 @@ async function initializeApp() {
         // Setup ledger filtering
         Ledger.setupFilters();
         
+        // Setup select all checkbox
+        Ledger.setupSelectAll();
+        
         // Setup data management (categories & methods)
         DataManagement.setup();
         
