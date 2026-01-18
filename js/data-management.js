@@ -262,6 +262,7 @@ const DataManagement = {
             li.dataset.index = originalIndex;
             li.dataset.originalValue = catName;
             li.dataset.categoryType = 'income';
+            li.dataset.icon = catIcon || ''; // Store icon for use when saving edits
             
             const isDefault = catName === 'Default';
             
@@ -366,6 +367,7 @@ const DataManagement = {
             li.dataset.index = originalIndex;
             li.dataset.originalValue = catName;
             li.dataset.categoryType = 'expenses';
+            li.dataset.icon = catIcon || ''; // Store icon for use when saving edits
             
             const isDefault = catName === 'Default';
             
@@ -669,12 +671,21 @@ const DataManagement = {
         
         const index = parseInt(li.dataset.index);
         
+        // Get current icon from dataset (for categories) or leave undefined (for methods)
+        const currentIcon = (type === 'income' || type === 'expenses') ? (li.dataset.icon || '') : undefined;
+        
         try {
             const endpoint = type === 'income' ? 'income' : (type === 'expenses' ? 'expenses' : 'methods');
+            const requestBody = { name: newValue };
+            // Include icon for categories to preserve it during name updates
+            if (currentIcon !== undefined) {
+                requestBody.icon = currentIcon;
+            }
+            
             const response = await fetch(`${API.BASE}/${endpoint}/${index}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: newValue })
+                body: JSON.stringify(requestBody)
             });
             
             if (!response.ok) {
@@ -1072,6 +1083,14 @@ const DataManagement = {
             }
             
             console.log('List updated, checking if icon appears...');
+            
+            // Update the dataset on the li element so future name edits include the updated icon
+            if (iconBox) {
+                const li = iconBox.closest('li');
+                if (li) {
+                    li.dataset.icon = icon || '';
+                }
+            }
             
             // Also update Dashboard if it exists
             if (window.Dashboard) {
