@@ -124,6 +124,12 @@ router.post('/api/auth/login', strictAuthLimiter, (req, res, next) => {
                 return res.status(500).json({ error: 'Failed to login' });
             }
             
+            // Debug: Log session info in development
+            if (process.env.NODE_ENV !== 'production') {
+                console.log('Login successful - Session ID:', req.sessionID);
+                console.log('User authenticated:', req.isAuthenticated());
+            }
+            
             res.json({ 
                 success: true, 
                 user: { id: user.id, username: user.username } 
@@ -152,6 +158,14 @@ router.post('/api/auth/logout', authLimiter, (req, res) => {
 
 // Check session using Passport.js
 router.get('/api/auth/session', authLimiter, (req, res) => {
+    // Debug: Log session info in development
+    if (process.env.NODE_ENV !== 'production') {
+        console.log('Session check - Session ID:', req.sessionID);
+        console.log('Is authenticated:', req.isAuthenticated ? req.isAuthenticated() : false);
+        console.log('User:', req.user);
+        console.log('Session:', req.session);
+    }
+    
     if (req.isAuthenticated && req.isAuthenticated()) {
         res.json({ 
             authenticated: true, 

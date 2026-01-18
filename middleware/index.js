@@ -9,11 +9,25 @@ const passport = require('../config/passport');
 const path = require('path');
 
 function setupMiddleware(app) {
+    // Trust proxy (important for production behind reverse proxy like Render, Railway, etc.)
+    // This allows req.protocol to correctly detect HTTPS even when behind a proxy
+    app.set('trust proxy', 1);
+    
     // CORS - configure to allow credentials
     app.use(cors({
         origin: true,
         credentials: true
     }));
+    
+    // Determine if we should use secure cookies
+    // Use secure cookies if:
+    // 1. NODE_ENV is production AND
+    // 2. We're actually using HTTPS (check via proxy headers or direct connection)
+    // For production behind a proxy, we trust the X-Forwarded-Proto header
+    const isProduction = process.env.NODE_ENV === 'production';
+    // In production, use secure cookies but trust proxy headers
+    // This allows cookies to work behind reverse proxies (Render, Railway, etc.)
+    const useSecureCookies = isProduction;
     
     // Session management
     app.use(session({
@@ -21,10 +35,10 @@ function setupMiddleware(app) {
         resave: false,
         saveUninitialized: false,
         cookie: {
-            secure: process.env.NODE_ENV === 'production', // Use secure cookies in production (HTTPS)
+            secure: useSecureCookies, // Secure cookies in production (works with trust proxy)
             httpOnly: true,
             maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-            sameSite: 'strict' // CSRF protection
+            sameSite: isProduction ? 'lax' : 'strict' // 'lax' works better behind proxies, 'strict' for local dev
         }
     }));
     
