@@ -254,10 +254,13 @@ router.put('/api/expenses/:index', (req, res) => {
             return res.json(catList);
         }
         
-        // Check if new name already exists for Expense type
-        const existing = db.exec(`SELECT id FROM categories WHERE name = '${escapeSql(newName)}' AND type = 'Expense'`);
-        if (existing[0] && existing[0].values.length > 0 && existing[0].values[0][0] !== categoryId) {
-            return res.status(400).json({ error: 'Category name already exists' });
+        // Only check for duplicate name if the name is actually changing
+        if (newName && newName !== oldName) {
+            // Check if new name already exists for Expense type
+            const existing = db.exec(`SELECT id FROM categories WHERE name = '${escapeSql(newName)}' AND type = 'Expense'`);
+            if (existing[0] && existing[0].values.length > 0 && existing[0].values[0][0] !== categoryId) {
+                return res.status(400).json({ error: 'Category name already exists' });
+            }
         }
         
         // Prevent renaming "Default"

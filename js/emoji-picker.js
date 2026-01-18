@@ -117,8 +117,8 @@ const EmojiPicker = {
                     if (e.inputType === 'insertFromPaste' || e.inputType === 'insertText') {
                         const inputData = e.data || '';
                         
-                        // Check if input data is an emoji character
-                        const emojiRegex = /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA00}-\u{1FA6F}]|[\u{1FA70}-\u{1FAFF}]/u;
+                        // Check if input data is an emoji character - using Unicode property escapes for better coverage
+                        const emojiRegex = /\p{Emoji_Presentation}|\p{Emoji}\uFE0F?|\p{Emoji_Modifier_Base}/u;
                         
                         if (emojiRegex.test(inputData)) {
                             e.preventDefault(); // Prevent default paste
@@ -176,8 +176,8 @@ const EmojiPicker = {
                     const pastedText = (e.clipboardData || window.clipboardData).getData('text');
                     console.log('Paste event detected, text:', pastedText);
                     
-                    // Check if pasted text is an emoji character
-                    const emojiRegex = /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA00}-\u{1FA6F}]|[\u{1FA70}-\u{1FAFF}]/u;
+                    // Check if pasted text is an emoji character - using Unicode property escapes for better coverage
+                    const emojiRegex = /\p{Emoji_Presentation}|\p{Emoji}\uFE0F?|\p{Emoji_Modifier_Base}/u;
                     
                     if (emojiRegex.test(pastedText)) {
                         e.preventDefault(); // Prevent default paste
@@ -301,7 +301,9 @@ const EmojiPicker = {
                                         '🏠': 'house',
                                         '🚗': 'car',
                                         '🍔': 'burger',
-                                        '☕': 'coffee'
+                                        '☕': 'coffee',
+                                        '🛍️': 'shopping',
+                                        '🛍': 'shopping'
                                     };
                                     
                                     if (fallbackTerms[emojiChar]) {
@@ -394,8 +396,9 @@ const EmojiPicker = {
                 });
                 
                 // Intercept search input to handle emoji characters and Unicode code points
-                // Define emoji regex once for reuse
-                const emojiRegex = /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA00}-\u{1FA6F}]|[\u{1FA70}-\u{1FAFF}]|[\u{200D}]|[\u{FE0F}]/u;
+                // Define emoji regex once for reuse - includes variation selectors and zero-width joiners
+                // This pattern matches emojis including those with variation selectors (FE0F) and zero-width joiners (200D)
+                const emojiRegex = /\p{Emoji_Presentation}|\p{Emoji}\uFE0F?|\p{Emoji_Modifier_Base}/u;
                 
                 searchInput.addEventListener('input', (e) => {
                     // Skip processing if we're already handling an emoji
