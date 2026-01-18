@@ -423,57 +423,46 @@ const DataManagement = {
         const list = document.getElementById('methods-list');
         list.innerHTML = '';
 
-        DataStore.methods.forEach((method, index) => {
+        // Filter out "Default" from display and sort alphabetically
+        const sortedMethods = [...DataStore.methods]
+            .filter(method => method !== 'Default')
+            .sort((a, b) => a.localeCompare(b));
+
+        sortedMethods.forEach((method) => {
+            // Find the original index in DataStore.methods for data operations
+            const originalIndex = DataStore.methods.indexOf(method);
+            
             const li = document.createElement('li');
-            li.dataset.index = index;
+            li.dataset.index = originalIndex;
             li.dataset.originalValue = method;
             
-            const isDefault = method === 'Default';
-            
-            // Checkbox (disabled for Default)
+            // Checkbox
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.className = 'row-checkbox';
             checkbox.style.marginRight = '10px';
-            if (isDefault) {
-                checkbox.disabled = true;
-                checkbox.title = 'Default payment method cannot be selected';
-            }
             
-            // Editable name span (not editable for Default)
+            // Editable name span
             const nameSpan = document.createElement('span');
             nameSpan.className = 'method-name editable-name';
             nameSpan.textContent = method;
-            if (isDefault) {
-                nameSpan.style.cursor = 'not-allowed';
-                nameSpan.style.opacity = '0.6';
-                nameSpan.title = 'Default payment method cannot be edited';
-            } else {
-                nameSpan.style.cursor = 'pointer';
-                nameSpan.style.flex = '1';
-                nameSpan.addEventListener('click', (e) => {
-                    if (!li.classList.contains('editing')) {
-                        this.enterEditMode(li, nameSpan, 'method', index, method);
-                    }
-                });
-            }
+            nameSpan.style.cursor = 'pointer';
+            nameSpan.style.flex = '1';
+            nameSpan.addEventListener('click', (e) => {
+                if (!li.classList.contains('editing')) {
+                    this.enterEditMode(li, nameSpan, 'method', originalIndex, method);
+                }
+            });
             
-            // Delete button (disabled for Default)
+            // Delete button
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'delete-btn';
             deleteBtn.textContent = '🗑️';
-            if (isDefault) {
-                deleteBtn.disabled = true;
-                deleteBtn.style.opacity = '0.5';
-                deleteBtn.style.cursor = 'not-allowed';
-                deleteBtn.title = 'Default payment method cannot be deleted';
-            } else {
-                deleteBtn.title = 'Delete';
-                deleteBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    this.deleteMethod(method);
-                };
-            }
+            deleteBtn.title = 'Delete';
+            deleteBtn.onclick = (e) => {
+                e.stopPropagation();
+                this.deleteMethod(method);
+            };
             
             // Action buttons container
             const actionButtons = document.createElement('div');
