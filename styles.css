@@ -300,6 +300,30 @@ body {
     border-bottom: none;
 }
 
+#budget-table tfoot {
+    background-color: #f5f5f5;
+    font-weight: 600;
+}
+
+#budget-table tfoot tr.budget-footer-row td {
+    padding: 12px;
+    border-top: 2px solid #667eea;
+}
+
+#budget-table tfoot .budget-footer-cell {
+    text-align: left;
+}
+
+#budget-table tfoot .budget-footer-label {
+    color: #666;
+    margin-right: 8px;
+}
+
+#budget-table tfoot .budget-footer-value {
+    font-weight: 700;
+    color: #333;
+}
+
 .budget-planned-input {
     width: 100%;
     padding: 6px 8px;
