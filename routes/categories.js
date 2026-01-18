@@ -200,8 +200,17 @@ router.put('/api/income/:index', (req, res) => {
         // Check if new name already exists for Income type (only if name is changing)
         if (newName !== oldName) {
             const existing = db.exec(`SELECT id FROM categories WHERE name = '${escapeSql(newName)}' AND type = 'Income'`);
-            if (existing[0] && existing[0].values.length > 0 && existing[0].values[0][0] !== categoryId) {
-                return res.status(400).json({ error: 'Category name already exists' });
+            if (existing[0] && existing[0].values.length > 0) {
+                // Check if any of the found categories have a different ID (meaning it's a duplicate)
+                // Convert both to numbers for reliable comparison
+                const currentCategoryId = parseInt(categoryId);
+                const isDuplicate = existing[0].values.some(row => {
+                    const existingId = parseInt(row[0]);
+                    return existingId !== currentCategoryId;
+                });
+                if (isDuplicate) {
+                    return res.status(400).json({ error: 'Category name already exists' });
+                }
             }
         }
         
@@ -285,8 +294,17 @@ router.put('/api/expenses/:index', (req, res) => {
         if (newName && newName !== oldName) {
             // Check if new name already exists for Expense type
             const existing = db.exec(`SELECT id FROM categories WHERE name = '${escapeSql(newName)}' AND type = 'Expense'`);
-            if (existing[0] && existing[0].values.length > 0 && existing[0].values[0][0] !== categoryId) {
-                return res.status(400).json({ error: 'Category name already exists' });
+            if (existing[0] && existing[0].values.length > 0) {
+                // Check if any of the found categories have a different ID (meaning it's a duplicate)
+                // Convert both to numbers for reliable comparison
+                const currentCategoryId = parseInt(categoryId);
+                const isDuplicate = existing[0].values.some(row => {
+                    const existingId = parseInt(row[0]);
+                    return existingId !== currentCategoryId;
+                });
+                if (isDuplicate) {
+                    return res.status(400).json({ error: 'Category name already exists' });
+                }
             }
         }
         
