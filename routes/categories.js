@@ -5,9 +5,10 @@ const express = require('express');
 const router = express.Router();
 const { getDb, saveDatabase } = require('../db/database');
 const { escapeSql, ensureColumn, columnExists } = require('../db/helpers');
+const { requireAuth, getCurrentUserId } = require('../middleware/auth');
 
 // Helper function to get categories by type
-function getCategoriesByType(type) {
+function getCategoriesByType(type, userId) {
     const db = getDb();
     if (!db) {
         return [];
@@ -20,24 +21,26 @@ function getCategoriesByType(type) {
     if (!columnExists('categories', 'icon', db)) {
         ensureColumn('categories', 'icon', 'TEXT', db);
     }
-    const result = db.exec(`SELECT id, name, COALESCE(icon, '') as icon FROM categories WHERE type = '${type}' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
+    const result = db.exec(`SELECT id, name, COALESCE(icon, '') as icon FROM categories WHERE type = '${type}' AND user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
     return result[0] ? result[0].values : [];
 }
 
 // Get all income categories
-router.get('/api/income', (req, res) => {
+router.get('/api/income', requireAuth, (req, res) => {
     try {
         const db = getDb();
         if (!db) {
             return res.status(500).json({ error: 'Database not initialized' });
         }
         
+        const userId = getCurrentUserId(req);
+        
         // Ensure type column exists
         if (!columnExists('categories', 'type', db)) {
             ensureColumn('categories', 'type', 'TEXT', db);
         }
         
-        const result = db.exec("SELECT name FROM categories WHERE type = 'Income' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
+        const result = db.exec(`SELECT name FROM categories WHERE type = 'Income' AND user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
         const categories = result[0] ? result[0].values.map(row => row[0]) : [];
         res.json(categories);
     } catch (error) {
@@ -47,12 +50,14 @@ router.get('/api/income', (req, res) => {
 });
 
 // Get all expense categories
-router.get('/api/expenses', (req, res) => {
+router.get('/api/expenses', requireAuth, (req, res) => {
     try {
         const db = getDb();
         if (!db) {
             return res.status(500).json({ error: 'Database not initialized' });
         }
+        
+        const userId = getCurrentUserId(req);
         
         // Ensure type column exists
         if (!columnExists('categories', 'type', db)) {
@@ -63,7 +68,7 @@ router.get('/api/expenses', (req, res) => {
         if (!columnExists('categories', 'icon', db)) {
             ensureColumn('categories', 'icon', 'TEXT', db);
         }
-        const result = db.exec("SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Expense' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
+        const result = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Expense' AND user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
         const categories = result[0] ? result[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
         res.json(categories);
     } catch (error) {
@@ -73,12 +78,14 @@ router.get('/api/expenses', (req, res) => {
 });
 
 // Add income category
-router.post('/api/income', (req, res) => {
+router.post('/api/income', requireAuth, (req, res) => {
     try {
         const db = getDb();
         if (!db) {
             return res.status(500).json({ error: 'Database not initialized' });
         }
+        
+        const userId = getCurrentUserId(req);
         
         // Ensure type column exists
         if (!columnExists('categories', 'type', db)) {
@@ -92,10 +99,10 @@ router.post('/api/income', (req, res) => {
         }
         
         try {
-            db.run(`INSERT INTO categories (name, type) VALUES ('${escapeSql(category)}', 'Income')`);
+            db.run(`INSERT INTO categories (name, type, user_id) VALUES ('${escapeSql(category)}', 'Income', ${userId})`);
             saveDatabase();
             
-            const result = db.exec("SELECT name FROM categories WHERE type = 'Income' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
+            const result = db.exec(`SELECT name FROM categories WHERE type = 'Income' AND user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
             const categories = result[0] ? result[0].values.map(row => row[0]) : [];
             res.json(categories);
         } catch (error) {
@@ -111,12 +118,14 @@ router.post('/api/income', (req, res) => {
 });
 
 // Add expense category
-router.post('/api/expenses', (req, res) => {
+router.post('/api/expenses', requireAuth, (req, res) => {
     try {
         const db = getDb();
         if (!db) {
             return res.status(500).json({ error: 'Database not initialized' });
         }
+        
+        const userId = getCurrentUserId(req);
         
         // Ensure type column exists
         if (!columnExists('categories', 'type', db)) {
@@ -136,10 +145,10 @@ router.post('/api/expenses', (req, res) => {
         }
         
         try {
-            db.run(`INSERT INTO categories (name, type, icon) VALUES ('${escapeSql(category)}', 'Expense', '${escapeSql(icon)}')`);
+            db.run(`INSERT INTO categories (name, type, icon, user_id) VALUES ('${escapeSql(category)}', 'Expense', '${escapeSql(icon)}', ${userId})`);
             saveDatabase();
             
-            const result = db.exec("SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Expense' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
+            const result = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Expense' AND user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
             const categories = result[0] ? result[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
             res.json(categories);
         } catch (error) {
@@ -155,25 +164,26 @@ router.post('/api/expenses', (req, res) => {
 });
 
 // Update income category
-router.put('/api/income/:index', (req, res) => {
+router.put('/api/income/:index', requireAuth, (req, res) => {
     try {
         const db = getDb();
         if (!db) {
             return res.status(500).json({ error: 'Database not initialized' });
         }
         
+        const userId = getCurrentUserId(req);
         const index = parseInt(req.params.index);
         const newName = req.body.name;
         const newIcon = req.body.icon !== undefined ? req.body.icon : null;
-        const categories = getCategoriesByType('Income');
+        const categories = getCategoriesByType('Income', userId);
         
         if (index < 0 || index >= categories.length) {
             return res.status(404).json({ error: 'Category not found' });
         }
         
         const categoryId = categories[index][0];
-        // Get old name directly from database using category ID to avoid index sync issues
-        const categoryResult = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE id = ${categoryId}`);
+        // Get old name directly from database using category ID to avoid index sync issues (check user_id)
+        const categoryResult = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE id = ${categoryId} AND user_id = ${userId}`);
         if (!categoryResult[0] || categoryResult[0].values.length === 0) {
             return res.status(404).json({ error: 'Category not found' });
         }
@@ -200,15 +210,15 @@ router.put('/api/income/:index', (req, res) => {
                 // Don't return early, continue to update logic below
             } else {
                 // Nothing is changing, return early
-                const result = db.exec("SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Income' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
+                const result = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Income' AND user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
                 const catList = result[0] ? result[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
                 return res.json(catList);
             }
         }
         
-        // Check if new name already exists for Income type (only if name is changing)
+        // Check if new name already exists for Income type (only if name is changing) - check user_id
         if (normalizedNewName && normalizedNewName !== normalizedOldName) {
-            const existing = db.exec(`SELECT id FROM categories WHERE name = '${escapeSql(normalizedNewName)}' AND type = 'Income'`);
+            const existing = db.exec(`SELECT id FROM categories WHERE name = '${escapeSql(normalizedNewName)}' AND type = 'Income' AND user_id = ${userId}`);
             if (existing[0] && existing[0].values.length > 0 && existing[0].values[0][0] !== categoryId) {
                 return res.status(400).json({ error: 'Category name already exists' });
             }
@@ -231,14 +241,14 @@ router.put('/api/income/:index', (req, res) => {
             db.run(`UPDATE categories SET icon = '' WHERE id = ${categoryId}`);
         }
         
-        // Update all transactions with this category (only if name changed)
+        // Update all transactions with this category (only if name changed) - filter by user_id
         if (normalizedNewName !== normalizedOldName) {
-            db.run(`UPDATE transactions SET category = '${escapeSql(normalizedNewName)}' WHERE category = '${escapeSql(normalizedOldName)}' AND type = 'Income'`);
+            db.run(`UPDATE transactions SET category = '${escapeSql(normalizedNewName)}' WHERE category = '${escapeSql(normalizedOldName)}' AND type = 'Income' AND user_id = ${userId}`);
         }
         
         saveDatabase();
         
-        const result = db.exec("SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Income' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
+        const result = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Income' AND user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
         const updatedCategories = result[0] ? result[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
         res.json(updatedCategories);
     } catch (error) {
@@ -248,25 +258,26 @@ router.put('/api/income/:index', (req, res) => {
 });
 
 // Update expense category
-router.put('/api/expenses/:index', (req, res) => {
+router.put('/api/expenses/:index', requireAuth, (req, res) => {
     try {
         const db = getDb();
         if (!db) {
             return res.status(500).json({ error: 'Database not initialized' });
         }
         
+        const userId = getCurrentUserId(req);
         const index = parseInt(req.params.index);
         const newName = req.body.name;
         const newIcon = req.body.icon !== undefined ? req.body.icon : null;
-        const categories = getCategoriesByType('Expense');
+        const categories = getCategoriesByType('Expense', userId);
         
         if (index < 0 || index >= categories.length) {
             return res.status(404).json({ error: 'Category not found' });
         }
         
         const categoryId = categories[index][0];
-        // Get old name directly from database using category ID to avoid index sync issues
-        const categoryResult = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE id = ${categoryId}`);
+        // Get old name directly from database using category ID to avoid index sync issues (check user_id)
+        const categoryResult = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE id = ${categoryId} AND user_id = ${userId}`);
         if (!categoryResult[0] || categoryResult[0].values.length === 0) {
             return res.status(404).json({ error: 'Category not found' });
         }
@@ -293,16 +304,16 @@ router.put('/api/expenses/:index', (req, res) => {
                 // Don't return early, continue to update logic below
             } else {
                 // Nothing is changing, return early
-                const result = db.exec("SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Expense' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
+                const result = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Expense' AND user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
                 const catList = result[0] ? result[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
                 return res.json(catList);
             }
         }
         
-        // Only check for duplicate name if the name is actually changing
+        // Only check for duplicate name if the name is actually changing - check user_id
         if (normalizedNewName && normalizedNewName !== normalizedOldName) {
             // Check if new name already exists for Expense type
-            const existing = db.exec(`SELECT id FROM categories WHERE name = '${escapeSql(normalizedNewName)}' AND type = 'Expense'`);
+            const existing = db.exec(`SELECT id FROM categories WHERE name = '${escapeSql(normalizedNewName)}' AND type = 'Expense' AND user_id = ${userId}`);
             if (existing[0] && existing[0].values.length > 0 && existing[0].values[0][0] !== categoryId) {
                 return res.status(400).json({ error: 'Category name already exists' });
             }
@@ -325,14 +336,14 @@ router.put('/api/expenses/:index', (req, res) => {
             db.run(`UPDATE categories SET icon = '' WHERE id = ${categoryId}`);
         }
         
-        // Update all transactions with this category (only if name changed)
+        // Update all transactions with this category (only if name changed) - filter by user_id
         if (normalizedNewName !== normalizedOldName) {
-            db.run(`UPDATE transactions SET category = '${escapeSql(normalizedNewName)}' WHERE category = '${escapeSql(normalizedOldName)}' AND type = 'Expense'`);
+            db.run(`UPDATE transactions SET category = '${escapeSql(normalizedNewName)}' WHERE category = '${escapeSql(normalizedOldName)}' AND type = 'Expense' AND user_id = ${userId}`);
         }
         
         saveDatabase();
         
-        const result = db.exec("SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Expense' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
+        const result = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Expense' AND user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
         const updatedCategories = result[0] ? result[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
         res.json(updatedCategories);
     } catch (error) {
@@ -342,13 +353,14 @@ router.put('/api/expenses/:index', (req, res) => {
 });
 
 // Delete income category
-router.delete('/api/income/:name', (req, res) => {
+router.delete('/api/income/:name', requireAuth, (req, res) => {
     try {
         const db = getDb();
         if (!db) {
             return res.status(500).json({ error: 'Database not initialized' });
         }
         
+        const userId = getCurrentUserId(req);
         const categoryName = decodeURIComponent(req.params.name);
         
         // Prevent deletion of "Default"
@@ -356,17 +368,17 @@ router.delete('/api/income/:name', (req, res) => {
             return res.status(400).json({ error: 'Cannot delete the "Default" category' });
         }
         
-        // Check if category exists
-        const existing = db.exec(`SELECT id FROM categories WHERE name = '${escapeSql(categoryName)}' AND type = 'Income'`);
+        // Check if category exists and belongs to user
+        const existing = db.exec(`SELECT id FROM categories WHERE name = '${escapeSql(categoryName)}' AND type = 'Income' AND user_id = ${userId}`);
         if (!existing[0] || existing[0].values.length === 0) {
             return res.status(404).json({ error: 'Category not found' });
         }
         
-        // Update all transactions with this category to "Default" (Income type)
-        db.run(`UPDATE transactions SET category = 'Default' WHERE category = '${escapeSql(categoryName)}' AND type = 'Income'`);
+        // Update all transactions with this category to "Default" (Income type) - filter by user_id
+        db.run(`UPDATE transactions SET category = 'Default' WHERE category = '${escapeSql(categoryName)}' AND type = 'Income' AND user_id = ${userId}`);
         
         // Delete the category
-        db.run(`DELETE FROM categories WHERE name = '${escapeSql(categoryName)}' AND type = 'Income'`);
+        db.run(`DELETE FROM categories WHERE name = '${escapeSql(categoryName)}' AND type = 'Income' AND user_id = ${userId}`);
         saveDatabase();
         res.json({ success: true });
     } catch (error) {
@@ -376,13 +388,14 @@ router.delete('/api/income/:name', (req, res) => {
 });
 
 // Delete expense category
-router.delete('/api/expenses/:name', (req, res) => {
+router.delete('/api/expenses/:name', requireAuth, (req, res) => {
     try {
         const db = getDb();
         if (!db) {
             return res.status(500).json({ error: 'Database not initialized' });
         }
         
+        const userId = getCurrentUserId(req);
         const categoryName = decodeURIComponent(req.params.name);
         
         // Prevent deletion of "Default"
@@ -390,17 +403,17 @@ router.delete('/api/expenses/:name', (req, res) => {
             return res.status(400).json({ error: 'Cannot delete the "Default" category' });
         }
         
-        // Check if category exists
-        const existing = db.exec(`SELECT id FROM categories WHERE name = '${escapeSql(categoryName)}' AND type = 'Expense'`);
+        // Check if category exists and belongs to user
+        const existing = db.exec(`SELECT id FROM categories WHERE name = '${escapeSql(categoryName)}' AND type = 'Expense' AND user_id = ${userId}`);
         if (!existing[0] || existing[0].values.length === 0) {
             return res.status(404).json({ error: 'Category not found' });
         }
         
-        // Update all transactions with this category to "Default" (Expense type)
-        db.run(`UPDATE transactions SET category = 'Default' WHERE category = '${escapeSql(categoryName)}' AND type = 'Expense'`);
+        // Update all transactions with this category to "Default" (Expense type) - filter by user_id
+        db.run(`UPDATE transactions SET category = 'Default' WHERE category = '${escapeSql(categoryName)}' AND type = 'Expense' AND user_id = ${userId}`);
         
         // Delete the category
-        db.run(`DELETE FROM categories WHERE name = '${escapeSql(categoryName)}' AND type = 'Expense'`);
+        db.run(`DELETE FROM categories WHERE name = '${escapeSql(categoryName)}' AND type = 'Expense' AND user_id = ${userId}`);
         saveDatabase();
         res.json({ success: true });
     } catch (error) {

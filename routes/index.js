@@ -4,15 +4,17 @@
 const express = require('express');
 const router = express.Router();
 const { getDb } = require('../db/database');
+const { requireAuth, getCurrentUserId } = require('../middleware/auth');
 
-router.get('/api/data', (req, res) => {
+router.get('/api/data', requireAuth, (req, res) => {
     try {
         const db = getDb();
         if (!db) {
             return res.status(500).json({ error: 'Database not initialized' });
         }
         
-        const transactions = db.exec('SELECT * FROM transactions ORDER BY date DESC');
+        const userId = getCurrentUserId(req);
+        const transactions = db.exec(`SELECT * FROM transactions WHERE user_id = ${userId} ORDER BY date DESC`);
         
         // Check if type column exists in categories table
         const { columnExists, ensureColumn } = require('../db/helpers');
@@ -23,24 +25,24 @@ router.get('/api/data', (req, res) => {
         let categoryTypes = {};
         
         if (hasTypeColumn) {
-            // Get income and expense categories separately
+            // Get income and expense categories separately (filtered by user_id)
             try {
-                incomeCategories = db.exec("SELECT name FROM categories WHERE type = 'Income' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
+                incomeCategories = db.exec(`SELECT name FROM categories WHERE type = 'Income' AND user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
             } catch (error) {
                 console.error('Error reading income categories:', error);
                 incomeCategories = { values: [] };
             }
             
             try {
-                expenseCategories = db.exec("SELECT name FROM categories WHERE type = 'Expense' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
+                expenseCategories = db.exec(`SELECT name FROM categories WHERE type = 'Expense' AND user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
             } catch (error) {
                 console.error('Error reading expense categories:', error);
                 expenseCategories = { values: [] };
             }
             
-            // Also get category type mapping for transactions
+            // Also get category type mapping for transactions (filtered by user_id)
             try {
-                const allCategories = db.exec("SELECT name, type FROM categories");
+                const allCategories = db.exec(`SELECT name, type FROM categories WHERE user_id = ${userId}`);
                 if (allCategories[0]) {
                     allCategories[0].values.forEach(row => {
                         categoryTypes[row[0]] = row[1];
@@ -53,7 +55,7 @@ router.get('/api/data', (req, res) => {
             // Fallback: if type column doesn't exist, return all categories as expenses
             console.warn('Type column does not exist in categories table. Migration may not have run.');
             try {
-                const allCategories = db.exec("SELECT name FROM categories ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
+                const allCategories = db.exec(`SELECT name FROM categories WHERE user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
                 if (allCategories[0]) {
                     expenseCategories = allCategories;
                     allCategories[0].values.forEach(row => {
@@ -65,7 +67,7 @@ router.get('/api/data', (req, res) => {
             }
         }
         
-        const methods = db.exec("SELECT name FROM methods ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
+        const methods = db.exec(`SELECT name FROM methods WHERE user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
         
         // Process transactions and ensure type matches category
         let needsSave = false;
@@ -77,7 +79,7 @@ router.get('/api/data', (req, res) => {
             if (row[5] !== transactionType) {
                 const { escapeSql } = require('../db/helpers');
                 const { saveDatabase } = require('../db/database');
-                db.run(`UPDATE transactions SET type = '${transactionType}' WHERE id = ${row[0]}`);
+                db.run(`UPDATE transactions SET type = '${transactionType}' WHERE id = ${row[0]} AND user_id = ${userId}`);
                 needsSave = true;
             }
             
@@ -111,7 +113,7 @@ router.get('/api/data', (req, res) => {
         
         if (hasTypeColumn) {
             try {
-                const incomeResult = db.exec("SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Income' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
+                const incomeResult = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Income' AND user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
                 incomeWithIcons = incomeResult[0] ? incomeResult[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
             } catch (error) {
                 console.error('Error reading income categories with icons:', error);
@@ -119,7 +121,7 @@ router.get('/api/data', (req, res) => {
             }
             
             try {
-                const expenseResult = db.exec("SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Expense' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
+                const expenseResult = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Expense' AND user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
                 expensesWithIcons = expenseResult[0] ? expenseResult[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
             } catch (error) {
                 console.error('Error reading expense categories with icons:', error);

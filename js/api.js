@@ -5,14 +5,28 @@ const API = {
 
     async loadData() {
         try {
-            const response = await fetch(`${API.BASE}/data`);
+            const response = await fetch(`${API.BASE}/data`, {
+                credentials: 'include'
+            });
             if (!response.ok) {
+                if (response.status === 401) {
+                    // Not authenticated, show login screen
+                    if (typeof Auth !== 'undefined') {
+                        Auth.showLoginScreen();
+                    }
+                    throw new Error('Authentication required');
+                }
                 throw new Error(`Server returned ${response.status}: ${response.statusText}`);
             }
             const data = await response.json();
             return data;
         } catch (error) {
             console.error('Error loading data:', error);
+            
+            // Check if authentication error
+            if (error.message === 'Authentication required') {
+                throw error; // Re-throw to prevent fallback
+            }
             
             // Check if server is not running
             if (error.message === 'Failed to fetch' || error.message.includes('fetch')) {

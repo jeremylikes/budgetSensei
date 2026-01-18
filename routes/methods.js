@@ -5,17 +5,19 @@ const express = require('express');
 const router = express.Router();
 const { getDb, saveDatabase } = require('../db/database');
 const { escapeSql } = require('../db/helpers');
+const { requireAuth, getCurrentUserId } = require('../middleware/auth');
 
 // Get all methods
-router.get('/api/methods', (req, res) => {
+router.get('/api/methods', requireAuth, (req, res) => {
     try {
         const db = getDb();
         if (!db) {
             return res.status(500).json({ error: 'Database not initialized' });
         }
         
+        const userId = getCurrentUserId(req);
         // Sort with "Default" first, then alphabetically
-        const result = db.exec("SELECT name FROM methods ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
+        const result = db.exec(`SELECT name FROM methods WHERE user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
         const methods = result[0] ? result[0].values.map(row => row[0]) : [];
         res.json(methods);
     } catch (error) {
@@ -25,13 +27,14 @@ router.get('/api/methods', (req, res) => {
 });
 
 // Add method
-router.post('/api/methods', (req, res) => {
+router.post('/api/methods', requireAuth, (req, res) => {
     try {
         const db = getDb();
         if (!db) {
             return res.status(500).json({ error: 'Database not initialized' });
         }
         
+        const userId = getCurrentUserId(req);
         const method = req.body.name;
         
         if (!method) {
@@ -39,10 +42,10 @@ router.post('/api/methods', (req, res) => {
         }
         
         try {
-            db.run(`INSERT INTO methods (name) VALUES ('${escapeSql(method)}')`);
+            db.run(`INSERT INTO methods (name, user_id) VALUES ('${escapeSql(method)}', ${userId})`);
             saveDatabase();
             
-            const result = db.exec('SELECT name FROM methods ORDER BY name');
+            const result = db.exec(`SELECT name FROM methods WHERE user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
             const methods = result[0] ? result[0].values.map(row => row[0]) : [];
             res.json(methods);
         } catch (error) {
@@ -58,18 +61,19 @@ router.post('/api/methods', (req, res) => {
 });
 
 // Update method
-router.put('/api/methods/:index', (req, res) => {
+router.put('/api/methods/:index', requireAuth, (req, res) => {
     try {
         const db = getDb();
         if (!db) {
             return res.status(500).json({ error: 'Database not initialized' });
         }
         
+        const userId = getCurrentUserId(req);
         const index = parseInt(req.params.index);
         const newName = req.body.name;
         
-        // Get all methods
-        const result = db.exec('SELECT id, name FROM methods ORDER BY name');
+        // Get all methods for this user
+        const result = db.exec(`SELECT id, name FROM methods WHERE user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
         const methods = result[0] ? result[0].values : [];
         
         if (index < 0 || index >= methods.length) {
@@ -80,13 +84,13 @@ router.put('/api/methods/:index', (req, res) => {
         const methodId = methods[index][0];
         
         if (newName === oldName) {
-            const methodResult = db.exec('SELECT name FROM methods ORDER BY name');
+            const methodResult = db.exec(`SELECT name FROM methods WHERE user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
             const methodList = methodResult[0] ? methodResult[0].values.map(row => row[0]) : [];
             return res.json(methodList);
         }
         
-        // Check if new name already exists
-        const existing = db.exec(`SELECT id FROM methods WHERE name = '${escapeSql(newName)}'`);
+        // Check if new name already exists for this user
+        const existing = db.exec(`SELECT id FROM methods WHERE name = '${escapeSql(newName)}' AND user_id = ${userId}`);
         if (existing[0] && existing[0].values.length > 0 && existing[0].values[0][0] !== methodId) {
             return res.status(400).json({ error: 'Method name already exists' });
         }
@@ -97,14 +101,14 @@ router.put('/api/methods/:index', (req, res) => {
         }
         
         // Update method
-        db.run(`UPDATE methods SET name = '${escapeSql(newName)}' WHERE id = ${methodId}`);
+        db.run(`UPDATE methods SET name = '${escapeSql(newName)}' WHERE id = ${methodId} AND user_id = ${userId}`);
         
-        // Update all transactions with this method
-        db.run(`UPDATE transactions SET method = '${escapeSql(newName)}' WHERE method = '${escapeSql(oldName)}'`);
+        // Update all transactions with this method (filter by user_id)
+        db.run(`UPDATE transactions SET method = '${escapeSql(newName)}' WHERE method = '${escapeSql(oldName)}' AND user_id = ${userId}`);
         
         saveDatabase();
         
-        const updatedResult = db.exec('SELECT name FROM methods ORDER BY name');
+        const updatedResult = db.exec(`SELECT name FROM methods WHERE user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
         const updatedMethods = updatedResult[0] ? updatedResult[0].values.map(row => row[0]) : [];
         res.json(updatedMethods);
     } catch (error) {
@@ -114,13 +118,14 @@ router.put('/api/methods/:index', (req, res) => {
 });
 
 // Delete method
-router.delete('/api/methods/:name', (req, res) => {
+router.delete('/api/methods/:name', requireAuth, (req, res) => {
     try {
         const db = getDb();
         if (!db) {
             return res.status(500).json({ error: 'Database not initialized' });
         }
         
+        const userId = getCurrentUserId(req);
         const methodName = decodeURIComponent(req.params.name);
         
         // Prevent deletion of "Default"
@@ -128,17 +133,17 @@ router.delete('/api/methods/:name', (req, res) => {
             return res.status(400).json({ error: 'Cannot delete the Default payment method' });
         }
         
-        // Check if method exists
-        const existing = db.exec(`SELECT id FROM methods WHERE name = '${escapeSql(methodName)}'`);
+        // Check if method exists and belongs to user
+        const existing = db.exec(`SELECT id FROM methods WHERE name = '${escapeSql(methodName)}' AND user_id = ${userId}`);
         if (!existing[0] || existing[0].values.length === 0) {
             return res.status(404).json({ error: 'Method not found' });
         }
         
-        // Update all transactions with this method to "Default"
-        db.run(`UPDATE transactions SET method = 'Default' WHERE method = '${escapeSql(methodName)}'`);
+        // Update all transactions with this method to "Default" (filter by user_id)
+        db.run(`UPDATE transactions SET method = 'Default' WHERE method = '${escapeSql(methodName)}' AND user_id = ${userId}`);
         
         // Delete the method
-        db.run(`DELETE FROM methods WHERE name = '${escapeSql(methodName)}'`);
+        db.run(`DELETE FROM methods WHERE name = '${escapeSql(methodName)}' AND user_id = ${userId}`);
         saveDatabase();
         res.json({ success: true });
     } catch (error) {

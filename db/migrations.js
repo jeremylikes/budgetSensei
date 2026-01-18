@@ -2,10 +2,10 @@
 // Handles database schema migrations
 
 const { getDb, saveDatabase } = require('./database');
-const { ensureColumn } = require('./helpers');
+const { ensureColumn, columnExists } = require('./helpers');
 
 // Run database migrations
-function runMigrations(db) {
+async function runMigrations(db) {
     if (!db) {
         console.warn('Database not initialized, skipping migrations');
         return;
@@ -122,7 +122,8 @@ function runMigrations(db) {
                         year INTEGER NOT NULL,
                         month INTEGER NOT NULL,
                         planned_amount REAL NOT NULL,
-                        UNIQUE(category, year, month)
+                        user_id INTEGER,
+                        UNIQUE(category, year, month, user_id)
                     )
                 `);
                 saveDatabase();
@@ -149,6 +150,130 @@ function runMigrations(db) {
             console.log('✓ Migration completed: icon column added to categories');
         } else {
             console.log('✓ Migration check completed: icon column already exists');
+        }
+        
+        // Migration: Create users table if it doesn't exist
+        const usersTableCheck = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='users'");
+        if (!usersTableCheck[0] || usersTableCheck[0].values.length === 0) {
+            try {
+                console.log('Creating users table...');
+                db.run(`
+                    CREATE TABLE users (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        username TEXT UNIQUE NOT NULL,
+                        password_hash TEXT NOT NULL,
+                        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+                    )
+                `);
+                saveDatabase();
+                console.log('✓ Migration completed: users table created');
+            } catch (error) {
+                console.error('Error creating users table:', error);
+            }
+        } else {
+            console.log('✓ Migration check completed: users table already exists');
+        }
+        
+        // Migration: Add user_id columns to all tables
+        const userIdAddedToTransactions = ensureColumn('transactions', 'user_id', 'INTEGER', db);
+        if (userIdAddedToTransactions) {
+            console.log('✓ Migration completed: user_id column added to transactions');
+        }
+        
+        const userIdAddedToCategories = ensureColumn('categories', 'user_id', 'INTEGER', db);
+        if (userIdAddedToCategories) {
+            console.log('✓ Migration completed: user_id column added to categories');
+        }
+        
+        const userIdAddedToMethods = ensureColumn('methods', 'user_id', 'INTEGER', db);
+        if (userIdAddedToMethods) {
+            console.log('✓ Migration completed: user_id column added to methods');
+        }
+        
+        const userIdAddedToBudgets = ensureColumn('budgets', 'user_id', 'INTEGER', db);
+        if (userIdAddedToBudgets) {
+            console.log('✓ Migration completed: user_id column added to budgets');
+        }
+        
+        // Migration: Create admin user and migrate existing data
+        // Always check and migrate - not just on first run
+        try {
+            const bcrypt = require('bcrypt');
+            const { escapeSql } = require('./helpers');
+            
+            // Check if admin user exists
+            const adminCheck = db.exec("SELECT id FROM users WHERE username = 'admin'");
+            let adminUserId = null;
+            
+            if (!adminCheck[0] || adminCheck[0].values.length === 0) {
+                // Create admin user
+                const passwordHash = await bcrypt.hash('likes5578', 10);
+                db.run(`INSERT INTO users (username, password_hash) VALUES ('admin', '${escapeSql(passwordHash)}')`);
+                saveDatabase();
+                
+                // Get the admin user ID
+                const adminResult = db.exec("SELECT id FROM users WHERE username = 'admin'");
+                adminUserId = adminResult[0] && adminResult[0].values.length > 0 ? adminResult[0].values[0][0] : null;
+                console.log('✓ Migration completed: admin user created');
+            } else {
+                adminUserId = adminCheck[0].values[0][0];
+                console.log('✓ Migration check: admin user already exists');
+            }
+            
+            // Always migrate existing data without user_id to admin user
+            if (adminUserId) {
+                let migrated = false;
+                
+                // Check if user_id column exists before trying to migrate
+                if (columnExists('transactions', 'user_id', db)) {
+                    const transactionCheck = db.exec("SELECT COUNT(*) FROM transactions WHERE user_id IS NULL");
+                    const nullTransactions = transactionCheck[0] && transactionCheck[0].values.length > 0 ? transactionCheck[0].values[0][0] : 0;
+                    if (nullTransactions > 0) {
+                        db.run(`UPDATE transactions SET user_id = ${adminUserId} WHERE user_id IS NULL`);
+                        migrated = true;
+                        console.log(`✓ Migrated ${nullTransactions} transactions to admin user`);
+                    }
+                }
+                
+                if (columnExists('categories', 'user_id', db)) {
+                    const categoryCheck = db.exec("SELECT COUNT(*) FROM categories WHERE user_id IS NULL");
+                    const nullCategories = categoryCheck[0] && categoryCheck[0].values.length > 0 ? categoryCheck[0].values[0][0] : 0;
+                    if (nullCategories > 0) {
+                        db.run(`UPDATE categories SET user_id = ${adminUserId} WHERE user_id IS NULL`);
+                        migrated = true;
+                        console.log(`✓ Migrated ${nullCategories} categories to admin user`);
+                    }
+                }
+                
+                if (columnExists('methods', 'user_id', db)) {
+                    const methodCheck = db.exec("SELECT COUNT(*) FROM methods WHERE user_id IS NULL");
+                    const nullMethods = methodCheck[0] && methodCheck[0].values.length > 0 ? methodCheck[0].values[0][0] : 0;
+                    if (nullMethods > 0) {
+                        db.run(`UPDATE methods SET user_id = ${adminUserId} WHERE user_id IS NULL`);
+                        migrated = true;
+                        console.log(`✓ Migrated ${nullMethods} methods to admin user`);
+                    }
+                }
+                
+                if (columnExists('budgets', 'user_id', db)) {
+                    const budgetCheck = db.exec("SELECT COUNT(*) FROM budgets WHERE user_id IS NULL");
+                    const nullBudgets = budgetCheck[0] && budgetCheck[0].values.length > 0 ? budgetCheck[0].values[0][0] : 0;
+                    if (nullBudgets > 0) {
+                        db.run(`UPDATE budgets SET user_id = ${adminUserId} WHERE user_id IS NULL`);
+                        migrated = true;
+                        console.log(`✓ Migrated ${nullBudgets} budgets to admin user`);
+                    }
+                }
+                
+                if (migrated) {
+                    saveDatabase();
+                    console.log('✓ Migration completed: Existing data migrated to admin user');
+                } else {
+                    console.log('✓ Migration check: No unmigrated data found');
+                }
+            }
+        } catch (error) {
+            console.error('Error migrating data to admin user:', error);
         }
         
         // Add more migrations here as needed in the future
