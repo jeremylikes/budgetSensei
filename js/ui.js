@@ -27,6 +27,22 @@ const UI = {
                     btn.classList.add('active');
                     targetElement.classList.add('active');
                     
+                    // Sync date selectors when switching tabs
+                    const dashboardYear = document.getElementById('dashboard-year');
+                    const dashboardMonth = document.getElementById('dashboard-month');
+                    const ledgerYear = document.getElementById('ledger-year');
+                    const ledgerMonth = document.getElementById('ledger-month');
+                    
+                    if (targetTab === 'dashboard' && ledgerYear && ledgerMonth && dashboardYear && dashboardMonth) {
+                        // Sync ledger to dashboard
+                        dashboardYear.value = ledgerYear.value;
+                        dashboardMonth.value = ledgerMonth.value;
+                    } else if (targetTab === 'ledger' && dashboardYear && dashboardMonth && ledgerYear && ledgerMonth) {
+                        // Sync dashboard to ledger
+                        ledgerYear.value = dashboardYear.value;
+                        ledgerMonth.value = dashboardMonth.value;
+                    }
+                    
                     // Update content after a brief delay to ensure tab is visible first
                     setTimeout(() => {
                         try {
@@ -78,23 +94,60 @@ const UI = {
             });
         });
 
-        // Add change listeners
-        document.getElementById('dashboard-year').addEventListener('change', () => Dashboard.update());
-        document.getElementById('dashboard-month').addEventListener('change', () => Dashboard.update());
-        document.getElementById('ledger-year').addEventListener('change', () => {
-            // Clear filters when month/year changes
-            if (window.LedgerFiltering) {
-                window.LedgerFiltering.clearAllFilters();
+        // Sync function to keep selectors in sync
+        const syncDateSelectors = (sourceYearId, sourceMonthId, targetYearId, targetMonthId) => {
+            const sourceYear = document.getElementById(sourceYearId);
+            const sourceMonth = document.getElementById(sourceMonthId);
+            const targetYear = document.getElementById(targetYearId);
+            const targetMonth = document.getElementById(targetMonthId);
+            
+            if (sourceYear && sourceMonth && targetYear && targetMonth) {
+                targetYear.value = sourceYear.value;
+                targetMonth.value = sourceMonth.value;
             }
-            Ledger.update();
-        });
-        document.getElementById('ledger-month').addEventListener('change', () => {
-            // Clear filters when month/year changes
-            if (window.LedgerFiltering) {
-                window.LedgerFiltering.clearAllFilters();
-            }
-            Ledger.update();
-        });
+        };
+
+        // Add change listeners with synchronization
+        const dashboardYear = document.getElementById('dashboard-year');
+        const dashboardMonth = document.getElementById('dashboard-month');
+        const ledgerYear = document.getElementById('ledger-year');
+        const ledgerMonth = document.getElementById('ledger-month');
+
+        if (dashboardYear) {
+            dashboardYear.addEventListener('change', () => {
+                syncDateSelectors('dashboard-year', 'dashboard-month', 'ledger-year', 'ledger-month');
+                Dashboard.update();
+            });
+        }
+
+        if (dashboardMonth) {
+            dashboardMonth.addEventListener('change', () => {
+                syncDateSelectors('dashboard-year', 'dashboard-month', 'ledger-year', 'ledger-month');
+                Dashboard.update();
+            });
+        }
+
+        if (ledgerYear) {
+            ledgerYear.addEventListener('change', () => {
+                syncDateSelectors('ledger-year', 'ledger-month', 'dashboard-year', 'dashboard-month');
+                // Clear filters when month/year changes
+                if (window.LedgerFiltering) {
+                    window.LedgerFiltering.clearAllFilters();
+                }
+                Ledger.update();
+            });
+        }
+
+        if (ledgerMonth) {
+            ledgerMonth.addEventListener('change', () => {
+                syncDateSelectors('ledger-year', 'ledger-month', 'dashboard-year', 'dashboard-month');
+                // Clear filters when month/year changes
+                if (window.LedgerFiltering) {
+                    window.LedgerFiltering.clearAllFilters();
+                }
+                Ledger.update();
+            });
+        }
     },
 
     setupTransactionModal() {

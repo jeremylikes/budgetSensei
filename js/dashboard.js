@@ -347,7 +347,12 @@ const Dashboard = {
                         borderWidth: 2,
                         borderDash: [5, 5],
                         pointRadius: 0,
-                        pointHoverRadius: 4,
+                        pointHoverRadius: 6,
+                        pointHoverBorderWidth: 2,
+                        pointHoverBorderColor: '#333',
+                        pointHoverBackgroundColor: '#333',
+                        pointBackgroundColor: '#333',
+                        pointBorderColor: '#333',
                         order: 1
                     }
                 ]
@@ -361,6 +366,9 @@ const Dashboard = {
                         position: 'top'
                     },
                     tooltip: {
+                        enabled: true,
+                        intersect: false,
+                        mode: 'index',
                         callbacks: {
                             label: function(context) {
                                 if (context.datasetIndex === 0) {
@@ -371,6 +379,10 @@ const Dashboard = {
                             }
                         }
                     }
+                },
+                interaction: {
+                    mode: 'index',
+                    intersect: false
                 },
                 scales: {
                     y: {
