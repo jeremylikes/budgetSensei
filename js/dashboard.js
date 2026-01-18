@@ -299,86 +299,32 @@ const Dashboard = {
             tbody.appendChild(row);
         });
 
-        // Add footer row with totals
-        const tfoot = document.getElementById('budget-tfoot');
-        if (tfoot) {
-            tfoot.innerHTML = '';
-            const footerRow = document.createElement('tr');
-            footerRow.className = 'budget-footer-row';
-            
-            // Calculate totals
-            let totalActual = 0;
-            let totalRemaining = 0;
-            
-            allCategories.forEach(category => {
-                const planned = budgetData[category] || 0;
-                const actual = actualData[category] || 0;
-                totalActual += actual;
-                
-                // Calculate remaining for this category (same logic as in the row)
-                const categoryType = DataStore.getCategoryType(category);
-                let remaining = null;
-                if (planned !== null) {
-                    if (categoryType === 'Income') {
-                        remaining = actual - planned;
-                    } else {
-                        remaining = planned - actual;
-                    }
-                }
-                
-                // Only add to total if remaining is not null
-                if (remaining !== null) {
-                    totalRemaining += remaining;
-                }
-            });
-            
-            // Category cell (empty)
-            const categoryFooterCell = document.createElement('td');
-            categoryFooterCell.textContent = '';
-            footerRow.appendChild(categoryFooterCell);
-            
-            // Planned column: "Current" label + sum of Actual values
-            const plannedCell = document.createElement('td');
-            plannedCell.className = 'budget-footer-cell';
-            const currentLabel = document.createElement('span');
-            currentLabel.className = 'budget-footer-label';
-            currentLabel.textContent = 'Current';
-            const currentValue = document.createElement('span');
-            currentValue.className = 'budget-footer-value';
-            currentValue.textContent = Utils.formatCurrency(totalActual);
-            plannedCell.appendChild(currentLabel);
-            plannedCell.appendChild(document.createTextNode(' '));
-            plannedCell.appendChild(currentValue);
-            footerRow.appendChild(plannedCell);
-            
-            // Actual column (empty)
-            const actualCell = document.createElement('td');
-            actualCell.textContent = '';
-            footerRow.appendChild(actualCell);
-            
-            // Remaining column: "Remaining" label + sum of Remaining values
-            const remainingCell = document.createElement('td');
-            remainingCell.className = 'budget-footer-cell';
-            const remainingLabel = document.createElement('span');
-            remainingLabel.className = 'budget-footer-label';
-            remainingLabel.textContent = 'Remaining';
-            const remainingValue = document.createElement('span');
-            remainingValue.className = 'budget-footer-value';
-            remainingValue.textContent = Utils.formatCurrency(totalRemaining);
-            // Color code the total remaining value
-            if (totalRemaining < 0) {
-                remainingValue.style.color = '#d32f2f'; // Red
-            } else if (totalRemaining > 0) {
-                remainingValue.style.color = '#2e7d32'; // Green
-            } else {
-                remainingValue.style.color = '#000'; // Black
-            }
-            remainingCell.appendChild(remainingLabel);
-            remainingCell.appendChild(document.createTextNode(' '));
-            remainingCell.appendChild(remainingValue);
-            footerRow.appendChild(remainingCell);
-            
-            tfoot.appendChild(footerRow);
+        // Update budget summary tiles
+        let totalPlanned = 0;
+        let totalActual = 0;
+        
+        allCategories.forEach(category => {
+            const planned = budgetData[category] || 0;
+            const actual = actualData[category] || 0;
+            totalPlanned += planned;
+            totalActual += actual;
+        });
+        
+        const totalRemaining = totalPlanned - totalActual;
+        
+        // Update the tile elements
+        const plannedTotalEl = document.getElementById('budget-planned-total');
+        const actualTotalEl = document.getElementById('budget-actual-total');
+        const remainingTotalEl = document.getElementById('budget-remaining-total');
+        
+        if (plannedTotalEl) {
+            plannedTotalEl.textContent = Utils.formatCurrency(totalPlanned);
+        }
+        if (actualTotalEl) {
+            actualTotalEl.textContent = Utils.formatCurrency(totalActual);
+        }
+        if (remainingTotalEl) {
+            remainingTotalEl.textContent = Utils.formatCurrency(totalRemaining);
         }
     },
 

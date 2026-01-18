@@ -151,10 +151,10 @@ const UI = {
     },
 
     setupTransactionModal() {
-        // Setup inline add button
-        const addInlineBtn = document.getElementById('add-transaction-inline-btn');
-        if (addInlineBtn) {
-            addInlineBtn.addEventListener('click', () => {
+        // Setup Add Transaction button in the filter strip
+        const addTransactionBtn = document.getElementById('add-transaction-btn');
+        if (addTransactionBtn) {
+            addTransactionBtn.addEventListener('click', () => {
                 Ledger.addNewInlineRow();
             });
         }

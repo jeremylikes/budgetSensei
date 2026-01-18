@@ -22,7 +22,7 @@ const LedgerFiltering = {
         const filterBtn = document.createElement('button');
         filterBtn.className = 'filter-icon-btn';
         filterBtn.dataset.field = field;
-        filterBtn.innerHTML = '🔍';
+        filterBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>';
         filterBtn.title = `Filter by ${field}`;
         
         // Insert before sort indicator
