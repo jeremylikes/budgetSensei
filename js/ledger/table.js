@@ -49,9 +49,17 @@ const LedgerTable = {
         // Amount cell
         const amountCell = document.createElement('td');
         amountCell.className = 'editable-cell';
+        // Add color class based on transaction type
+        const transactionType = transaction.type || 'Expense'; // Default to Expense
+        if (transactionType === 'Income') {
+            amountCell.classList.add('amount-income');
+        } else {
+            amountCell.classList.add('amount-expense');
+        }
         amountCell.textContent = Utils.formatCurrency(transaction.amount);
         amountCell.dataset.field = 'amount';
         amountCell.dataset.value = transaction.amount;
+        amountCell.dataset.transactionType = transactionType; // Store type for updates
         
         // Note cell (editable)
         const noteCell = document.createElement('td');
@@ -112,11 +120,20 @@ const LedgerTable = {
         return row;
     },
 
-    updateCellDisplay(cell, field, value) {
+    updateCellDisplay(cell, field, value, transaction = null) {
         if (field === 'date') {
             cell.textContent = Utils.formatDate(value);
             cell.dataset.value = value;
         } else if (field === 'amount') {
+            // Preserve color class when updating amount
+            const existingType = cell.dataset.transactionType || (transaction && transaction.type) || 'Expense';
+            cell.classList.remove('amount-income', 'amount-expense');
+            if (existingType === 'Income') {
+                cell.classList.add('amount-income');
+            } else {
+                cell.classList.add('amount-expense');
+            }
+            cell.dataset.transactionType = existingType;
             cell.textContent = Utils.formatCurrency(parseFloat(value));
             cell.dataset.value = value;
         } else if (field === 'note') {

@@ -81,8 +81,20 @@ const UI = {
         // Add change listeners
         document.getElementById('dashboard-year').addEventListener('change', () => Dashboard.update());
         document.getElementById('dashboard-month').addEventListener('change', () => Dashboard.update());
-        document.getElementById('ledger-year').addEventListener('change', () => Ledger.update());
-        document.getElementById('ledger-month').addEventListener('change', () => Ledger.update());
+        document.getElementById('ledger-year').addEventListener('change', () => {
+            // Clear filters when month/year changes
+            if (window.LedgerFiltering) {
+                window.LedgerFiltering.clearAllFilters();
+            }
+            Ledger.update();
+        });
+        document.getElementById('ledger-month').addEventListener('change', () => {
+            // Clear filters when month/year changes
+            if (window.LedgerFiltering) {
+                window.LedgerFiltering.clearAllFilters();
+            }
+            Ledger.update();
+        });
     },
 
     setupTransactionModal() {

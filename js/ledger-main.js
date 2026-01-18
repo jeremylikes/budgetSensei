@@ -8,6 +8,11 @@ const Ledger = {
 
         let filtered = Utils.getTransactionsForMonth(DataStore.transactions, year, month);
         
+        // Apply filters
+        if (window.LedgerFiltering) {
+            filtered = window.LedgerFiltering.applyFilters(filtered);
+        }
+        
         // Apply sorting
         if (window.LedgerSorting) {
             filtered = Utils.sortTransactions(filtered, LedgerSorting.sortColumn, LedgerSorting.sortDirection);
@@ -47,6 +52,12 @@ const Ledger = {
     setupSortableColumns() {
         if (window.LedgerSorting) {
             LedgerSorting.setup();
+        }
+    },
+
+    setupFilters() {
+        if (window.LedgerFiltering) {
+            LedgerFiltering.setup();
         }
     },
 

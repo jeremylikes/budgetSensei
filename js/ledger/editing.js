@@ -241,6 +241,17 @@ const LedgerEditing = {
                     const newType = DataStore.getCategoryType(newCategory);
                     // Update the transaction type in the background (not displayed, but stored)
                     row.dataset.transactionType = newType;
+                    // Update amount cell color immediately
+                    const amountCell = row.querySelector('td[data-field="amount"]');
+                    if (amountCell) {
+                        amountCell.classList.remove('amount-income', 'amount-expense');
+                        if (newType === 'Income') {
+                            amountCell.classList.add('amount-income');
+                        } else {
+                            amountCell.classList.add('amount-expense');
+                        }
+                        amountCell.dataset.transactionType = newType;
+                    }
                 }
             });
         } else if (field === 'method') {

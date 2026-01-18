@@ -416,11 +416,95 @@ th.sortable {
     cursor: pointer;
     user-select: none;
     position: relative;
-    padding-right: 25px;
+    padding-right: 50px; /* Increased to accommodate both filter and sort icons */
 }
 
 th.sortable:hover {
     background-color: #444;
+}
+
+/* Filter icon button */
+.filter-icon-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 2px 4px;
+    margin-right: 4px;
+    opacity: 0.7;
+    transition: opacity 0.2s, transform 0.2s;
+    position: absolute;
+    right: 30px; /* Position to the left of sort indicator */
+    z-index: 2;
+}
+
+.filter-icon-btn:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.filter-icon-btn.active {
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.filter-icon-btn.has-filter {
+    opacity: 1;
+    color: #4CAF50;
+}
+
+/* Filter dropdown */
+.filter-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 150px;
+    max-width: 250px;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+    margin-top: 2px;
+}
+
+.filter-option {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    transition: background-color 0.2s;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.filter-option:last-child {
+    border-bottom: none;
+}
+
+.filter-option:hover {
+    background-color: #f5f5f5;
+}
+
+.filter-option.selected {
+    background-color: #e3f2fd;
+    color: #1976d2;
+    font-weight: 500;
+}
+
+.filter-option.disabled {
+    color: #999;
+    cursor: not-allowed;
+    font-style: italic;
+}
+
+.filter-separator {
+    height: 1px;
+    background-color: #ddd;
+    margin: 4px 0;
 }
 
 .sort-indicator {
@@ -455,6 +539,17 @@ td.editable-cell:hover {
 
 td.editable-cell.editing {
     padding: 0;
+}
+
+/* Amount color coding */
+td.editable-cell.amount-expense {
+    color: #dc3545; /* Red for expenses */
+    font-weight: 500;
+}
+
+td.editable-cell.amount-income {
+    color: #28a745; /* Green for income */
+    font-weight: 500;
 }
 
 .inline-edit-input {

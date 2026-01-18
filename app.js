@@ -16,6 +16,9 @@ async function initializeApp() {
         // Setup ledger sorting
         Ledger.setupSortableColumns();
         
+        // Setup ledger filtering
+        Ledger.setupFilters();
+        
         // Setup data management (categories & methods)
         DataManagement.setup();
         
