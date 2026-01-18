@@ -22,7 +22,7 @@ async function initializeDatabase() {
             console.log('Database loaded successfully');
             
             // Run migrations to add any missing columns (safe - won't delete data)
-            runMigrations(db);
+            await runMigrations(db);
         } else {
             db = new SQL.Database();
             
@@ -63,26 +63,55 @@ async function initializeDatabase() {
                     year INTEGER NOT NULL,
                     month INTEGER NOT NULL,
                     planned_amount REAL NOT NULL,
-                    UNIQUE(category, year, month)
+                    user_id INTEGER,
+                    UNIQUE(category, year, month, user_id)
                 )
             `);
             
-            // Insert default Income categories
+            db.run(`
+                CREATE TABLE users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+                )
+            `);
+            
+            // Run migrations to set up user_id columns and create admin user
+            await runMigrations(db);
+            
+            // Get admin user ID for default data
+            const adminResult = db.exec("SELECT id FROM users WHERE username = 'admin'");
+            const adminUserId = adminResult[0] && adminResult[0].values.length > 0 ? adminResult[0].values[0][0] : null;
+            
+            // Insert default Income categories (with user_id if admin exists)
             const defaultIncomeCategories = ['Default', 'Work Income', 'Freelance', 'Investment'];
             defaultIncomeCategories.forEach(cat => {
-                db.run(`INSERT INTO categories (name, type) VALUES ('${escapeSql(cat)}', 'Income')`);
+                if (adminUserId) {
+                    db.run(`INSERT INTO categories (name, type, user_id) VALUES ('${escapeSql(cat)}', 'Income', ${adminUserId})`);
+                } else {
+                    db.run(`INSERT INTO categories (name, type) VALUES ('${escapeSql(cat)}', 'Income')`);
+                }
             });
             
-            // Insert default Expense categories
+            // Insert default Expense categories (with user_id if admin exists)
             const defaultExpenseCategories = ['Default', 'Groceries', 'Rent', 'Utilities', 'Transportation', 'Entertainment'];
             defaultExpenseCategories.forEach(cat => {
-                db.run(`INSERT INTO categories (name, type) VALUES ('${escapeSql(cat)}', 'Expense')`);
+                if (adminUserId) {
+                    db.run(`INSERT INTO categories (name, type, user_id) VALUES ('${escapeSql(cat)}', 'Expense', ${adminUserId})`);
+                } else {
+                    db.run(`INSERT INTO categories (name, type) VALUES ('${escapeSql(cat)}', 'Expense')`);
+                }
             });
             
-            // Insert default methods (Default must be first)
+            // Insert default methods (Default must be first) (with user_id if admin exists)
             const defaultMethods = ['Default', 'Cash', 'Credit Card', 'Debit Card', 'Bank Transfer'];
             defaultMethods.forEach(method => {
-                db.run(`INSERT INTO methods (name) VALUES ('${escapeSql(method)}')`);
+                if (adminUserId) {
+                    db.run(`INSERT INTO methods (name, user_id) VALUES ('${escapeSql(method)}', ${adminUserId})`);
+                } else {
+                    db.run(`INSERT INTO methods (name) VALUES ('${escapeSql(method)}')`);
+                }
             });
             
             saveDatabase();

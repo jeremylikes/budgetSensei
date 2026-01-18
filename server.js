@@ -13,12 +13,19 @@ const PORT = process.env.PORT || 3000;
 setupMiddleware(app);
 
 // Load routes
+const authRoutes = require('./routes/auth');
+const migrateRoutes = require('./routes/migrate');
 const dataRoutes = require('./routes');
 const transactionRoutes = require('./routes/transactions');
 const categoryRoutes = require('./routes/categories');
 const methodRoutes = require('./routes/methods');
 const budgetRoutes = require('./routes/budgets');
 
+// Auth routes (no authentication required)
+app.use(authRoutes);
+
+// Protected routes (require authentication)
+app.use(migrateRoutes);
 app.use(dataRoutes);
 app.use(transactionRoutes);
 app.use(categoryRoutes);

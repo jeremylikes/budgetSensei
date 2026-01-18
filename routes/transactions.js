@@ -5,16 +5,18 @@ const express = require('express');
 const router = express.Router();
 const { getDb, saveDatabase } = require('../db/database');
 const { escapeSql } = require('../db/helpers');
+const { requireAuth, getCurrentUserId } = require('../middleware/auth');
 
 // Get all transactions
-router.get('/api/transactions', (req, res) => {
+router.get('/api/transactions', requireAuth, (req, res) => {
     try {
         const db = getDb();
         if (!db) {
             return res.status(500).json({ error: 'Database not initialized' });
         }
         
-        const result = db.exec('SELECT * FROM transactions ORDER BY date DESC');
+        const userId = getCurrentUserId(req);
+        const result = db.exec(`SELECT * FROM transactions WHERE user_id = ${userId} ORDER BY date DESC`);
         const transactions = result[0] ? result[0].values.map(row => ({
             id: row[0],
             date: row[1],
@@ -33,13 +35,14 @@ router.get('/api/transactions', (req, res) => {
 });
 
 // Add transaction
-router.post('/api/transactions', (req, res) => {
+router.post('/api/transactions', requireAuth, (req, res) => {
     try {
         const db = getDb();
         if (!db) {
             return res.status(500).json({ error: 'Database not initialized' });
         }
         
+        const userId = getCurrentUserId(req);
         const { date, description, category, method, type, amount, note } = req.body;
         
         // Validate required fields
@@ -56,7 +59,7 @@ router.post('/api/transactions', (req, res) => {
         const id = Date.now();
         const noteValue = note || '';
         
-        db.run(`INSERT INTO transactions (id, date, description, category, method, type, amount, note) VALUES (${id}, '${escapeSql(date)}', '${escapeSql(description)}', '${escapeSql(category)}', '${escapeSql(method)}', '${escapeSql(type)}', ${amountNum}, '${escapeSql(noteValue)}')`);
+        db.run(`INSERT INTO transactions (id, date, description, category, method, type, amount, note, user_id) VALUES (${id}, '${escapeSql(date)}', '${escapeSql(description)}', '${escapeSql(category)}', '${escapeSql(method)}', '${escapeSql(type)}', ${amountNum}, '${escapeSql(noteValue)}', ${userId})`);
         saveDatabase();
         
         const transaction = { id, date, description, category, method, type, amount: amountNum, note: noteValue };
@@ -69,24 +72,25 @@ router.post('/api/transactions', (req, res) => {
 });
 
 // Update transaction
-router.put('/api/transactions/:id', (req, res) => {
+router.put('/api/transactions/:id', requireAuth, (req, res) => {
     try {
         const db = getDb();
         if (!db) {
             return res.status(500).json({ error: 'Database not initialized' });
         }
         
+        const userId = getCurrentUserId(req);
         const id = parseInt(req.params.id);
         const { date, description, category, method, type, amount, note } = req.body;
         const noteValue = note || '';
         
-        // Check if transaction exists
-        const existing = db.exec(`SELECT id FROM transactions WHERE id = ${id}`);
+        // Check if transaction exists and belongs to user
+        const existing = db.exec(`SELECT id FROM transactions WHERE id = ${id} AND user_id = ${userId}`);
         if (!existing[0] || existing[0].values.length === 0) {
             return res.status(404).json({ error: 'Transaction not found' });
         }
         
-        db.run(`UPDATE transactions SET date = '${escapeSql(date)}', description = '${escapeSql(description)}', category = '${escapeSql(category)}', method = '${escapeSql(method)}', type = '${escapeSql(type)}', amount = ${amount}, note = '${escapeSql(noteValue)}' WHERE id = ${id}`);
+        db.run(`UPDATE transactions SET date = '${escapeSql(date)}', description = '${escapeSql(description)}', category = '${escapeSql(category)}', method = '${escapeSql(method)}', type = '${escapeSql(type)}', amount = ${amount}, note = '${escapeSql(noteValue)}' WHERE id = ${id} AND user_id = ${userId}`);
         saveDatabase();
         
         const transaction = { id, date, description, category, method, type, amount, note: noteValue };
@@ -98,22 +102,23 @@ router.put('/api/transactions/:id', (req, res) => {
 });
 
 // Delete transaction
-router.delete('/api/transactions/:id', (req, res) => {
+router.delete('/api/transactions/:id', requireAuth, (req, res) => {
     try {
         const db = getDb();
         if (!db) {
             return res.status(500).json({ error: 'Database not initialized' });
         }
         
+        const userId = getCurrentUserId(req);
         const id = parseInt(req.params.id);
         
-        // Check if transaction exists
-        const existing = db.exec(`SELECT id FROM transactions WHERE id = ${id}`);
+        // Check if transaction exists and belongs to user
+        const existing = db.exec(`SELECT id FROM transactions WHERE id = ${id} AND user_id = ${userId}`);
         if (!existing[0] || existing[0].values.length === 0) {
             return res.status(404).json({ error: 'Transaction not found' });
         }
         
-        db.run(`DELETE FROM transactions WHERE id = ${id}`);
+        db.run(`DELETE FROM transactions WHERE id = ${id} AND user_id = ${userId}`);
         saveDatabase();
         res.json({ success: true });
     } catch (error) {

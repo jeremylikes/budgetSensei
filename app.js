@@ -80,5 +80,17 @@ async function initializeApp() {
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
+    // Setup login screen UI first
+    Auth.setupLoginScreen();
+    
+    // Check authentication
+    const isAuthenticated = await Auth.checkSession();
+    if (!isAuthenticated) {
+        Auth.showLoginScreen();
+        return;
+    }
+    
+    // User is authenticated, proceed with app initialization
+    Auth.hideLoginScreen();
     await initializeApp();
 });

@@ -5,6 +5,7 @@ const express = require('express');
 const router = express.Router();
 const { getDb, saveDatabase } = require('../db/database');
 const { escapeSql } = require('../db/helpers');
+const { requireAuth, getCurrentUserId } = require('../middleware/auth');
 
 // Helper function to ensure budgets table exists (safety fallback)
 function ensureBudgetsTable(db) {
@@ -19,7 +20,8 @@ function ensureBudgetsTable(db) {
                     year INTEGER NOT NULL,
                     month INTEGER NOT NULL,
                     planned_amount REAL NOT NULL,
-                    UNIQUE(category, year, month)
+                    user_id INTEGER,
+                    UNIQUE(category, year, month, user_id)
                 )
             `);
             saveDatabase();
@@ -31,19 +33,20 @@ function ensureBudgetsTable(db) {
 }
 
 // Get budget for a specific month/year
-router.get('/api/budgets/:year/:month', (req, res) => {
+router.get('/api/budgets/:year/:month', requireAuth, (req, res) => {
     try {
         const db = getDb();
         if (!db) {
             return res.status(500).json({ error: 'Database not initialized' });
         }
         
+        const userId = getCurrentUserId(req);
         ensureBudgetsTable(db);
         
         const year = parseInt(req.params.year);
         const month = parseInt(req.params.month);
         
-        const result = db.exec(`SELECT category, planned_amount FROM budgets WHERE year = ${year} AND month = ${month}`);
+        const result = db.exec(`SELECT category, planned_amount FROM budgets WHERE year = ${year} AND month = ${month} AND user_id = ${userId}`);
         const budgets = {};
         
         if (result[0]) {
@@ -60,13 +63,14 @@ router.get('/api/budgets/:year/:month', (req, res) => {
 });
 
 // Set budget amount for a category/month/year
-router.post('/api/budgets', (req, res) => {
+router.post('/api/budgets', requireAuth, (req, res) => {
     try {
         const db = getDb();
         if (!db) {
             return res.status(500).json({ error: 'Database not initialized' });
         }
         
+        const userId = getCurrentUserId(req);
         ensureBudgetsTable(db);
         
         const { category, year, month, planned_amount } = req.body;
@@ -80,10 +84,10 @@ router.post('/api/budgets', (req, res) => {
             return res.status(400).json({ error: 'Planned amount must be a non-negative number' });
         }
         
-        // Use INSERT OR REPLACE to update if exists, insert if not
+        // Use INSERT OR REPLACE to update if exists, insert if not (include user_id)
         db.run(`
-            INSERT OR REPLACE INTO budgets (category, year, month, planned_amount)
-            VALUES ('${escapeSql(category)}', ${year}, ${month}, ${amount})
+            INSERT OR REPLACE INTO budgets (category, year, month, planned_amount, user_id)
+            VALUES ('${escapeSql(category)}', ${year}, ${month}, ${amount}, ${userId})
         `);
         saveDatabase();
         
@@ -95,20 +99,21 @@ router.post('/api/budgets', (req, res) => {
 });
 
 // Delete budget for a category/month/year
-router.delete('/api/budgets/:category/:year/:month', (req, res) => {
+router.delete('/api/budgets/:category/:year/:month', requireAuth, (req, res) => {
     try {
         const db = getDb();
         if (!db) {
             return res.status(500).json({ error: 'Database not initialized' });
         }
         
+        const userId = getCurrentUserId(req);
         ensureBudgetsTable(db);
         
         const category = decodeURIComponent(req.params.category);
         const year = parseInt(req.params.year);
         const month = parseInt(req.params.month);
         
-        db.run(`DELETE FROM budgets WHERE category = '${escapeSql(category)}' AND year = ${year} AND month = ${month}`);
+        db.run(`DELETE FROM budgets WHERE category = '${escapeSql(category)}' AND year = ${year} AND month = ${month} AND user_id = ${userId}`);
         saveDatabase();
         
         res.json({ success: true });
