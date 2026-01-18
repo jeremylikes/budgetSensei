@@ -349,27 +349,49 @@ router.put('/api/income/:index', requireAuth, (req, res) => {
         const iconWasProvided = req.body.icon !== undefined;
         const normalizedIcon = (newIcon === '' || newIcon === null) ? null : newIcon;
         
-        // Only skip update if name hasn't changed AND icon wasn't explicitly provided (or was provided as null)
-        if (normalizedNewName === normalizedOldName && (!iconWasProvided || normalizedIcon === null)) {
-            // Check if icon actually needs to be removed (user sent empty string explicitly)
-            if (iconWasProvided && newIcon === '') {
-                // User wants to remove icon, so we need to update it
-                // Don't return early, continue to update logic below
-            } else {
+        // Determine if we're only updating the icon (name hasn't changed)
+        const isOnlyIconUpdate = normalizedNewName === normalizedOldName;
+        
+        // Debug logging
+        console.log(`[Income PUT] Category ID: ${categoryId}, Old Name: "${normalizedOldName}", New Name: "${normalizedNewName}", isOnlyIconUpdate: ${isOnlyIconUpdate}, iconWasProvided: ${iconWasProvided}, newIcon: "${newIcon}"`);
+        
+        // CRITICAL: If this is an icon-only update, skip ALL validation, duplicate checks, and name checks
+        // Go directly to the update logic - this is the ONLY path for icon updates
+        if (isOnlyIconUpdate) {
+            console.log(`[Income PUT] Icon-only update confirmed (name unchanged: "${normalizedOldName}"), bypassing ALL checks and going directly to update`);
+            
+            // Only skip update if icon wasn't explicitly provided (nothing to update)
+            if (!iconWasProvided || normalizedIcon === null) {
                 // Nothing is changing, return early
                 const result = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Income' AND user_id = ${userId} AND name != 'Default' ORDER BY name`);
                 const catList = result[0] ? result[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
                 return res.json(catList);
             }
+            
+            // Update icon only - use categoryId
+            if (normalizedIcon !== null) {
+                db.run(`UPDATE categories SET icon = '${escapeSql(normalizedIcon)}' WHERE id = ${categoryId}`);
+            } else if (iconWasProvided && newIcon === '') {
+                // Removing icon (setting to empty string)
+                db.run(`UPDATE categories SET icon = '' WHERE id = ${categoryId}`);
+            }
+            
+            saveDatabase();
+            
+            const result = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Income' AND user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
+            const updatedCategories = result[0] ? result[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
+            return res.json(updatedCategories);
         }
         
-        // Check if new name already exists for Income type (only if name is changing) - check user_id
-        if (normalizedNewName && normalizedNewName !== normalizedOldName) {
-            const existing = db.exec(`SELECT id FROM categories WHERE name = '${escapeSql(normalizedNewName)}' AND type = 'Income' AND user_id = ${userId}`);
-            if (existing[0] && existing[0].values.length > 0 && existing[0].values[0][0] !== categoryId) {
-                return res.status(400).json({ error: 'Category name already exists' });
-            }
+        // Name is changing - this is a rename operation, so check for conflicts with OTHER categories
+        console.log(`[Income PUT] Name change detected: "${normalizedOldName}" -> "${normalizedNewName}", checking for duplicates...`);
+        const existing = db.exec(`SELECT id FROM categories WHERE name = '${escapeSql(normalizedNewName)}' AND type = 'Income' AND user_id = ${userId} AND id != ${categoryId}`);
+        if (existing[0] && existing[0].values.length > 0) {
+            // Found a different category with the same name - this is a conflict
+            console.log(`[Income PUT] Duplicate name found: "${normalizedNewName}" already exists for another category`);
+            return res.status(400).json({ error: 'Category name already exists' });
         }
+        console.log(`[Income PUT] No duplicate found, proceeding with name change`);
         
         // Prevent renaming "Default"
         if (normalizedOldName === 'Default' && normalizedNewName !== normalizedOldName) {
@@ -382,9 +404,10 @@ router.put('/api/income/:index', requireAuth, (req, res) => {
         } else if (normalizedNewName !== normalizedOldName) {
             db.run(`UPDATE categories SET name = '${escapeSql(normalizedNewName)}' WHERE id = ${categoryId}`);
         } else if (normalizedIcon !== null) {
+            // Only updating icon - use categoryId to ensure we update the correct category
             db.run(`UPDATE categories SET icon = '${escapeSql(normalizedIcon)}' WHERE id = ${categoryId}`);
-        } else if (normalizedIcon === null && normalizedNewName === normalizedOldName) {
-            // Removing icon only (setting to empty string)
+        } else if (normalizedIcon === null && normalizedNewName === normalizedOldName && iconWasProvided) {
+            // Removing icon only (setting to empty string) - use categoryId to ensure we update the correct category
             db.run(`UPDATE categories SET icon = '' WHERE id = ${categoryId}`);
         }
         
@@ -443,28 +466,49 @@ router.put('/api/expenses/:index', requireAuth, (req, res) => {
         const iconWasProvided = req.body.icon !== undefined;
         const normalizedIcon = (newIcon === '' || newIcon === null) ? null : newIcon;
         
-        // Only skip update if name hasn't changed AND icon wasn't explicitly provided (or was provided as null)
-        if (normalizedNewName === normalizedOldName && (!iconWasProvided || normalizedIcon === null)) {
-            // Check if icon actually needs to be removed (user sent empty string explicitly)
-            if (iconWasProvided && newIcon === '') {
-                // User wants to remove icon, so we need to update it
-                // Don't return early, continue to update logic below
-            } else {
+        // Determine if we're only updating the icon (name hasn't changed)
+        const isOnlyIconUpdate = normalizedNewName === normalizedOldName;
+        
+        // Debug logging
+        console.log(`[Expense PUT] Category ID: ${categoryId}, Old Name: "${normalizedOldName}", New Name: "${normalizedNewName}", isOnlyIconUpdate: ${isOnlyIconUpdate}, iconWasProvided: ${iconWasProvided}, newIcon: "${newIcon}"`);
+        
+        // CRITICAL: If this is an icon-only update, skip ALL validation, duplicate checks, and name checks
+        // Go directly to the update logic - this is the ONLY path for icon updates
+        if (isOnlyIconUpdate) {
+            console.log(`[Expense PUT] Icon-only update confirmed (name unchanged: "${normalizedOldName}"), bypassing ALL checks and going directly to update`);
+            
+            // Only skip update if icon wasn't explicitly provided (nothing to update)
+            if (!iconWasProvided || normalizedIcon === null) {
                 // Nothing is changing, return early
                 const result = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Expense' AND user_id = ${userId} AND name != 'Default' ORDER BY name`);
                 const catList = result[0] ? result[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
                 return res.json(catList);
             }
+            
+            // Update icon only - use categoryId
+            if (normalizedIcon !== null) {
+                db.run(`UPDATE categories SET icon = '${escapeSql(normalizedIcon)}' WHERE id = ${categoryId}`);
+            } else if (iconWasProvided && newIcon === '') {
+                // Removing icon (setting to empty string)
+                db.run(`UPDATE categories SET icon = '' WHERE id = ${categoryId}`);
+            }
+            
+            saveDatabase();
+            
+            const result = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Expense' AND user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
+            const updatedCategories = result[0] ? result[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
+            return res.json(updatedCategories);
         }
         
-        // Only check for duplicate name if the name is actually changing - check user_id
-        if (normalizedNewName && normalizedNewName !== normalizedOldName) {
-            // Check if new name already exists for Expense type
-            const existing = db.exec(`SELECT id FROM categories WHERE name = '${escapeSql(normalizedNewName)}' AND type = 'Expense' AND user_id = ${userId}`);
-            if (existing[0] && existing[0].values.length > 0 && existing[0].values[0][0] !== categoryId) {
-                return res.status(400).json({ error: 'Category name already exists' });
-            }
+        // Name is changing - this is a rename operation, so check for conflicts with OTHER categories
+        console.log(`[Expense PUT] Name change detected: "${normalizedOldName}" -> "${normalizedNewName}", checking for duplicates...`);
+        const existing = db.exec(`SELECT id FROM categories WHERE name = '${escapeSql(normalizedNewName)}' AND type = 'Expense' AND user_id = ${userId} AND id != ${categoryId}`);
+        if (existing[0] && existing[0].values.length > 0) {
+            // Found a different category with the same name - this is a conflict
+            console.log(`[Expense PUT] Duplicate name found: "${normalizedNewName}" already exists for another category`);
+            return res.status(400).json({ error: 'Category name already exists' });
         }
+        console.log(`[Expense PUT] No duplicate found, proceeding with name change`);
         
         // Prevent renaming "Default"
         if (normalizedOldName === 'Default' && normalizedNewName !== normalizedOldName) {
@@ -472,14 +516,16 @@ router.put('/api/expenses/:index', requireAuth, (req, res) => {
         }
         
         // Update category (name and/or icon) - use normalized names
+        // When only updating icon, we use categoryId so name matching is not required
         if (normalizedNewName !== normalizedOldName && normalizedIcon !== null) {
             db.run(`UPDATE categories SET name = '${escapeSql(normalizedNewName)}', icon = '${escapeSql(normalizedIcon)}' WHERE id = ${categoryId}`);
         } else if (normalizedNewName !== normalizedOldName) {
             db.run(`UPDATE categories SET name = '${escapeSql(normalizedNewName)}' WHERE id = ${categoryId}`);
         } else if (normalizedIcon !== null) {
+            // Only updating icon - use categoryId to ensure we update the correct category
             db.run(`UPDATE categories SET icon = '${escapeSql(normalizedIcon)}' WHERE id = ${categoryId}`);
-        } else if (normalizedIcon === null && normalizedNewName === normalizedOldName) {
-            // Removing icon only (setting to empty string)
+        } else if (normalizedIcon === null && normalizedNewName === normalizedOldName && iconWasProvided) {
+            // Removing icon only (setting to empty string) - use categoryId to ensure we update the correct category
             db.run(`UPDATE categories SET icon = '' WHERE id = ${categoryId}`);
         }
         

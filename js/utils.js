@@ -15,23 +15,18 @@ const Utils = {
         if (dateParts.length !== 3) {
             // Fallback to Date object if format is unexpected
             const date = new Date(dateString);
-            return date.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${month}/${day}/${year}`;
         }
         
-        const year = parseInt(dateParts[0], 10);
-        const month = parseInt(dateParts[1], 10) - 1; // JavaScript months are 0-indexed
-        const day = parseInt(dateParts[2], 10);
+        const year = dateParts[0];
+        const month = dateParts[1];
+        const day = dateParts[2];
         
-        const date = new Date(year, month, day);
-        return date.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        });
+        // Return in mm/dd/yyyy format
+        return `${month}/${day}/${year}`;
     },
 
     getTransactionsForMonth(transactions, year, month) {
