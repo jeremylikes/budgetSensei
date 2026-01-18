@@ -1125,9 +1125,21 @@ tbody tr.new-row .note-input:focus {
     color: #d32f2f;
 }
 
-.emoji-picker-modal emoji-picker {
+.emoji-picker-container {
     flex: 1;
     overflow: hidden;
+    min-height: 400px;
+}
+
+/* Style the EmojiButton picker */
+.emoji-picker-container .emoji-picker {
+    border: none;
+    box-shadow: none;
+}
+
+.emoji-picker-container .emoji-picker__search {
+    margin: 0;
+    padding: 10px;
 }
 
 .emoji-option {

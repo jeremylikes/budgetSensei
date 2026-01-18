@@ -998,7 +998,20 @@ const DataManagement = {
     // Open icon picker for a category
     async openIconPicker(iconBox, type, index, categoryName, currentIcon) {
         console.log('Opening icon picker:', { type, index, categoryName, currentIcon });
-        EmojiPicker.show((selectedIcon) => {
+        
+        // Ensure EmojiPicker is available
+        if (typeof window.EmojiPicker === 'undefined' && typeof EmojiPicker === 'undefined') {
+            console.error('EmojiPicker is not available. Waiting for it to load...');
+            // Wait a bit and try again
+            await new Promise(resolve => setTimeout(resolve, 100));
+            if (typeof window.EmojiPicker === 'undefined' && typeof EmojiPicker === 'undefined') {
+                console.error('EmojiPicker still not available after wait');
+                return;
+            }
+        }
+        
+        const picker = window.EmojiPicker || EmojiPicker;
+        picker.show((selectedIcon) => {
             console.log('Icon selected in picker:', selectedIcon);
             // Update icon in database
             this.updateCategoryIcon(type, index, categoryName, selectedIcon, iconBox);
