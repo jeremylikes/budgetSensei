@@ -1,5 +1,8 @@
 // Dashboard functionality - Available globally as Dashboard
 
+// Set Chart.js global font to Nunito
+Chart.defaults.font.family = "'Nunito', sans-serif";
+
 const Dashboard = {
     update() {
         const yearSelect = document.getElementById('dashboard-year');
