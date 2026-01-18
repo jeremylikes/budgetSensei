@@ -1,3 +1,9 @@
+:root {
+    --accent-color: #ffb7ce;
+    --accent-hover: #ffa3c0;
+    --accent-text: #333;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -78,7 +84,7 @@ body {
 
 .tabs {
     display: flex;
-    background-color: #333;
+    background-color: #e0e0e0;
     position: sticky;
     top: calc(25px + 50px + 25px + 3px);
     z-index: 99;
@@ -89,8 +95,8 @@ body {
 .tab-btn {
     flex: 1;
     padding: 15px 20px;
-    background-color: #333;
-    color: white;
+    background-color: #e0e0e0;
+    color: #333;
     border: none;
     cursor: pointer;
     font-size: 16px;
@@ -98,11 +104,12 @@ body {
 }
 
 .tab-btn:hover {
-    background-color: #555;
+    background-color: #d0d0d0;
 }
 
 .tab-btn.active {
-    background-color: #4CAF50;
+    background-color: #f0f0f0;
+    font-weight: 600;
 }
 
 .tab-content {
@@ -158,27 +165,27 @@ body {
 }
 
 .add-transaction-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background-color: var(--accent-color);
+    color: var(--accent-text);
     border: none;
     border-radius: 6px;
     padding: 10px 20px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 2px 8px rgba(252, 166, 186, 0.3);
     transition: all 0.3s ease;
 }
 
 .add-transaction-btn:hover {
-    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
+    background-color: var(--accent-hover);
+    box-shadow: 0 4px 12px rgba(252, 166, 186, 0.5);
     transform: translateY(-1px);
 }
 
 .add-transaction-btn:active {
     transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 2px 4px rgba(252, 166, 186, 0.3);
 }
 
 .ledger-search {
@@ -215,10 +222,10 @@ body {
 }
 
 .tile {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-color: #e0e0e0;
     padding: 20px;
     border-radius: 8px;
-    color: white;
+    color: #333;
     text-align: center;
 }
 
@@ -323,10 +330,10 @@ body {
 }
 
 .budget-tiles .tile {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-color: #e0e0e0;
     padding: 20px;
     border-radius: 8px;
-    color: white;
+    color: #333;
     text-align: center;
 }
 
@@ -357,8 +364,8 @@ body {
 }
 
 #budget-table thead {
-    background-color: #333;
-    color: white;
+    background-color: #e0e0e0;
+    color: #333;
     position: sticky;
     top: 0;
     z-index: 10;
@@ -400,18 +407,41 @@ body {
 }
 
 .add-btn {
-    background-color: #4CAF50;
-    color: white;
+    background-color: var(--accent-color);
+    color: var(--accent-text);
     padding: 10px 20px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
     font-size: 14px;
+    font-weight: 600;
     margin-bottom: 20px;
 }
 
 .add-btn:hover {
-    background-color: #45a049;
+    background-color: var(--accent-hover);
+}
+
+/* Global accent button style */
+.btn-accent {
+    background-color: var(--accent-color);
+    color: var(--accent-text);
+    border: none;
+    border-radius: 5px;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.btn-accent:hover {
+    background-color: var(--accent-hover);
+}
+
+.btn-accent:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 /* Select All Checkbox */
@@ -467,8 +497,8 @@ table {
 }
 
 thead {
-    background-color: #333;
-    color: white;
+    background-color: #e0e0e0;
+    color: #333;
     position: sticky;
     top: 0;
     z-index: 10;
@@ -492,14 +522,14 @@ th.sortable {
 }
 
 th.sortable:hover {
-    background-color: #444;
+    background-color: #d0d0d0;
 }
 
 /* Filter icon button */
 .filter-icon-btn {
     background: none;
     border: none;
-    color: white;
+    color: #666;
     cursor: pointer;
     padding: 4px;
     margin-right: 4px;
@@ -799,8 +829,8 @@ tbody tr.new-row .note-input:focus {
 }
 
 .delete-btn {
-    background-color: #f44336;
-    color: white;
+    background-color: white;
+    color: #cc0000;
     border: none;
     padding: 5px 10px;
     border-radius: 4px;
@@ -808,7 +838,7 @@ tbody tr.new-row .note-input:focus {
 }
 
 .delete-btn:hover {
-    background-color: #da190b;
+    background-color: #fff5f5;
 }
 
 .data-section {

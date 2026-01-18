@@ -359,7 +359,7 @@ const Auth = {
             logoutBtn.addEventListener('click', async () => {
                 // Disable button to prevent double-clicks
                 logoutBtn.disabled = true;
-                logoutBtn.textContent = 'Logging out...';
+                logoutBtn.style.opacity = '0.5';
                 
                 // Disable login button and form inputs to prevent login during logout
                 const loginSubmit = document.getElementById('login-submit');
