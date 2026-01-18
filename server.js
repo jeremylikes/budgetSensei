@@ -17,7 +17,7 @@ const authRoutes = require('./routes/auth');
 const migrateRoutes = require('./routes/migrate');
 const dataRoutes = require('./routes');
 const transactionRoutes = require('./routes/transactions');
-const categoryRoutes = require('./routes/categories');
+const { router: categoryRoutes } = require('./routes/categories');
 const methodRoutes = require('./routes/methods');
 const budgetRoutes = require('./routes/budgets');
 

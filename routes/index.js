@@ -14,6 +14,13 @@ router.get('/api/data', requireAuth, (req, res) => {
         }
         
         const userId = getCurrentUserId(req);
+        
+        // Ensure Default categories exist for this user (for orphaned transactions and fallback)
+        const { ensureDefaultCategories } = require('./categories');
+        if (ensureDefaultCategories) {
+            ensureDefaultCategories(userId, db);
+        }
+        
         const transactions = db.exec(`SELECT * FROM transactions WHERE user_id = ${userId} ORDER BY date DESC`);
         
         // Check if type column exists in categories table
@@ -25,16 +32,16 @@ router.get('/api/data', requireAuth, (req, res) => {
         let categoryTypes = {};
         
         if (hasTypeColumn) {
-            // Get income and expense categories separately (filtered by user_id)
+            // Get income and expense categories separately (filtered by user_id, excluding Default)
             try {
-                incomeCategories = db.exec(`SELECT name FROM categories WHERE type = 'Income' AND user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
+                incomeCategories = db.exec(`SELECT name FROM categories WHERE type = 'Income' AND user_id = ${userId} AND name != 'Default' ORDER BY name`);
             } catch (error) {
                 console.error('Error reading income categories:', error);
                 incomeCategories = { values: [] };
             }
             
             try {
-                expenseCategories = db.exec(`SELECT name FROM categories WHERE type = 'Expense' AND user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
+                expenseCategories = db.exec(`SELECT name FROM categories WHERE type = 'Expense' AND user_id = ${userId} AND name != 'Default' ORDER BY name`);
             } catch (error) {
                 console.error('Error reading expense categories:', error);
                 expenseCategories = { values: [] };
@@ -113,7 +120,7 @@ router.get('/api/data', requireAuth, (req, res) => {
         
         if (hasTypeColumn) {
             try {
-                const incomeResult = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Income' AND user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
+                const incomeResult = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Income' AND user_id = ${userId} AND name != 'Default' ORDER BY name`);
                 incomeWithIcons = incomeResult[0] ? incomeResult[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
             } catch (error) {
                 console.error('Error reading income categories with icons:', error);
@@ -121,7 +128,7 @@ router.get('/api/data', requireAuth, (req, res) => {
             }
             
             try {
-                const expenseResult = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Expense' AND user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
+                const expenseResult = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Expense' AND user_id = ${userId} AND name != 'Default' ORDER BY name`);
                 expensesWithIcons = expenseResult[0] ? expenseResult[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
             } catch (error) {
                 console.error('Error reading expense categories with icons:', error);

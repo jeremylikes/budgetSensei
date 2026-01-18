@@ -41,6 +41,12 @@ router.post('/api/methods', requireAuth, (req, res) => {
             return res.status(400).json({ error: 'Method name is required' });
         }
         
+        // Check if method already exists for this user (manual check since UNIQUE constraint may not include user_id)
+        const existingCheck = db.exec(`SELECT id FROM methods WHERE name = '${escapeSql(method)}' AND user_id = ${userId}`);
+        if (existingCheck[0] && existingCheck[0].values.length > 0) {
+            return res.status(400).json({ error: 'Method already exists' });
+        }
+        
         try {
             db.run(`INSERT INTO methods (name, user_id) VALUES ('${escapeSql(method)}', ${userId})`);
             saveDatabase();

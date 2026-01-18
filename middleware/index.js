@@ -3,7 +3,6 @@
 
 const express = require('express');
 const cors = require('cors');
-const basicAuth = require('express-basic-auth');
 const session = require('express-session');
 const passport = require('../config/passport');
 const path = require('path');
@@ -19,26 +18,17 @@ function setupMiddleware(app) {
         credentials: true
     }));
     
-    // Determine if we should use secure cookies
-    // Use secure cookies if:
-    // 1. NODE_ENV is production AND
-    // 2. We're actually using HTTPS (check via proxy headers or direct connection)
-    // For production behind a proxy, we trust the X-Forwarded-Proto header
-    const isProduction = process.env.NODE_ENV === 'production';
-    // In production, use secure cookies but trust proxy headers
-    // This allows cookies to work behind reverse proxies (Render, Railway, etc.)
-    const useSecureCookies = isProduction;
-    
     // Session management
+    const isProduction = process.env.NODE_ENV === 'production';
     app.use(session({
         secret: process.env.SESSION_SECRET || 'budget-sensei-secret-key-change-in-production',
         resave: false,
         saveUninitialized: false,
         cookie: {
-            secure: useSecureCookies, // Secure cookies in production (works with trust proxy)
+            secure: isProduction, // Secure cookies in production (HTTPS only, works with trust proxy)
             httpOnly: true,
             maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-            sameSite: isProduction ? 'lax' : 'strict' // 'lax' works better behind proxies, 'strict' for local dev
+            sameSite: isProduction ? 'lax' : 'strict' // 'lax' for production (works behind proxies), 'strict' for local dev
         }
     }));
     
@@ -63,23 +53,6 @@ function setupMiddleware(app) {
             }
         }
     }));
-    
-    // Basic authentication (if password is set) - only for non-API routes
-    // This is kept for backward compatibility but can be removed once all users migrate
-    const BUDGET_PASSWORD = process.env.BUDGET_PASSWORD || '';
-    if (BUDGET_PASSWORD) {
-        // Only apply basic auth to non-API routes
-        app.use((req, res, next) => {
-            if (!req.path.startsWith('/api/')) {
-                return basicAuth({
-                    users: { 'admin': BUDGET_PASSWORD },
-                    challenge: true,
-                    realm: 'Budget Sensei'
-                })(req, res, next);
-            }
-            next();
-        });
-    }
 }
 
 module.exports = {

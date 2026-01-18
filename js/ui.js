@@ -242,6 +242,48 @@ const UI = {
                 }
             });
         }
+        
+        // Add Enter key handler to all form inputs to save when form is valid
+        const handleEnterKey = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                // Check if form is valid by checking all required fields
+                const date = document.getElementById('transaction-date')?.value;
+                const description = document.getElementById('transaction-description')?.value.trim();
+                const category = document.getElementById('transaction-category')?.value;
+                const method = document.getElementById('transaction-method')?.value;
+                const amountValue = document.getElementById('transaction-amount')?.value.trim();
+                const amount = parseFloat(amountValue);
+                
+                // Form is valid if all required fields are filled and amount is valid
+                const isValid = date && 
+                               description && 
+                               category && 
+                               method && 
+                               amountValue &&
+                               !isNaN(amount) && 
+                               amount > 0;
+                
+                // Only save if form is valid
+                if (isValid) {
+                    Transactions.save();
+                }
+            }
+        };
+        
+        // Add Enter key listeners to all form inputs
+        const dateInput = document.getElementById('transaction-date');
+        const descInput = document.getElementById('transaction-description');
+        const catSelect = document.getElementById('transaction-category');
+        const methodSelect = document.getElementById('transaction-method');
+        const noteTextarea = document.getElementById('transaction-note');
+        
+        if (dateInput) dateInput.addEventListener('keydown', handleEnterKey);
+        if (descInput) descInput.addEventListener('keydown', handleEnterKey);
+        if (amountInput) amountInput.addEventListener('keydown', handleEnterKey);
+        if (catSelect) catSelect.addEventListener('keydown', handleEnterKey);
+        if (methodSelect) methodSelect.addEventListener('keydown', handleEnterKey);
+        if (noteTextarea) noteTextarea.addEventListener('keydown', handleEnterKey);
     },
 
     populateCategoryMethodDropdowns() {
@@ -252,10 +294,17 @@ const UI = {
             categorySelect.innerHTML = '';
             // Combine income and expenses, sort alphabetically
             // Handle both old format (strings) and new format (objects with name)
-            const allCategories = [
+            let allCategories = [
                 ...(DataStore.income || []).map(c => typeof c === 'string' ? c : (c.name || c)),
                 ...(DataStore.expenses || []).map(c => typeof c === 'string' ? c : (c.name || c))
-            ].sort((a, b) => a.localeCompare(b));
+            ].filter(cat => cat !== 'Default'); // Filter out Default
+            
+            // If no user-defined categories exist, include Default as a fallback
+            if (allCategories.length === 0) {
+                allCategories = ['Default'];
+            }
+            
+            allCategories.sort((a, b) => a.localeCompare(b));
             allCategories.forEach(cat => {
                 const option = document.createElement('option');
                 option.value = cat;

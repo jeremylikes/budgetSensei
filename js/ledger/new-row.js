@@ -73,10 +73,17 @@ const LedgerNewRow = {
         catSelect.addEventListener('change', () => this.validate());
         // Combine income and expenses, sort alphabetically
         // Handle both old format (strings) and new format (objects with name)
-        const allCategories = [
+        let allCategories = [
             ...(DataStore.income || []).map(c => typeof c === 'string' ? c : (c.name || c)),
             ...(DataStore.expenses || []).map(c => typeof c === 'string' ? c : (c.name || c))
-        ].sort((a, b) => a.localeCompare(b));
+        ].filter(cat => cat !== 'Default'); // Filter out Default
+        
+        // If no user-defined categories exist, include Default as a fallback
+        if (allCategories.length === 0) {
+            allCategories = ['Default'];
+        }
+        
+        allCategories.sort((a, b) => a.localeCompare(b));
         allCategories.forEach(cat => {
             const option = document.createElement('option');
             option.value = cat;
@@ -181,6 +188,28 @@ const LedgerNewRow = {
         
         // Focus on description field
         descInput.focus();
+        
+        // Add Enter key handler to all inputs in the new row
+        const handleEnterKey = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const newRow = document.querySelector('tr.new-row');
+                if (newRow) {
+                    const saveBtn = newRow.querySelector('.save-inline-btn');
+                    // Only save if the save button is enabled (form is valid)
+                    if (saveBtn && !saveBtn.disabled) {
+                        this.save(newRow);
+                    }
+                }
+            }
+        };
+        
+        // Add Enter key listeners to all inputs and selects
+        if (dateInput) dateInput.addEventListener('keydown', handleEnterKey);
+        if (descInput) descInput.addEventListener('keydown', handleEnterKey);
+        if (amountInput) amountInput.addEventListener('keydown', handleEnterKey);
+        if (catSelect) catSelect.addEventListener('keydown', handleEnterKey);
+        if (methodSelect) methodSelect.addEventListener('keydown', handleEnterKey);
     },
 
     validate() {

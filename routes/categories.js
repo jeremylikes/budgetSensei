@@ -7,6 +7,61 @@ const { getDb, saveDatabase } = require('../db/database');
 const { escapeSql, ensureColumn, columnExists } = require('../db/helpers');
 const { requireAuth, getCurrentUserId } = require('../middleware/auth');
 
+// Helper function to ensure "Default" categories exist for a user
+// This is used for orphaned transactions and as a fallback when no categories exist
+function ensureDefaultCategories(userId, db) {
+    try {
+        if (!columnExists('categories', 'type', db)) {
+            ensureColumn('categories', 'type', 'TEXT', db);
+        }
+        
+        // Check if Default Income category exists for this user
+        const defaultIncomeCheck = db.exec(`SELECT id FROM categories WHERE name = 'Default' AND type = 'Income' AND user_id = ${userId}`);
+        if (!defaultIncomeCheck[0] || defaultIncomeCheck[0].values.length === 0) {
+            try {
+                db.run(`INSERT INTO categories (name, type, user_id) VALUES ('Default', 'Income', ${userId})`);
+                console.log(`Created Default Income category for user ${userId}`);
+                saveDatabase();
+            } catch (insertError) {
+                // If UNIQUE constraint fails, it means the constraint hasn't been migrated yet
+                // Check if it exists for another user and log a warning
+                if (insertError.message && insertError.message.includes('UNIQUE')) {
+                    const allDefaultIncome = db.exec(`SELECT id, user_id FROM categories WHERE name = 'Default' AND type = 'Income'`);
+                    if (allDefaultIncome[0] && allDefaultIncome[0].values.length > 0) {
+                        console.warn(`Default Income category exists for another user. UNIQUE constraint migration may be needed.`);
+                    }
+                } else {
+                    throw insertError;
+                }
+            }
+        }
+        
+        // Check if Default Expense category exists for this user
+        const defaultExpenseCheck = db.exec(`SELECT id FROM categories WHERE name = 'Default' AND type = 'Expense' AND user_id = ${userId}`);
+        if (!defaultExpenseCheck[0] || defaultExpenseCheck[0].values.length === 0) {
+            try {
+                db.run(`INSERT INTO categories (name, type, user_id) VALUES ('Default', 'Expense', ${userId})`);
+                console.log(`Created Default Expense category for user ${userId}`);
+                saveDatabase();
+            } catch (insertError) {
+                // If UNIQUE constraint fails, it means the constraint hasn't been migrated yet
+                // Check if it exists for another user and log a warning
+                if (insertError.message && insertError.message.includes('UNIQUE')) {
+                    const allDefaultExpense = db.exec(`SELECT id, user_id FROM categories WHERE name = 'Default' AND type = 'Expense'`);
+                    if (allDefaultExpense[0] && allDefaultExpense[0].values.length > 0) {
+                        console.warn(`Default Expense category exists for another user. UNIQUE constraint migration may be needed.`);
+                    }
+                } else {
+                    throw insertError;
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error ensuring default categories:', error);
+        // Don't throw - allow operation to continue
+    }
+}
+
 // Helper function to get categories by type
 function getCategoriesByType(type, userId) {
     const db = getDb();
@@ -21,7 +76,7 @@ function getCategoriesByType(type, userId) {
     if (!columnExists('categories', 'icon', db)) {
         ensureColumn('categories', 'icon', 'TEXT', db);
     }
-    const result = db.exec(`SELECT id, name, COALESCE(icon, '') as icon FROM categories WHERE type = '${type}' AND user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
+    const result = db.exec(`SELECT id, name, COALESCE(icon, '') as icon FROM categories WHERE type = '${type}' AND user_id = ${userId} AND name != 'Default' ORDER BY name`);
     return result[0] ? result[0].values : [];
 }
 
@@ -35,12 +90,15 @@ router.get('/api/income', requireAuth, (req, res) => {
         
         const userId = getCurrentUserId(req);
         
+        // Ensure Default categories exist for this user
+        ensureDefaultCategories(userId, db);
+        
         // Ensure type column exists
         if (!columnExists('categories', 'type', db)) {
             ensureColumn('categories', 'type', 'TEXT', db);
         }
         
-        const result = db.exec(`SELECT name FROM categories WHERE type = 'Income' AND user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
+        const result = db.exec(`SELECT name FROM categories WHERE type = 'Income' AND user_id = ${userId} AND name != 'Default' ORDER BY name`);
         const categories = result[0] ? result[0].values.map(row => row[0]) : [];
         res.json(categories);
     } catch (error) {
@@ -59,6 +117,9 @@ router.get('/api/expenses', requireAuth, (req, res) => {
         
         const userId = getCurrentUserId(req);
         
+        // Ensure Default categories exist for this user
+        ensureDefaultCategories(userId, db);
+        
         // Ensure type column exists
         if (!columnExists('categories', 'type', db)) {
             ensureColumn('categories', 'type', 'TEXT', db);
@@ -68,7 +129,7 @@ router.get('/api/expenses', requireAuth, (req, res) => {
         if (!columnExists('categories', 'icon', db)) {
             ensureColumn('categories', 'icon', 'TEXT', db);
         }
-        const result = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Expense' AND user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
+        const result = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Expense' AND user_id = ${userId} AND name != 'Default' ORDER BY name`);
         const categories = result[0] ? result[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
         res.json(categories);
     } catch (error) {
@@ -98,11 +159,54 @@ router.post('/api/income', requireAuth, (req, res) => {
             return res.status(400).json({ error: 'Category name is required' });
         }
         
+        // Check if category already exists for this user
+        // Also check for NULL user_id (orphaned data that should be cleaned up)
+        const existingCheck = db.exec(`SELECT id, user_id FROM categories WHERE name = '${escapeSql(category)}' AND type = 'Income' AND (user_id = ${userId} OR user_id IS NULL)`);
+        if (existingCheck[0] && existingCheck[0].values.length > 0) {
+            const foundCategory = existingCheck[0].values[0];
+            const foundUserId = foundCategory[1];
+            
+            if (foundUserId === userId) {
+                console.log(`Category "${category}" already exists for user ${userId} (ID: ${foundCategory[0]})`);
+                return res.status(400).json({ error: 'Category already exists' });
+            } else if (foundUserId === null) {
+                // Orphaned category with NULL user_id - clean it up by assigning to admin
+                console.log(`Found orphaned category "${category}" with NULL user_id, cleaning up...`);
+                try {
+                    const adminCheck = db.exec("SELECT id FROM users WHERE username = 'admin'");
+                    if (adminCheck[0] && adminCheck[0].values.length > 0) {
+                        const adminUserId = adminCheck[0].values[0][0];
+                        db.run(`UPDATE categories SET user_id = ${adminUserId} WHERE id = ${foundCategory[0]}`);
+                        saveDatabase();
+                        console.log(`Assigned orphaned category to admin user`);
+                    } else {
+                        // No admin user, delete the orphaned category
+                        db.run(`DELETE FROM categories WHERE id = ${foundCategory[0]}`);
+                        saveDatabase();
+                        console.log(`Deleted orphaned category (no admin user)`);
+                    }
+                    // After cleanup, check again if it exists for this user
+                    const recheck = db.exec(`SELECT id FROM categories WHERE name = '${escapeSql(category)}' AND type = 'Income' AND user_id = ${userId}`);
+                    if (recheck[0] && recheck[0].values.length > 0) {
+                        return res.status(400).json({ error: 'Category already exists' });
+                    }
+                } catch (error) {
+                    console.error('Error cleaning up orphaned category:', error);
+                }
+            }
+        }
+        
+        // Also check if it exists for other users (for debugging)
+        const otherUsersCheck = db.exec(`SELECT id, user_id FROM categories WHERE name = '${escapeSql(category)}' AND type = 'Income' AND user_id IS NOT NULL AND user_id != ${userId}`);
+        if (otherUsersCheck[0] && otherUsersCheck[0].values.length > 0) {
+            console.log(`Category "${category}" exists for other users (${otherUsersCheck[0].values.length} other users), but not for user ${userId} - proceeding with insert`);
+        }
+        
         try {
             db.run(`INSERT INTO categories (name, type, user_id) VALUES ('${escapeSql(category)}', 'Income', ${userId})`);
             saveDatabase();
             
-            const result = db.exec(`SELECT name FROM categories WHERE type = 'Income' AND user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
+            const result = db.exec(`SELECT name FROM categories WHERE type = 'Income' AND user_id = ${userId} AND name != 'Default' ORDER BY name`);
             const categories = result[0] ? result[0].values.map(row => row[0]) : [];
             res.json(categories);
         } catch (error) {
@@ -144,11 +248,54 @@ router.post('/api/expenses', requireAuth, (req, res) => {
             ensureColumn('categories', 'icon', 'TEXT', db);
         }
         
+        // Check if category already exists for this user
+        // Also check for NULL user_id (orphaned data that should be cleaned up)
+        const existingCheck = db.exec(`SELECT id, user_id FROM categories WHERE name = '${escapeSql(category)}' AND type = 'Expense' AND (user_id = ${userId} OR user_id IS NULL)`);
+        if (existingCheck[0] && existingCheck[0].values.length > 0) {
+            const foundCategory = existingCheck[0].values[0];
+            const foundUserId = foundCategory[1];
+            
+            if (foundUserId === userId) {
+                console.log(`Category "${category}" already exists for user ${userId} (ID: ${foundCategory[0]})`);
+                return res.status(400).json({ error: 'Category already exists' });
+            } else if (foundUserId === null) {
+                // Orphaned category with NULL user_id - clean it up by assigning to admin
+                console.log(`Found orphaned category "${category}" with NULL user_id, cleaning up...`);
+                try {
+                    const adminCheck = db.exec("SELECT id FROM users WHERE username = 'admin'");
+                    if (adminCheck[0] && adminCheck[0].values.length > 0) {
+                        const adminUserId = adminCheck[0].values[0][0];
+                        db.run(`UPDATE categories SET user_id = ${adminUserId} WHERE id = ${foundCategory[0]}`);
+                        saveDatabase();
+                        console.log(`Assigned orphaned category to admin user`);
+                    } else {
+                        // No admin user, delete the orphaned category
+                        db.run(`DELETE FROM categories WHERE id = ${foundCategory[0]}`);
+                        saveDatabase();
+                        console.log(`Deleted orphaned category (no admin user)`);
+                    }
+                    // After cleanup, check again if it exists for this user
+                    const recheck = db.exec(`SELECT id FROM categories WHERE name = '${escapeSql(category)}' AND type = 'Expense' AND user_id = ${userId}`);
+                    if (recheck[0] && recheck[0].values.length > 0) {
+                        return res.status(400).json({ error: 'Category already exists' });
+                    }
+                } catch (error) {
+                    console.error('Error cleaning up orphaned category:', error);
+                }
+            }
+        }
+        
+        // Also check if it exists for other users (for debugging)
+        const otherUsersCheck = db.exec(`SELECT id, user_id FROM categories WHERE name = '${escapeSql(category)}' AND type = 'Expense' AND user_id IS NOT NULL AND user_id != ${userId}`);
+        if (otherUsersCheck[0] && otherUsersCheck[0].values.length > 0) {
+            console.log(`Category "${category}" exists for other users (${otherUsersCheck[0].values.length} other users), but not for user ${userId} - proceeding with insert`);
+        }
+        
         try {
             db.run(`INSERT INTO categories (name, type, icon, user_id) VALUES ('${escapeSql(category)}', 'Expense', '${escapeSql(icon)}', ${userId})`);
             saveDatabase();
             
-            const result = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Expense' AND user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
+            const result = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Expense' AND user_id = ${userId} AND name != 'Default' ORDER BY name`);
             const categories = result[0] ? result[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
             res.json(categories);
         } catch (error) {
@@ -210,7 +357,7 @@ router.put('/api/income/:index', requireAuth, (req, res) => {
                 // Don't return early, continue to update logic below
             } else {
                 // Nothing is changing, return early
-                const result = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Income' AND user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
+                const result = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Income' AND user_id = ${userId} AND name != 'Default' ORDER BY name`);
                 const catList = result[0] ? result[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
                 return res.json(catList);
             }
@@ -304,7 +451,7 @@ router.put('/api/expenses/:index', requireAuth, (req, res) => {
                 // Don't return early, continue to update logic below
             } else {
                 // Nothing is changing, return early
-                const result = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Expense' AND user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
+                const result = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Expense' AND user_id = ${userId} AND name != 'Default' ORDER BY name`);
                 const catList = result[0] ? result[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
                 return res.json(catList);
             }
@@ -422,4 +569,7 @@ router.delete('/api/expenses/:name', requireAuth, (req, res) => {
     }
 });
 
-module.exports = router;
+module.exports = {
+    router,
+    ensureDefaultCategories
+};

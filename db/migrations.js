@@ -71,42 +71,67 @@ async function runMigrations(db) {
             console.log('✓ Migration check completed: type column already exists');
         }
         
-        // Migration: Ensure "Default" categories exist (one for Income, one for Expense)
-        // Only do this if type column exists (check after ensureColumn)
-        if (columnExists('categories', 'type', db)) {
-            const { escapeSql } = require('./helpers');
+        // Note: We no longer create default categories for any user
+        // Users start with empty category lists and create their own
+        // The admin user only has data that was migrated from the original database
+        
+        // Note: We no longer create default methods for any user
+        // Users start with empty method lists and create their own
+        // The admin user only has data that was migrated from the original database
+        
+        // Migration: Clean up any categories/methods with NULL user_id (orphaned data)
+        // Assign them to admin user if admin exists, otherwise delete them
+        if (columnExists('categories', 'user_id', db)) {
             try {
-                const defaultIncomeCheck = db.exec("SELECT id FROM categories WHERE name = 'Default' AND type = 'Income'");
-                if (!defaultIncomeCheck[0] || defaultIncomeCheck[0].values.length === 0) {
-                    db.run("INSERT INTO categories (name, type) VALUES ('Default', 'Income')");
-                    saveDatabase();
-                    console.log('✓ Migration completed: Default Income category added');
+                const adminCheck = db.exec("SELECT id FROM users WHERE username = 'admin'");
+                if (adminCheck[0] && adminCheck[0].values.length > 0) {
+                    const adminUserId = adminCheck[0].values[0][0];
+                    const nullCategories = db.exec("SELECT COUNT(*) FROM categories WHERE user_id IS NULL");
+                    const nullCount = nullCategories[0] && nullCategories[0].values.length > 0 ? nullCategories[0].values[0][0] : 0;
+                    if (nullCount > 0) {
+                        db.run(`UPDATE categories SET user_id = ${adminUserId} WHERE user_id IS NULL`);
+                        saveDatabase();
+                        console.log(`✓ Migration completed: ${nullCount} orphaned categories assigned to admin`);
+                    }
+                } else {
+                    // No admin user, delete orphaned categories
+                    const nullCategories = db.exec("SELECT COUNT(*) FROM categories WHERE user_id IS NULL");
+                    const nullCount = nullCategories[0] && nullCategories[0].values.length > 0 ? nullCategories[0].values[0][0] : 0;
+                    if (nullCount > 0) {
+                        db.run("DELETE FROM categories WHERE user_id IS NULL");
+                        saveDatabase();
+                        console.log(`✓ Migration completed: ${nullCount} orphaned categories deleted (no admin user)`);
+                    }
                 }
             } catch (error) {
-                console.error('Error adding Default Income category:', error);
-            }
-            
-            try {
-                const defaultExpenseCheck = db.exec("SELECT id FROM categories WHERE name = 'Default' AND type = 'Expense'");
-                if (!defaultExpenseCheck[0] || defaultExpenseCheck[0].values.length === 0) {
-                    db.run("INSERT INTO categories (name, type) VALUES ('Default', 'Expense')");
-                    saveDatabase();
-                    console.log('✓ Migration completed: Default Expense category added');
-                }
-            } catch (error) {
-                console.error('Error adding Default Expense category:', error);
+                console.error('Error cleaning up orphaned categories:', error);
             }
         }
         
-        // Migration: Ensure "Default" method exists
-        const defaultMethodCheck = db.exec("SELECT id FROM methods WHERE name = 'Default'");
-        if (!defaultMethodCheck[0] || defaultMethodCheck[0].values.length === 0) {
+        if (columnExists('methods', 'user_id', db)) {
             try {
-                db.run("INSERT INTO methods (name) VALUES ('Default')");
-                saveDatabase();
-                console.log('✓ Migration completed: Default payment method added');
+                const adminCheck = db.exec("SELECT id FROM users WHERE username = 'admin'");
+                if (adminCheck[0] && adminCheck[0].values.length > 0) {
+                    const adminUserId = adminCheck[0].values[0][0];
+                    const nullMethods = db.exec("SELECT COUNT(*) FROM methods WHERE user_id IS NULL");
+                    const nullCount = nullMethods[0] && nullMethods[0].values.length > 0 ? nullMethods[0].values[0][0] : 0;
+                    if (nullCount > 0) {
+                        db.run(`UPDATE methods SET user_id = ${adminUserId} WHERE user_id IS NULL`);
+                        saveDatabase();
+                        console.log(`✓ Migration completed: ${nullCount} orphaned methods assigned to admin`);
+                    }
+                } else {
+                    // No admin user, delete orphaned methods
+                    const nullMethods = db.exec("SELECT COUNT(*) FROM methods WHERE user_id IS NULL");
+                    const nullCount = nullMethods[0] && nullMethods[0].values.length > 0 ? nullMethods[0].values[0][0] : 0;
+                    if (nullCount > 0) {
+                        db.run("DELETE FROM methods WHERE user_id IS NULL");
+                        saveDatabase();
+                        console.log(`✓ Migration completed: ${nullCount} orphaned methods deleted (no admin user)`);
+                    }
+                }
             } catch (error) {
-                console.error('Error adding Default payment method:', error);
+                console.error('Error cleaning up orphaned methods:', error);
             }
         }
         
@@ -274,6 +299,106 @@ async function runMigrations(db) {
             }
         } catch (error) {
             console.error('Error migrating data to admin user:', error);
+        }
+        
+        // Migration: Fix UNIQUE constraint on categories table to include user_id
+        // SQLite doesn't support modifying UNIQUE constraints, so we need to recreate the table
+        try {
+            const categoriesTableCheck = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='categories'");
+            if (categoriesTableCheck[0] && categoriesTableCheck[0].values.length > 0) {
+                // Check if the constraint already includes user_id by examining the table schema
+                const tableInfo = db.exec("SELECT sql FROM sqlite_master WHERE type='table' AND name='categories'");
+                const createStatement = tableInfo[0] && tableInfo[0].values.length > 0 ? tableInfo[0].values[0][0] : '';
+                
+                // Check if user_id is in the UNIQUE constraint
+                // Also check for case-insensitive variations and different constraint formats
+                const hasOldConstraint = createStatement.includes('UNIQUE(name, type)') || 
+                                        createStatement.includes('UNIQUE (name, type)') ||
+                                        (createStatement.includes('UNIQUE') && !createStatement.includes('user_id'));
+                const hasNewConstraint = createStatement.includes('UNIQUE(name, type, user_id)') || 
+                                         createStatement.includes('UNIQUE (name, type, user_id)');
+                
+                if (createStatement && hasOldConstraint && !hasNewConstraint) {
+                    console.log('Fixing categories table UNIQUE constraint to include user_id...');
+                    
+                    // Create new table with correct constraint
+                    db.run(`
+                        CREATE TABLE categories_new (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            name TEXT NOT NULL,
+                            type TEXT NOT NULL,
+                            icon TEXT,
+                            user_id INTEGER,
+                            UNIQUE(name, type, user_id)
+                        )
+                    `);
+                    
+                    // Copy all data from old table to new table
+                    db.run(`
+                        INSERT INTO categories_new (id, name, type, icon, user_id)
+                        SELECT id, name, type, COALESCE(icon, ''), COALESCE(user_id, NULL) FROM categories
+                    `);
+                    
+                    // Drop old table
+                    db.run(`DROP TABLE categories`);
+                    
+                    // Rename new table
+                    db.run(`ALTER TABLE categories_new RENAME TO categories`);
+                    
+                    saveDatabase();
+                    console.log('✓ Migration completed: categories table UNIQUE constraint updated to include user_id');
+                } else {
+                    console.log('✓ Migration check completed: categories table UNIQUE constraint already includes user_id');
+                }
+            }
+        } catch (error) {
+            console.error('Error fixing categories UNIQUE constraint:', error);
+            // Don't throw - allow server to continue
+        }
+        
+        // Migration: Fix UNIQUE constraint on methods table to include user_id
+        try {
+            const methodsTableCheck = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='methods'");
+            if (methodsTableCheck[0] && methodsTableCheck[0].values.length > 0) {
+                // Check if the constraint already includes user_id
+                const tableInfo = db.exec("SELECT sql FROM sqlite_master WHERE type='table' AND name='methods'");
+                const createStatement = tableInfo[0] && tableInfo[0].values.length > 0 ? tableInfo[0].values[0][0] : '';
+                
+                // Check if user_id is in the UNIQUE constraint or if it's just UNIQUE(name)
+                if (createStatement && !createStatement.includes('UNIQUE(name, user_id)') && (createStatement.includes('UNIQUE(name)') || createStatement.includes('name TEXT UNIQUE'))) {
+                    console.log('Fixing methods table UNIQUE constraint to include user_id...');
+                    
+                    // Create new table with correct constraint
+                    db.run(`
+                        CREATE TABLE methods_new (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            name TEXT NOT NULL,
+                            user_id INTEGER,
+                            UNIQUE(name, user_id)
+                        )
+                    `);
+                    
+                    // Copy all data from old table to new table
+                    db.run(`
+                        INSERT INTO methods_new (id, name, user_id)
+                        SELECT id, name, COALESCE(user_id, NULL) FROM methods
+                    `);
+                    
+                    // Drop old table
+                    db.run(`DROP TABLE methods`);
+                    
+                    // Rename new table
+                    db.run(`ALTER TABLE methods_new RENAME TO methods`);
+                    
+                    saveDatabase();
+                    console.log('✓ Migration completed: methods table UNIQUE constraint updated to include user_id');
+                } else {
+                    console.log('✓ Migration check completed: methods table UNIQUE constraint already includes user_id');
+                }
+            }
+        } catch (error) {
+            console.error('Error fixing methods UNIQUE constraint:', error);
+            // Don't throw - allow server to continue
         }
         
         // Add more migrations here as needed in the future

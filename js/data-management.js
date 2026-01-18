@@ -241,11 +241,17 @@ const DataManagement = {
         list.innerHTML = '';
 
         // Sort income categories alphabetically (handle both old string format and new object format)
-        const sortedIncome = [...DataStore.income].sort((a, b) => {
-            const aName = typeof a === 'string' ? a : (a.name || a);
-            const bName = typeof b === 'string' ? b : (b.name || b);
-            return aName.localeCompare(bName);
-        });
+        // Filter out "Default" category from display
+        const sortedIncome = [...DataStore.income]
+            .filter(cat => {
+                const catName = typeof cat === 'string' ? cat : (cat.name || cat);
+                return catName !== 'Default';
+            })
+            .sort((a, b) => {
+                const aName = typeof a === 'string' ? a : (a.name || a);
+                const bName = typeof b === 'string' ? b : (b.name || b);
+                return aName.localeCompare(bName);
+            });
 
         sortedIncome.forEach((cat, index) => {
             // Get category name and icon
@@ -346,11 +352,17 @@ const DataManagement = {
         list.innerHTML = '';
 
         // Sort expense categories alphabetically (handle both old string format and new object format)
-        const sortedExpenses = [...DataStore.expenses].sort((a, b) => {
-            const aName = typeof a === 'string' ? a : (a.name || a);
-            const bName = typeof b === 'string' ? b : (b.name || b);
-            return aName.localeCompare(bName);
-        });
+        // Filter out "Default" category from display
+        const sortedExpenses = [...DataStore.expenses]
+            .filter(cat => {
+                const catName = typeof cat === 'string' ? cat : (cat.name || cat);
+                return catName !== 'Default';
+            })
+            .sort((a, b) => {
+                const aName = typeof a === 'string' ? a : (a.name || a);
+                const bName = typeof b === 'string' ? b : (b.name || b);
+                return aName.localeCompare(bName);
+            });
 
         sortedExpenses.forEach((cat, index) => {
             // Get category name and icon

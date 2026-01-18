@@ -225,10 +225,20 @@ const LedgerEditing = {
             input = document.createElement('select');
             // Combine income and expenses, sort alphabetically
             // Handle both old format (strings) and new format (objects with name)
-            const allCategories = [
+            let allCategories = [
                 ...(DataStore.income || []).map(c => typeof c === 'string' ? c : (c.name || c)),
                 ...(DataStore.expenses || []).map(c => typeof c === 'string' ? c : (c.name || c))
-            ].sort((a, b) => a.localeCompare(b));
+            ].filter(cat => cat !== 'Default'); // Filter out Default
+            
+            // If no user-defined categories exist, include Default as a fallback
+            // Also include Default if the current transaction is using it (for orphaned transactions)
+            if (allCategories.length === 0 || currentValue === 'Default') {
+                if (!allCategories.includes('Default')) {
+                    allCategories.push('Default');
+                }
+            }
+            
+            allCategories.sort((a, b) => a.localeCompare(b));
             allCategories.forEach(cat => {
                 const option = document.createElement('option');
                 option.value = cat;

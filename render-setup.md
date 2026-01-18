@@ -22,12 +22,13 @@
    - **Start Command:** `node server.js`
    - **Plan:** `Free` (or upgrade if you want)
 
-4. **Add Environment Variable**
+4. **Add Environment Variables**
    - Scroll down to "Environment Variables"
    - Click "Add Environment Variable"
-   - **Key:** `BUDGET_PASSWORD`
-   - **Value:** (enter your desired password)
+   - **Key:** `SESSION_SECRET`
+   - **Value:** (generate a random string - run `openssl rand -base64 32` in terminal, or use any long random string)
    - Click "Add"
+   - Optional: Add `NODE_ENV` with value `production` (recommended)
 
 5. **Deploy**
    - Scroll to bottom
@@ -35,10 +36,19 @@
    - Render will start building and deploying
    - Wait 2-3 minutes for deployment to complete
 
-6. **Get Your URL**
+6. **Set Up Persistent Storage (IMPORTANT)**
+   - Go to your service settings
+   - Click "Disks" tab
+   - Click "Mount New Disk"
+   - Name: `data`, Mount Path: `/data`, Size: 1GB+
+   - Click "Mount Disk"
+   - This ensures your database persists across deployments
+
+7. **Get Your URL**
    - Once deployed, you'll see a URL like: `https://budget-sensei.onrender.com`
    - Click it to open your app
-   - You should see the login prompt (username: `admin`)
+   - You should see the login screen
+   - Default admin account: `admin` / `likes5578`
 
 ## Important Notes
 
@@ -50,6 +60,10 @@
 ## Troubleshooting
 
 - **404 Error:** Wait for deployment to finish (check "Events" tab)
-- **Can't Login:** Verify `BUDGET_PASSWORD` environment variable is set
+- **Can't Login:** 
+  - Default credentials: `admin` / `likes5578`
+  - Or register a new account
+  - Check server logs for authentication errors
 - **Service Won't Start:** Check "Logs" tab for error messages
+- **Data Missing After Deploy:** Ensure persistent storage (`/data` disk) is mounted
 

@@ -12,14 +12,13 @@ function requireAuth(req, res, next) {
     }
 }
 
-// Get current user ID from session (Passport.js compatible)
+// Get current user ID from session (Passport.js)
 function getCurrentUserId(req) {
     // Passport.js stores user in req.user
     if (req.user && req.user.id) {
         return req.user.id;
     }
-    // Fallback for backward compatibility
-    return req.session && req.session.userId ? req.session.userId : null;
+    return null;
 }
 
 module.exports = {

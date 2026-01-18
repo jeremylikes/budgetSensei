@@ -10,21 +10,26 @@ const { getDb, saveDatabase } = require('../db/database');
 const { escapeSql } = require('../db/helpers');
 
 // Rate limiting for auth routes (prevent brute force attacks)
+// More lenient limits to avoid blocking legitimate users
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // Limit each IP to 5 requests per windowMs
+    max: 20, // Limit each IP to 20 requests per windowMs (increased from 5)
     message: 'Too many authentication attempts, please try again later.',
     standardHeaders: true,
     legacyHeaders: false,
+    skipSuccessfulRequests: true, // Don't count successful requests
+    skipFailedRequests: false
 });
 
 // Stricter rate limiting for login/register
 const strictAuthLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 3, // Limit each IP to 3 login/register attempts per windowMs
+    max: 10, // Limit each IP to 10 login/register attempts per windowMs (increased from 3)
     message: 'Too many login attempts, please try again in 15 minutes.',
     standardHeaders: true,
     legacyHeaders: false,
+    skipSuccessfulRequests: true, // Don't count successful logins
+    skipFailedRequests: false
 });
 
 // Register new user
@@ -124,12 +129,6 @@ router.post('/api/auth/login', strictAuthLimiter, (req, res, next) => {
                 return res.status(500).json({ error: 'Failed to login' });
             }
             
-            // Debug: Log session info in development
-            if (process.env.NODE_ENV !== 'production') {
-                console.log('Login successful - Session ID:', req.sessionID);
-                console.log('User authenticated:', req.isAuthenticated());
-            }
-            
             res.json({ 
                 success: true, 
                 user: { id: user.id, username: user.username } 
@@ -157,15 +156,8 @@ router.post('/api/auth/logout', authLimiter, (req, res) => {
 });
 
 // Check session using Passport.js
-router.get('/api/auth/session', authLimiter, (req, res) => {
-    // Debug: Log session info in development
-    if (process.env.NODE_ENV !== 'production') {
-        console.log('Session check - Session ID:', req.sessionID);
-        console.log('Is authenticated:', req.isAuthenticated ? req.isAuthenticated() : false);
-        console.log('User:', req.user);
-        console.log('Session:', req.session);
-    }
-    
+// No rate limiting on session check - it's called frequently and is a read-only operation
+router.get('/api/auth/session', (req, res) => {
     if (req.isAuthenticated && req.isAuthenticated()) {
         res.json({ 
             authenticated: true, 

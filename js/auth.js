@@ -3,13 +3,27 @@
 
 const Auth = {
     currentUser: null,
+    isLoggingOut: false,
+    isLoggingIn: false,
     
     // Check if user is authenticated
     async checkSession() {
         try {
+            // Create timeout controller
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            
             const response = await fetch('/api/auth/session', {
-                credentials: 'include'
+                credentials: 'include',
+                signal: controller.signal
             });
+            
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                return false;
+            }
+            
             const data = await response.json();
             if (data.authenticated) {
                 this.currentUser = data.user;
@@ -24,22 +38,61 @@ const Auth = {
     
     // Login
     async login(username, password) {
+        // Wait for any logout in progress to complete
+        if (this.isLoggingOut) {
+            console.log('Waiting for logout to complete before login...');
+            while (this.isLoggingOut) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            // Additional delay to ensure session is fully cleared
+            await new Promise(resolve => setTimeout(resolve, 300));
+        }
+        
+        if (this.isLoggingIn) {
+            console.log('Login already in progress');
+            return { success: false, error: 'Login already in progress. Please wait.' };
+        }
+        
+        this.isLoggingIn = true;
         try {
+            // Create timeout controller for older browsers
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
+            
             const response = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ username, password })
+                body: JSON.stringify({ username, password }),
+                signal: controller.signal
             });
+            
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                this.isLoggingIn = false;
+                return { success: false, error: errorData.error || 'Login failed' };
+            }
+            
             const data = await response.json();
             if (data.success) {
                 this.currentUser = data.user;
+                this.isLoggingIn = false;
                 return { success: true };
             } else {
+                this.isLoggingIn = false;
                 return { success: false, error: data.error || 'Login failed' };
             }
         } catch (error) {
             console.error('Error logging in:', error);
+            this.isLoggingIn = false;
+            if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+                return { success: false, error: 'Connection timeout. Please try again.' };
+            }
+            if (error.message && error.message.includes('fetch')) {
+                return { success: false, error: 'Failed to connect to server. Please check if the server is running.' };
+            }
             return { success: false, error: 'Failed to connect to server' };
         }
     },
@@ -68,15 +121,51 @@ const Auth = {
     
     // Logout
     async logout() {
-        try {
-            await fetch('/api/auth/logout', {
-                method: 'POST',
-                credentials: 'include'
-            });
-            this.currentUser = null;
+        if (this.isLoggingOut) {
+            console.log('Logout already in progress, waiting...');
+            // Wait for existing logout to complete
+            while (this.isLoggingOut) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
             return true;
+        }
+        
+        this.isLoggingOut = true;
+        try {
+            // Create timeout controller for older browsers
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            
+            const response = await fetch('/api/auth/logout', {
+                method: 'POST',
+                credentials: 'include',
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Logout failed:', errorData.error || response.statusText);
+                // Still clear current user even if logout request failed
+                this.currentUser = null;
+                this.isLoggingOut = false;
+                return false;
+            }
+            
+            const data = await response.json();
+            this.currentUser = null;
+            
+            // Wait a bit to ensure session is fully destroyed
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            this.isLoggingOut = false;
+            return data.success === true;
         } catch (error) {
             console.error('Error logging out:', error);
+            // Clear current user even if request failed
+            this.currentUser = null;
+            this.isLoggingOut = false;
             return false;
         }
     },
@@ -125,7 +214,54 @@ const Auth = {
             });
         }
         
-        // Show login form
+        // Show login form (will be updated after validateLoginForm is defined)
+        
+        // Handle login
+        const loginSubmit = document.getElementById('login-submit');
+        const loginUsername = document.getElementById('login-username');
+        const loginPassword = document.getElementById('login-password');
+        
+        // Function to validate and enable/disable login button
+        const validateLoginForm = () => {
+            if (loginSubmit && loginUsername && loginPassword) {
+                const username = loginUsername.value.trim();
+                const password = loginPassword.value.trim();
+                const isValid = username.length > 0 && password.length > 0;
+                loginSubmit.disabled = !isValid;
+                // Update opacity for visual feedback
+                if (loginSubmit.style) {
+                    loginSubmit.style.opacity = isValid ? '1' : '0.6';
+                }
+            }
+        };
+        
+        // Ensure login button starts disabled
+        if (loginSubmit) {
+            loginSubmit.disabled = true;
+            if (loginSubmit.style) {
+                loginSubmit.style.opacity = '0.6';
+            }
+        }
+        
+        // Add input listeners to username and password fields
+        if (loginUsername) {
+            loginUsername.addEventListener('input', validateLoginForm);
+            loginUsername.addEventListener('keyup', validateLoginForm);
+            loginUsername.addEventListener('paste', () => {
+                // Delay to allow paste to complete
+                setTimeout(validateLoginForm, 10);
+            });
+        }
+        if (loginPassword) {
+            loginPassword.addEventListener('input', validateLoginForm);
+            loginPassword.addEventListener('keyup', validateLoginForm);
+            loginPassword.addEventListener('paste', () => {
+                // Delay to allow paste to complete
+                setTimeout(validateLoginForm, 10);
+            });
+        }
+        
+        // Show login form (with validation)
         if (showLoginLink) {
             showLoginLink.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -133,29 +269,45 @@ const Auth = {
                 if (loginForm) loginForm.style.display = 'block';
                 if (loginError) loginError.textContent = '';
                 if (registerError) registerError.textContent = '';
+                // Re-validate when switching to login form
+                setTimeout(validateLoginForm, 10);
             });
         }
         
-        // Handle login
-        const loginSubmit = document.getElementById('login-submit');
+        // Run initial validation on page load
+        setTimeout(validateLoginForm, 100);
+        
         if (loginSubmit) {
             loginSubmit.addEventListener('click', async (e) => {
                 e.preventDefault();
-                const username = document.getElementById('login-username').value;
-                const password = document.getElementById('login-password').value;
+                const username = loginUsername ? loginUsername.value.trim() : '';
+                const password = loginPassword ? loginPassword.value.trim() : '';
                 
                 if (!username || !password) {
                     if (loginError) loginError.textContent = 'Please enter username and password';
                     return;
                 }
                 
+                // Disable submit button to prevent double-clicks
+                if (loginSubmit) {
+                    loginSubmit.disabled = true;
+                    loginSubmit.textContent = 'Logging in...';
+                }
+                
                 const result = await this.login(username, password);
                 if (result.success) {
+                    // Small delay to ensure login completes before reload
+                    await new Promise(resolve => setTimeout(resolve, 100));
                     this.hideLoginScreen();
                     // Reload the app
                     location.reload();
                 } else {
                     if (loginError) loginError.textContent = result.error;
+                    // Re-enable submit button on error (but keep validation)
+                    validateLoginForm();
+                    if (loginSubmit && username && password) {
+                        loginSubmit.textContent = 'Login';
+                    }
                 }
             });
         }
@@ -205,9 +357,55 @@ const Auth = {
         const logoutBtn = document.getElementById('logout-btn');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', async () => {
-                await this.logout();
-                this.showLoginScreen();
-                location.reload();
+                // Disable button to prevent double-clicks
+                logoutBtn.disabled = true;
+                logoutBtn.textContent = 'Logging out...';
+                
+                // Disable login button and form inputs to prevent login during logout
+                const loginSubmit = document.getElementById('login-submit');
+                const loginUsername = document.getElementById('login-username');
+                const loginPassword = document.getElementById('login-password');
+                
+                if (loginSubmit) {
+                    loginSubmit.disabled = true;
+                    loginSubmit.textContent = 'Please wait...';
+                }
+                if (loginUsername) loginUsername.disabled = true;
+                if (loginPassword) loginPassword.disabled = true;
+                
+                try {
+                    const success = await this.logout();
+                    // Wait for logout to fully complete (already done in logout function, but extra safety)
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    
+                    // Re-enable login form now that logout is complete
+                    if (loginSubmit) {
+                        loginSubmit.disabled = false;
+                        loginSubmit.textContent = 'Login';
+                    }
+                    if (loginUsername) loginUsername.disabled = false;
+                    if (loginPassword) loginPassword.disabled = false;
+                    
+                    this.showLoginScreen();
+                    // Clear any pending login attempts
+                    this.isLoggingIn = false;
+                    location.reload();
+                } catch (error) {
+                    console.error('Error during logout:', error);
+                    // Re-enable login form even if logout failed
+                    if (loginSubmit) {
+                        loginSubmit.disabled = false;
+                        loginSubmit.textContent = 'Login';
+                    }
+                    if (loginUsername) loginUsername.disabled = false;
+                    if (loginPassword) loginPassword.disabled = false;
+                    
+                    // Still show login screen and reload even if logout request failed
+                    this.isLoggingOut = false;
+                    this.isLoggingIn = false;
+                    this.showLoginScreen();
+                    location.reload();
+                }
             });
         }
     }

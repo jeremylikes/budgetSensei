@@ -7,6 +7,70 @@ const { getDb, saveDatabase } = require('../db/database');
 const { columnExists } = require('../db/helpers');
 const { requireAuth, getCurrentUserId } = require('../middleware/auth');
 
+// Diagnostic endpoint - list all categories for debugging
+router.get('/api/debug/categories', requireAuth, (req, res) => {
+    try {
+        const db = getDb();
+        if (!db) {
+            return res.status(500).json({ error: 'Database not initialized' });
+        }
+        
+        const currentUserId = getCurrentUserId(req);
+        const allCategories = db.exec(`SELECT id, name, type, user_id FROM categories ORDER BY name`);
+        const userCategories = db.exec(`SELECT id, name, type, user_id FROM categories WHERE user_id = ${currentUserId} ORDER BY name`);
+        
+        res.json({
+            currentUserId: currentUserId,
+            allCategories: allCategories[0] ? allCategories[0].values.map(row => ({
+                id: row[0],
+                name: row[1],
+                type: row[2],
+                user_id: row[3]
+            })) : [],
+            userCategories: userCategories[0] ? userCategories[0].values.map(row => ({
+                id: row[0],
+                name: row[1],
+                type: row[2],
+                user_id: row[3]
+            })) : []
+        });
+    } catch (error) {
+        console.error('Error getting categories debug info:', error);
+        res.status(500).json({ error: 'Failed to get categories debug info', details: error.message });
+    }
+});
+
+// Purge endpoint - delete all categories for the current user
+router.delete('/api/debug/categories', requireAuth, (req, res) => {
+    try {
+        const db = getDb();
+        if (!db) {
+            return res.status(500).json({ error: 'Database not initialized' });
+        }
+        
+        const currentUserId = getCurrentUserId(req);
+        
+        // Get count before deletion
+        const countCheck = db.exec(`SELECT COUNT(*) FROM categories WHERE user_id = ${currentUserId}`);
+        const count = countCheck[0] && countCheck[0].values.length > 0 ? countCheck[0].values[0][0] : 0;
+        
+        // Delete all categories for this user
+        db.run(`DELETE FROM categories WHERE user_id = ${currentUserId}`);
+        saveDatabase();
+        
+        console.log(`Purged ${count} categories for user ${currentUserId}`);
+        
+        res.json({
+            success: true,
+            message: `Deleted ${count} categories for user ${currentUserId}`,
+            deletedCount: count
+        });
+    } catch (error) {
+        console.error('Error purging categories:', error);
+        res.status(500).json({ error: 'Failed to purge categories', details: error.message });
+    }
+});
+
 // Diagnostic endpoint - check migration status
 router.get('/api/migrate-status', requireAuth, (req, res) => {
     try {
@@ -120,10 +184,244 @@ router.get('/api/migrate-status', requireAuth, (req, res) => {
             status.dataCounts.budgets.total = total[0] && total[0].values.length > 0 ? total[0].values[0][0] : 0;
         }
         
+        // Check UNIQUE constraint status
+        try {
+            const categoriesTableInfo = db.exec("SELECT sql FROM sqlite_master WHERE type='table' AND name='categories'");
+            const categoriesCreateStatement = categoriesTableInfo[0] && categoriesTableInfo[0].values.length > 0 ? categoriesTableInfo[0].values[0][0] : '';
+            const hasOldConstraint = categoriesCreateStatement.includes('UNIQUE(name, type)') || 
+                                    categoriesCreateStatement.includes('UNIQUE (name, type)') ||
+                                    (categoriesCreateStatement.includes('UNIQUE') && !categoriesCreateStatement.includes('user_id'));
+            const hasNewConstraint = categoriesCreateStatement.includes('UNIQUE(name, type, user_id)') || 
+                                     categoriesCreateStatement.includes('UNIQUE (name, type, user_id)');
+            
+            status.categoriesConstraint = {
+                includesUserId: hasNewConstraint,
+                hasOldConstraint: hasOldConstraint && !hasNewConstraint,
+                needsMigration: hasOldConstraint && !hasNewConstraint,
+                createStatement: categoriesCreateStatement
+            };
+            
+            const methodsTableInfo = db.exec("SELECT sql FROM sqlite_master WHERE type='table' AND name='methods'");
+            const methodsCreateStatement = methodsTableInfo[0] && methodsTableInfo[0].values.length > 0 ? methodsTableInfo[0].values[0][0] : '';
+            const methodsHasOldConstraint = methodsCreateStatement.includes('UNIQUE(name)') || 
+                                             methodsCreateStatement.includes('name TEXT UNIQUE') ||
+                                             (methodsCreateStatement.includes('UNIQUE') && !methodsCreateStatement.includes('user_id'));
+            const methodsHasNewConstraint = methodsCreateStatement.includes('UNIQUE(name, user_id)') || 
+                                            methodsCreateStatement.includes('UNIQUE (name, user_id)');
+            
+            status.methodsConstraint = {
+                includesUserId: methodsHasNewConstraint,
+                hasOldConstraint: methodsHasOldConstraint && !methodsHasNewConstraint,
+                needsMigration: methodsHasOldConstraint && !methodsHasNewConstraint,
+                createStatement: methodsCreateStatement
+            };
+        } catch (error) {
+            console.error('Error checking constraint status:', error);
+        }
+        
         res.json(status);
     } catch (error) {
         console.error('Error getting migration status:', error);
         res.status(500).json({ error: 'Failed to get migration status', details: error.message });
+    }
+});
+
+// Manual endpoint to fix UNIQUE constraints (requires authentication)
+router.post('/api/migrate-constraints', requireAuth, (req, res) => {
+    try {
+        const db = getDb();
+        if (!db) {
+            return res.status(500).json({ error: 'Database not initialized' });
+        }
+        
+        const { saveDatabase } = require('../db/database');
+        const { columnExists } = require('../db/helpers');
+        const force = req.body.force === true; // Allow forcing migration even if detection fails
+        const results = {
+            categories: { fixed: false, error: null, createStatement: null },
+            methods: { fixed: false, error: null, createStatement: null }
+        };
+        
+        // Fix categories UNIQUE constraint
+        try {
+            const categoriesTableCheck = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='categories'");
+            if (categoriesTableCheck[0] && categoriesTableCheck[0].values.length > 0) {
+                const tableInfo = db.exec("SELECT sql FROM sqlite_master WHERE type='table' AND name='categories'");
+                const createStatement = tableInfo[0] && tableInfo[0].values.length > 0 ? tableInfo[0].values[0][0] : '';
+                results.categories.createStatement = createStatement;
+                
+                const hasOldConstraint = createStatement.includes('UNIQUE(name, type)') || 
+                                        createStatement.includes('UNIQUE (name, type)') ||
+                                        (createStatement.includes('UNIQUE') && !createStatement.includes('user_id'));
+                const hasNewConstraint = createStatement.includes('UNIQUE(name, type, user_id)') || 
+                                         createStatement.includes('UNIQUE (name, type, user_id)');
+                
+                console.log('Categories constraint check:', {
+                    hasOldConstraint,
+                    hasNewConstraint,
+                    createStatement: createStatement.substring(0, 200) + '...'
+                });
+                
+                // Force migration if requested, or if old constraint detected
+                if (force || (createStatement && hasOldConstraint && !hasNewConstraint)) {
+                    console.log('Fixing categories table UNIQUE constraint to include user_id...');
+                    
+                    // Create new table with correct constraint
+                    db.run(`
+                        CREATE TABLE categories_new (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            name TEXT NOT NULL,
+                            type TEXT NOT NULL,
+                            icon TEXT,
+                            user_id INTEGER,
+                            UNIQUE(name, type, user_id)
+                        )
+                    `);
+                    
+                    // Copy all data from old table to new table
+                    db.run(`
+                        INSERT INTO categories_new (id, name, type, icon, user_id)
+                        SELECT id, name, type, COALESCE(icon, ''), COALESCE(user_id, NULL) FROM categories
+                    `);
+                    
+                    // Drop old table
+                    db.run(`DROP TABLE categories`);
+                    
+                    // Rename new table
+                    db.run(`ALTER TABLE categories_new RENAME TO categories`);
+                    
+                    saveDatabase();
+                    results.categories.fixed = true;
+                    console.log('✓ Categories UNIQUE constraint fixed');
+                } else if (force) {
+                    // Force migration even if detection didn't work
+                    console.log('Force migrating categories table UNIQUE constraint...');
+                    
+                    // Create new table with correct constraint
+                    db.run(`
+                        CREATE TABLE categories_new (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            name TEXT NOT NULL,
+                            type TEXT NOT NULL,
+                            icon TEXT,
+                            user_id INTEGER,
+                            UNIQUE(name, type, user_id)
+                        )
+                    `);
+                    
+                    // Copy all data from old table to new table
+                    db.run(`
+                        INSERT INTO categories_new (id, name, type, icon, user_id)
+                        SELECT id, name, type, COALESCE(icon, ''), COALESCE(user_id, NULL) FROM categories
+                    `);
+                    
+                    // Drop old table
+                    db.run(`DROP TABLE categories`);
+                    
+                    // Rename new table
+                    db.run(`ALTER TABLE categories_new RENAME TO categories`);
+                    
+                    saveDatabase();
+                    results.categories.fixed = true;
+                    console.log('✓ Categories UNIQUE constraint fixed (forced)');
+                } else {
+                    results.categories.fixed = false;
+                    results.categories.message = hasNewConstraint ? 'Already has correct constraint' : 'No constraint found - use {"force": true} in request body to force migration';
+                }
+            }
+        } catch (error) {
+            console.error('Error fixing categories constraint:', error);
+            results.categories.error = error.message;
+        }
+        
+        // Fix methods UNIQUE constraint
+        try {
+            const methodsTableCheck = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='methods'");
+            if (methodsTableCheck[0] && methodsTableCheck[0].values.length > 0) {
+                const tableInfo = db.exec("SELECT sql FROM sqlite_master WHERE type='table' AND name='methods'");
+                const createStatement = tableInfo[0] && tableInfo[0].values.length > 0 ? tableInfo[0].values[0][0] : '';
+                
+                const hasOldConstraint = createStatement.includes('UNIQUE(name)') || 
+                                         createStatement.includes('name TEXT UNIQUE') ||
+                                         (createStatement.includes('UNIQUE') && !createStatement.includes('user_id'));
+                const hasNewConstraint = createStatement.includes('UNIQUE(name, user_id)') || 
+                                         createStatement.includes('UNIQUE (name, user_id)');
+                
+                if (createStatement && hasOldConstraint && !hasNewConstraint) {
+                    console.log('Fixing methods table UNIQUE constraint to include user_id...');
+                    
+                    // Create new table with correct constraint
+                    db.run(`
+                        CREATE TABLE methods_new (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            name TEXT NOT NULL,
+                            user_id INTEGER,
+                            UNIQUE(name, user_id)
+                        )
+                    `);
+                    
+                    // Copy all data from old table to new table
+                    db.run(`
+                        INSERT INTO methods_new (id, name, user_id)
+                        SELECT id, name, COALESCE(user_id, NULL) FROM methods
+                    `);
+                    
+                    // Drop old table
+                    db.run(`DROP TABLE methods`);
+                    
+                    // Rename new table
+                    db.run(`ALTER TABLE methods_new RENAME TO methods`);
+                    
+                    saveDatabase();
+                    results.methods.fixed = true;
+                    console.log('✓ Methods UNIQUE constraint fixed');
+                } else if (force) {
+                    // Force migration even if detection didn't work
+                    console.log('Force migrating methods table UNIQUE constraint...');
+                    
+                    // Create new table with correct constraint
+                    db.run(`
+                        CREATE TABLE methods_new (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            name TEXT NOT NULL,
+                            user_id INTEGER,
+                            UNIQUE(name, user_id)
+                        )
+                    `);
+                    
+                    // Copy all data from old table to new table
+                    db.run(`
+                        INSERT INTO methods_new (id, name, user_id)
+                        SELECT id, name, COALESCE(user_id, NULL) FROM methods
+                    `);
+                    
+                    // Drop old table
+                    db.run(`DROP TABLE methods`);
+                    
+                    // Rename new table
+                    db.run(`ALTER TABLE methods_new RENAME TO methods`);
+                    
+                    saveDatabase();
+                    results.methods.fixed = true;
+                    console.log('✓ Methods UNIQUE constraint fixed (forced)');
+                } else {
+                    results.methods.fixed = false;
+                    results.methods.message = hasNewConstraint ? 'Already has correct constraint' : 'No constraint found - use {"force": true} in request body to force migration';
+                }
+            }
+        } catch (error) {
+            console.error('Error fixing methods constraint:', error);
+            results.methods.error = error.message;
+        }
+        
+        res.json({
+            success: true,
+            message: 'Constraint migration completed',
+            results: results
+        });
+    } catch (error) {
+        console.error('Error migrating constraints:', error);
+        res.status(500).json({ error: 'Failed to migrate constraints', details: error.message });
     }
 });
 

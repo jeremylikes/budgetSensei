@@ -13,8 +13,9 @@
    - **Start Command:** `node server.js`
    - **Plan:** Free (or paid if you want)
 5. Click "Advanced" → "Add Environment Variable":
-   - Key: `BUDGET_PASSWORD`
-   - Value: (your desired password)
+   - Key: `SESSION_SECRET`
+   - Value: (generate a random string, e.g., run `openssl rand -base64 32` in terminal)
+   - Optional: `NODE_ENV=production` (recommended)
 6. **IMPORTANT - Set up Persistent Storage:**
    - Go to your service settings
    - Click "Disks" tab
@@ -31,46 +32,49 @@
 ### Option 2: Railway.app (Requires Paid Plan for Web Services)
 ⚠️ **Note:** Railway's free tier only supports databases, not web services. You'll need to upgrade to deploy this app.
 
-### Option 2: Render.com (Free tier available)
-1. Sign up at https://render.com
-2. Click "New" → "Web Service"
-3. Connect your GitHub repo
-4. Settings:
-   - Build Command: `npm install`
-   - Start Command: `node server.js`
-   - Environment Variables: Add `BUDGET_PASSWORD=yourpassword`
-5. Deploy - Render gives you a URL like `https://your-app.onrender.com`
+### Option 2: Railway.app (Requires Paid Plan for Web Services)
+⚠️ **Note:** Railway's free tier only supports databases, not web services. You'll need to upgrade to deploy this app.
 
 ### Option 3: Fly.io (Free tier available)
 1. Install Fly CLI: `npm install -g @fly/cli`
 2. Sign up at https://fly.io
 3. Run: `fly launch` in project directory
-4. Set password: `fly secrets set BUDGET_PASSWORD=yourpassword`
+4. Set environment variables: `fly secrets set SESSION_SECRET=your-random-secret`
 5. Deploy: `fly deploy`
 
 ## Security Setup
 
-### Setting a Password
-The app uses basic HTTP authentication. Set the password via environment variable:
+### Setting Environment Variables
+
+**Required:**
+- `SESSION_SECRET` - A random secret string for session encryption
+  - Generate one: `openssl rand -base64 32` (in terminal)
+  - Or use any long random string
+
+**Optional but Recommended:**
+- `NODE_ENV=production` - Enables production optimizations and secure cookies
 
 **Local testing:**
 ```bash
 # Windows PowerShell
-$env:BUDGET_PASSWORD="your-secure-password"
+$env:SESSION_SECRET="your-random-secret-string"
+$env:NODE_ENV="production"
 npm start
 
 # Linux/Mac
-export BUDGET_PASSWORD="your-secure-password"
+export SESSION_SECRET="your-random-secret-string"
+export NODE_ENV="production"
 npm start
 ```
 
 **On hosting platform:**
-- Add `BUDGET_PASSWORD` as an environment variable in your hosting dashboard
-- Use a strong password (12+ characters, mix of letters, numbers, symbols)
+- Add `SESSION_SECRET` as an environment variable in your hosting dashboard
+- Generate a secure random string (use `openssl rand -base64 32`)
 
 ### Accessing the App
-- Username: `admin`
-- Password: (whatever you set in `BUDGET_PASSWORD`)
+- The app uses username/password authentication
+- Default admin account: `admin` / `likes5578`
+- You can register new accounts or change the admin password
 
 ## Alternative: Deploy from Your Laptop (More Complex)
 
@@ -124,11 +128,12 @@ Your `budget.db` file is stored in the persistent location. To backup:
 
 ## Next Steps
 
-1. Choose a hosting platform (Railway recommended for simplicity)
+1. Choose a hosting platform (Render recommended for free tier)
 2. Push your code to GitHub
 3. Connect GitHub to the hosting platform
-4. Set the `BUDGET_PASSWORD` environment variable
-5. Deploy!
+4. Set the `SESSION_SECRET` environment variable (generate with `openssl rand -base64 32`)
+5. Set up persistent storage (mount `/data` disk on Render)
+6. Deploy!
 
-Your app will be accessible from anywhere with HTTPS and password protection.
+Your app will be accessible from anywhere with HTTPS and secure authentication.
 

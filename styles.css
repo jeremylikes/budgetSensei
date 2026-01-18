@@ -1208,3 +1208,9 @@ tbody tr.new-row .note-input:focus {
 .emoji-picker-grid::-webkit-scrollbar-thumb:hover {
     background: #555;
 }
+
+/* Login button disabled state */
+#login-submit:disabled {
+    cursor: not-allowed !important;
+    pointer-events: none;
+}
