@@ -72,7 +72,11 @@ const LedgerNewRow = {
         catSelect.dataset.field = 'category';
         catSelect.addEventListener('change', () => this.validate());
         // Combine income and expenses, sort alphabetically
-        const allCategories = [...(DataStore.income || []), ...(DataStore.expenses || [])].sort((a, b) => a.localeCompare(b));
+        // Handle both old format (strings) and new format (objects with name)
+        const allCategories = [
+            ...(DataStore.income || []).map(c => typeof c === 'string' ? c : (c.name || c)),
+            ...(DataStore.expenses || []).map(c => typeof c === 'string' ? c : (c.name || c))
+        ].sort((a, b) => a.localeCompare(b));
         allCategories.forEach(cat => {
             const option = document.createElement('option');
             option.value = cat;

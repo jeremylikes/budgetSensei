@@ -2,8 +2,23 @@
 
 const Dashboard = {
     update() {
-        const year = parseInt(document.getElementById('dashboard-year').value);
-        const month = parseInt(document.getElementById('dashboard-month').value);
+        const yearSelect = document.getElementById('dashboard-year');
+        const monthSelect = document.getElementById('dashboard-month');
+        
+        // Check if elements exist before proceeding
+        if (!yearSelect || !monthSelect) {
+            console.warn('Dashboard date selectors not found, skipping update');
+            return;
+        }
+        
+        // Check if DataStore is ready
+        if (!DataStore || !Array.isArray(DataStore.transactions)) {
+            console.warn('DataStore not ready, skipping Dashboard update');
+            return;
+        }
+        
+        const year = parseInt(yearSelect.value);
+        const month = parseInt(monthSelect.value);
 
         const filtered = Utils.getTransactionsForMonth(DataStore.transactions, year, month);
         const income = filtered.filter(t => t.type === 'Income');
@@ -131,14 +146,28 @@ const Dashboard = {
         }
 
         // Get all categories (both income and expense) and sort alphabetically
-        const allCategories = [...(DataStore.income || []), ...(DataStore.expenses || [])].sort((a, b) => a.localeCompare(b));
+        // Handle both old format (strings) and new format (objects with name)
+        console.log('DataStore.income:', DataStore.income);
+        console.log('DataStore.expenses:', DataStore.expenses);
+        
+        const allCategories = [
+            ...(DataStore.income || []).map(c => typeof c === 'string' ? c : (c.name || c)),
+            ...(DataStore.expenses || []).map(c => typeof c === 'string' ? c : (c.name || c))
+        ].sort((a, b) => a.localeCompare(b));
+
+        console.log('All categories for budget:', allCategories);
 
         // Build budget table
         const tbody = document.getElementById('budget-tbody');
+        if (!tbody) {
+            console.error('budget-tbody element not found');
+            return;
+        }
         tbody.innerHTML = '';
 
         if (allCategories.length === 0) {
             tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No categories available.</td></tr>';
+            console.warn('No categories found in DataStore');
             return;
         }
 
@@ -162,9 +191,18 @@ const Dashboard = {
                 }
             }
 
-            // Category name
+            // Category name with icon
             const categoryCell = document.createElement('td');
-            categoryCell.textContent = category;
+            const categoryIcon = DataStore.getCategoryIcon(category);
+            if (categoryIcon) {
+                const iconSpan = document.createElement('span');
+                iconSpan.textContent = categoryIcon;
+                iconSpan.style.marginRight = '6px';
+                categoryCell.appendChild(iconSpan);
+            }
+            const categoryText = document.createElement('span');
+            categoryText.textContent = category;
+            categoryCell.appendChild(categoryText);
             row.appendChild(categoryCell);
 
             // Planned input

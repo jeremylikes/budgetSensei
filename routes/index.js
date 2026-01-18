@@ -15,7 +15,7 @@ router.get('/api/data', (req, res) => {
         const transactions = db.exec('SELECT * FROM transactions ORDER BY date DESC');
         
         // Check if type column exists in categories table
-        const { columnExists } = require('../db/helpers');
+        const { columnExists, ensureColumn } = require('../db/helpers');
         const hasTypeColumn = columnExists('categories', 'type', db);
         
         let incomeCategories = { values: [] };
@@ -98,10 +98,43 @@ router.get('/api/data', (req, res) => {
             saveDatabase();
         }
         
+        // Ensure icon column exists for categories
+        if (hasTypeColumn) {
+            if (!columnExists('categories', 'icon', db)) {
+                ensureColumn('categories', 'icon', 'TEXT', db);
+            }
+        }
+        
+        // Get categories with icons
+        let incomeWithIcons = [];
+        let expensesWithIcons = [];
+        
+        if (hasTypeColumn) {
+            try {
+                const incomeResult = db.exec("SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Income' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
+                incomeWithIcons = incomeResult[0] ? incomeResult[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
+            } catch (error) {
+                console.error('Error reading income categories with icons:', error);
+                incomeWithIcons = incomeCategories[0] ? incomeCategories[0].values.map(row => ({ name: row[0], icon: '' })) : [];
+            }
+            
+            try {
+                const expenseResult = db.exec("SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Expense' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
+                expensesWithIcons = expenseResult[0] ? expenseResult[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
+            } catch (error) {
+                console.error('Error reading expense categories with icons:', error);
+                expensesWithIcons = expenseCategories[0] ? expenseCategories[0].values.map(row => ({ name: row[0], icon: '' })) : [];
+            }
+        } else {
+            // Fallback to old format
+            incomeWithIcons = incomeCategories[0] ? incomeCategories[0].values.map(row => ({ name: row[0], icon: '' })) : [];
+            expensesWithIcons = expenseCategories[0] ? expenseCategories[0].values.map(row => ({ name: row[0], icon: '' })) : [];
+        }
+        
         res.json({
             transactions: processedTransactions,
-            income: incomeCategories[0] ? incomeCategories[0].values.map(row => row[0]) : [],
-            expenses: expenseCategories[0] ? expenseCategories[0].values.map(row => row[0]) : [],
+            income: incomeWithIcons,
+            expenses: expensesWithIcons,
             methods: methods[0] ? methods[0].values.map(row => row[0]) : []
         });
     } catch (error) {

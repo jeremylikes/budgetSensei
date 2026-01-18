@@ -143,6 +143,14 @@ function runMigrations(db) {
             console.log('✓ Migration check completed: budgets table already exists');
         }
         
+        // Migration: Add 'icon' column to categories table
+        const iconColumnAdded = ensureColumn('categories', 'icon', 'TEXT', db);
+        if (iconColumnAdded) {
+            console.log('✓ Migration completed: icon column added to categories');
+        } else {
+            console.log('✓ Migration check completed: icon column already exists');
+        }
+        
         // Add more migrations here as needed in the future
         // Example: ensureColumn('transactions', 'tags', 'TEXT');
         

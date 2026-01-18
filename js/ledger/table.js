@@ -36,10 +36,19 @@ const LedgerTable = {
         descCell.dataset.field = 'description';
         descCell.dataset.value = transaction.description;
         
-        // Category cell
+        // Category cell with icon
         const catCell = document.createElement('td');
         catCell.className = 'editable-cell';
-        catCell.textContent = transaction.category;
+        const categoryIcon = DataStore.getCategoryIcon(transaction.category);
+        if (categoryIcon) {
+            const iconSpan = document.createElement('span');
+            iconSpan.textContent = categoryIcon;
+            iconSpan.style.marginRight = '6px';
+            catCell.appendChild(iconSpan);
+        }
+        const categoryText = document.createElement('span');
+        categoryText.textContent = transaction.category;
+        catCell.appendChild(categoryText);
         catCell.dataset.field = 'category';
         catCell.dataset.value = transaction.category;
         
@@ -152,6 +161,20 @@ const LedgerTable = {
             }
             cell.appendChild(noteBox);
             cell.dataset.value = noteValue;
+        } else if (field === 'category') {
+            // Update category with icon
+            cell.innerHTML = ''; // Clear cell
+            const categoryIcon = DataStore.getCategoryIcon(value);
+            if (categoryIcon) {
+                const iconSpan = document.createElement('span');
+                iconSpan.textContent = categoryIcon;
+                iconSpan.style.marginRight = '6px';
+                cell.appendChild(iconSpan);
+            }
+            const categoryText = document.createElement('span');
+            categoryText.textContent = value;
+            cell.appendChild(categoryText);
+            cell.dataset.value = value;
         } else {
             cell.textContent = value;
             cell.dataset.value = value;

@@ -16,7 +16,11 @@ function getCategoriesByType(type) {
     if (!columnExists('categories', 'type', db)) {
         ensureColumn('categories', 'type', 'TEXT', db);
     }
-    const result = db.exec(`SELECT id, name FROM categories WHERE type = '${type}' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
+    // Ensure icon column exists
+    if (!columnExists('categories', 'icon', db)) {
+        ensureColumn('categories', 'icon', 'TEXT', db);
+    }
+    const result = db.exec(`SELECT id, name, COALESCE(icon, '') as icon FROM categories WHERE type = '${type}' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
     return result[0] ? result[0].values : [];
 }
 
@@ -55,8 +59,12 @@ router.get('/api/expenses', (req, res) => {
             ensureColumn('categories', 'type', 'TEXT', db);
         }
         
-        const result = db.exec("SELECT name FROM categories WHERE type = 'Expense' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
-        const categories = result[0] ? result[0].values.map(row => row[0]) : [];
+        // Ensure icon column exists
+        if (!columnExists('categories', 'icon', db)) {
+            ensureColumn('categories', 'icon', 'TEXT', db);
+        }
+        const result = db.exec("SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Expense' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
+        const categories = result[0] ? result[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
         res.json(categories);
     } catch (error) {
         console.error('Error reading expense categories:', error);
@@ -116,17 +124,23 @@ router.post('/api/expenses', (req, res) => {
         }
         
         const category = req.body.name;
+        const icon = req.body.icon || '';
         
         if (!category) {
             return res.status(400).json({ error: 'Category name is required' });
         }
         
+        // Ensure icon column exists
+        if (!columnExists('categories', 'icon', db)) {
+            ensureColumn('categories', 'icon', 'TEXT', db);
+        }
+        
         try {
-            db.run(`INSERT INTO categories (name, type) VALUES ('${escapeSql(category)}', 'Expense')`);
+            db.run(`INSERT INTO categories (name, type, icon) VALUES ('${escapeSql(category)}', 'Expense', '${escapeSql(icon)}')`);
             saveDatabase();
             
-            const result = db.exec("SELECT name FROM categories WHERE type = 'Expense' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
-            const categories = result[0] ? result[0].values.map(row => row[0]) : [];
+            const result = db.exec("SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Expense' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
+            const categories = result[0] ? result[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
             res.json(categories);
         } catch (error) {
             if (error.message && error.message.includes('UNIQUE')) {
@@ -150,6 +164,7 @@ router.put('/api/income/:index', (req, res) => {
         
         const index = parseInt(req.params.index);
         const newName = req.body.name;
+        const newIcon = req.body.icon !== undefined ? req.body.icon : null;
         const categories = getCategoriesByType('Income');
         
         if (index < 0 || index >= categories.length) {
@@ -159,33 +174,48 @@ router.put('/api/income/:index', (req, res) => {
         const oldName = categories[index][1];
         const categoryId = categories[index][0];
         
-        if (newName === oldName) {
-            const result = db.exec("SELECT name FROM categories WHERE type = 'Income' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
-            const catList = result[0] ? result[0].values.map(row => row[0]) : [];
+        // Ensure icon column exists
+        if (!columnExists('categories', 'icon', db)) {
+            ensureColumn('categories', 'icon', 'TEXT', db);
+        }
+        
+        if (newName === oldName && newIcon === null) {
+            const result = db.exec("SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Income' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
+            const catList = result[0] ? result[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
             return res.json(catList);
         }
         
-        // Check if new name already exists for Income type
-        const existing = db.exec(`SELECT id FROM categories WHERE name = '${escapeSql(newName)}' AND type = 'Income'`);
-        if (existing[0] && existing[0].values.length > 0 && existing[0].values[0][0] !== categoryId) {
-            return res.status(400).json({ error: 'Category name already exists' });
+        // Check if new name already exists for Income type (only if name is changing)
+        if (newName !== oldName) {
+            const existing = db.exec(`SELECT id FROM categories WHERE name = '${escapeSql(newName)}' AND type = 'Income'`);
+            if (existing[0] && existing[0].values.length > 0 && existing[0].values[0][0] !== categoryId) {
+                return res.status(400).json({ error: 'Category name already exists' });
+            }
         }
         
         // Prevent renaming "Default"
-        if (oldName === 'Default') {
+        if (oldName === 'Default' && newName !== oldName) {
             return res.status(400).json({ error: 'Cannot rename the Default category' });
         }
         
-        // Update category
-        db.run(`UPDATE categories SET name = '${escapeSql(newName)}' WHERE id = ${categoryId}`);
+        // Update category (name and/or icon)
+        if (newName !== oldName && newIcon !== null) {
+            db.run(`UPDATE categories SET name = '${escapeSql(newName)}', icon = '${escapeSql(newIcon || '')}' WHERE id = ${categoryId}`);
+        } else if (newName !== oldName) {
+            db.run(`UPDATE categories SET name = '${escapeSql(newName)}' WHERE id = ${categoryId}`);
+        } else if (newIcon !== null) {
+            db.run(`UPDATE categories SET icon = '${escapeSql(newIcon || '')}' WHERE id = ${categoryId}`);
+        }
         
-        // Update all transactions with this category
-        db.run(`UPDATE transactions SET category = '${escapeSql(newName)}' WHERE category = '${escapeSql(oldName)}' AND type = 'Income'`);
+        // Update all transactions with this category (only if name changed)
+        if (newName !== oldName) {
+            db.run(`UPDATE transactions SET category = '${escapeSql(newName)}' WHERE category = '${escapeSql(oldName)}' AND type = 'Income'`);
+        }
         
         saveDatabase();
         
-        const result = db.exec("SELECT name FROM categories WHERE type = 'Income' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
-        const updatedCategories = result[0] ? result[0].values.map(row => row[0]) : [];
+        const result = db.exec("SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Income' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
+        const updatedCategories = result[0] ? result[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
         res.json(updatedCategories);
     } catch (error) {
         console.error('Error updating income category:', error);
@@ -203,6 +233,7 @@ router.put('/api/expenses/:index', (req, res) => {
         
         const index = parseInt(req.params.index);
         const newName = req.body.name;
+        const newIcon = req.body.icon !== undefined ? req.body.icon : null;
         const categories = getCategoriesByType('Expense');
         
         if (index < 0 || index >= categories.length) {
@@ -212,9 +243,14 @@ router.put('/api/expenses/:index', (req, res) => {
         const oldName = categories[index][1];
         const categoryId = categories[index][0];
         
-        if (newName === oldName) {
-            const result = db.exec("SELECT name FROM categories WHERE type = 'Expense' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
-            const catList = result[0] ? result[0].values.map(row => row[0]) : [];
+        // Ensure icon column exists
+        if (!columnExists('categories', 'icon', db)) {
+            ensureColumn('categories', 'icon', 'TEXT', db);
+        }
+        
+        if (newName === oldName && newIcon === null) {
+            const result = db.exec("SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Expense' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
+            const catList = result[0] ? result[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
             return res.json(catList);
         }
         
@@ -225,20 +261,28 @@ router.put('/api/expenses/:index', (req, res) => {
         }
         
         // Prevent renaming "Default"
-        if (oldName === 'Default') {
+        if (oldName === 'Default' && newName !== oldName) {
             return res.status(400).json({ error: 'Cannot rename the Default category' });
         }
         
-        // Update category
-        db.run(`UPDATE categories SET name = '${escapeSql(newName)}' WHERE id = ${categoryId}`);
+        // Update category (name and/or icon)
+        if (newName !== oldName && newIcon !== null) {
+            db.run(`UPDATE categories SET name = '${escapeSql(newName)}', icon = '${escapeSql(newIcon || '')}' WHERE id = ${categoryId}`);
+        } else if (newName !== oldName) {
+            db.run(`UPDATE categories SET name = '${escapeSql(newName)}' WHERE id = ${categoryId}`);
+        } else if (newIcon !== null) {
+            db.run(`UPDATE categories SET icon = '${escapeSql(newIcon || '')}' WHERE id = ${categoryId}`);
+        }
         
-        // Update all transactions with this category
-        db.run(`UPDATE transactions SET category = '${escapeSql(newName)}' WHERE category = '${escapeSql(oldName)}' AND type = 'Expense'`);
+        // Update all transactions with this category (only if name changed)
+        if (newName !== oldName) {
+            db.run(`UPDATE transactions SET category = '${escapeSql(newName)}' WHERE category = '${escapeSql(oldName)}' AND type = 'Expense'`);
+        }
         
         saveDatabase();
         
-        const result = db.exec("SELECT name FROM categories WHERE type = 'Expense' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
-        const updatedCategories = result[0] ? result[0].values.map(row => row[0]) : [];
+        const result = db.exec("SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Expense' ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name");
+        const updatedCategories = result[0] ? result[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
         res.json(updatedCategories);
     } catch (error) {
         console.error('Error updating expense category:', error);

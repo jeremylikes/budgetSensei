@@ -22,7 +22,12 @@ const DataManagement = {
             // Add each item
             for (const item of items) {
                 // Skip if already exists
-                if (DataStore.income.includes(item)) {
+                // Check if already exists (handle both old string format and new object format)
+                const exists = DataStore.income.some(cat => {
+                    const catName = typeof cat === 'string' ? cat : (cat.name || cat);
+                    return catName === item;
+                });
+                if (exists) {
                     failCount++;
                     errors.push(`"${item}" already exists`);
                     continue;
@@ -94,7 +99,12 @@ const DataManagement = {
             // Add each item
             for (const item of items) {
                 // Skip if already exists
-                if (DataStore.expenses.includes(item)) {
+                // Check if already exists (handle both old string format and new object format)
+                const exists = DataStore.expenses.some(cat => {
+                    const catName = typeof cat === 'string' ? cat : (cat.name || cat);
+                    return catName === item;
+                });
+                if (exists) {
                     failCount++;
                     errors.push(`"${item}" already exists`);
                     continue;
@@ -230,18 +240,30 @@ const DataManagement = {
         if (!list) return;
         list.innerHTML = '';
 
-        // Sort income categories alphabetically
-        const sortedIncome = [...DataStore.income].sort((a, b) => a.localeCompare(b));
+        // Sort income categories alphabetically (handle both old string format and new object format)
+        const sortedIncome = [...DataStore.income].sort((a, b) => {
+            const aName = typeof a === 'string' ? a : (a.name || a);
+            const bName = typeof b === 'string' ? b : (b.name || b);
+            return aName.localeCompare(bName);
+        });
 
         sortedIncome.forEach((cat, index) => {
+            // Get category name and icon
+            const catName = typeof cat === 'string' ? cat : (cat.name || cat);
+            const catIcon = typeof cat === 'string' ? '' : (cat.icon || '');
+            
             // Find the original index in DataStore.income for data operations
-            const originalIndex = DataStore.income.indexOf(cat);
+            const originalIndex = DataStore.income.findIndex(c => {
+                const cName = typeof c === 'string' ? c : (c.name || c);
+                return cName === catName;
+            });
+            
             const li = document.createElement('li');
             li.dataset.index = originalIndex;
-            li.dataset.originalValue = cat;
+            li.dataset.originalValue = catName;
             li.dataset.categoryType = 'income';
             
-            const isDefault = cat === 'Default';
+            const isDefault = catName === 'Default';
             
             // Checkbox (disabled for Default)
             const checkbox = document.createElement('input');
@@ -253,10 +275,26 @@ const DataManagement = {
                 checkbox.title = 'Default income category cannot be selected';
             }
             
+            // Icon box
+            const iconBox = document.createElement('div');
+            iconBox.className = 'category-icon-box';
+            iconBox.innerHTML = catIcon || '<span class="icon-placeholder">📷</span>';
+            if (!isDefault) {
+                iconBox.style.cursor = 'pointer';
+                iconBox.title = 'Click to choose an icon';
+                iconBox.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.openIconPicker(iconBox, 'income', originalIndex, catName, catIcon);
+                });
+            } else {
+                iconBox.style.cursor = 'not-allowed';
+                iconBox.style.opacity = '0.6';
+            }
+            
             // Editable name span (not editable for Default)
             const nameSpan = document.createElement('span');
             nameSpan.className = 'income-name editable-name';
-            nameSpan.textContent = cat;
+            nameSpan.textContent = catName;
             if (isDefault) {
                 nameSpan.style.cursor = 'not-allowed';
                 nameSpan.style.opacity = '0.6';
@@ -266,7 +304,7 @@ const DataManagement = {
                 nameSpan.style.flex = '1';
                 nameSpan.addEventListener('click', (e) => {
                     if (!li.classList.contains('editing')) {
-                        this.enterEditMode(li, nameSpan, 'income', originalIndex, cat);
+                        this.enterEditMode(li, nameSpan, 'income', originalIndex, catName);
                     }
                 });
             }
@@ -284,7 +322,7 @@ const DataManagement = {
                 deleteBtn.title = 'Delete';
                 deleteBtn.onclick = (e) => {
                     e.stopPropagation();
-                    this.deleteIncome(cat);
+                    this.deleteIncome(catName);
                 };
             }
             
@@ -294,6 +332,7 @@ const DataManagement = {
             actionButtons.appendChild(deleteBtn);
             
             li.appendChild(checkbox);
+            li.appendChild(iconBox);
             li.appendChild(nameSpan);
             li.appendChild(actionButtons);
             list.appendChild(li);
@@ -305,18 +344,30 @@ const DataManagement = {
         if (!list) return;
         list.innerHTML = '';
 
-        // Sort expense categories alphabetically
-        const sortedExpenses = [...DataStore.expenses].sort((a, b) => a.localeCompare(b));
+        // Sort expense categories alphabetically (handle both old string format and new object format)
+        const sortedExpenses = [...DataStore.expenses].sort((a, b) => {
+            const aName = typeof a === 'string' ? a : (a.name || a);
+            const bName = typeof b === 'string' ? b : (b.name || b);
+            return aName.localeCompare(bName);
+        });
 
         sortedExpenses.forEach((cat, index) => {
+            // Get category name and icon
+            const catName = typeof cat === 'string' ? cat : (cat.name || cat);
+            const catIcon = typeof cat === 'string' ? '' : (cat.icon || '');
+            
             // Find the original index in DataStore.expenses for data operations
-            const originalIndex = DataStore.expenses.indexOf(cat);
+            const originalIndex = DataStore.expenses.findIndex(c => {
+                const cName = typeof c === 'string' ? c : (c.name || c);
+                return cName === catName;
+            });
+            
             const li = document.createElement('li');
             li.dataset.index = originalIndex;
-            li.dataset.originalValue = cat;
+            li.dataset.originalValue = catName;
             li.dataset.categoryType = 'expenses';
             
-            const isDefault = cat === 'Default';
+            const isDefault = catName === 'Default';
             
             // Checkbox (disabled for Default)
             const checkbox = document.createElement('input');
@@ -328,10 +379,26 @@ const DataManagement = {
                 checkbox.title = 'Default expense category cannot be selected';
             }
             
+            // Icon box
+            const iconBox = document.createElement('div');
+            iconBox.className = 'category-icon-box';
+            iconBox.innerHTML = catIcon || '<span class="icon-placeholder">📷</span>';
+            if (!isDefault) {
+                iconBox.style.cursor = 'pointer';
+                iconBox.title = 'Click to choose an icon';
+                iconBox.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.openIconPicker(iconBox, 'expenses', originalIndex, catName, catIcon);
+                });
+            } else {
+                iconBox.style.cursor = 'not-allowed';
+                iconBox.style.opacity = '0.6';
+            }
+            
             // Editable name span (not editable for Default)
             const nameSpan = document.createElement('span');
             nameSpan.className = 'expense-name editable-name';
-            nameSpan.textContent = cat;
+            nameSpan.textContent = catName;
             if (isDefault) {
                 nameSpan.style.cursor = 'not-allowed';
                 nameSpan.style.opacity = '0.6';
@@ -341,7 +408,7 @@ const DataManagement = {
                 nameSpan.style.flex = '1';
                 nameSpan.addEventListener('click', (e) => {
                     if (!li.classList.contains('editing')) {
-                        this.enterEditMode(li, nameSpan, 'expenses', originalIndex, cat);
+                        this.enterEditMode(li, nameSpan, 'expenses', originalIndex, catName);
                     }
                 });
             }
@@ -359,7 +426,7 @@ const DataManagement = {
                 deleteBtn.title = 'Delete';
                 deleteBtn.onclick = (e) => {
                     e.stopPropagation();
-                    this.deleteExpense(cat);
+                    this.deleteExpense(catName);
                 };
             }
             
@@ -369,6 +436,7 @@ const DataManagement = {
             actionButtons.appendChild(deleteBtn);
             
             li.appendChild(checkbox);
+            li.appendChild(iconBox);
             li.appendChild(nameSpan);
             li.appendChild(actionButtons);
             list.appendChild(li);
@@ -924,6 +992,83 @@ const DataManagement = {
                     alert('Failed to delete payment method. Please try again.');
                 }
             }
+        }
+    },
+    
+    // Open icon picker for a category
+    async openIconPicker(iconBox, type, index, categoryName, currentIcon) {
+        console.log('Opening icon picker:', { type, index, categoryName, currentIcon });
+        EmojiPicker.show((selectedIcon) => {
+            console.log('Icon selected in picker:', selectedIcon);
+            // Update icon in database
+            this.updateCategoryIcon(type, index, categoryName, selectedIcon, iconBox);
+        }, currentIcon);
+    },
+    
+    // Update category icon
+    async updateCategoryIcon(type, index, categoryName, icon, iconBox) {
+        try {
+            console.log('Updating icon:', { type, index, categoryName, icon, iconLength: icon ? icon.length : 0 });
+            const url = `${API.BASE}/${type}/${index}`;
+            console.log('API URL:', url);
+            
+            const response = await fetch(url, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    name: categoryName,
+                    icon: icon || ''
+                })
+            });
+            
+            console.log('Response status:', response.status, response.statusText);
+            
+            // Get the response first to check if it's ok
+            const responseData = await response.json();
+            
+            if (!response.ok) {
+                console.error('API error response:', responseData);
+                throw new Error(responseData.error || 'Failed to update icon');
+            }
+            
+            console.log('Updated categories from server:', responseData);
+            console.log('Response data type:', Array.isArray(responseData) ? 'array' : typeof responseData);
+            if (Array.isArray(responseData) && responseData.length > 0) {
+                console.log('First category in response:', responseData[0]);
+            }
+            
+            // Update DataStore with the new data from the response
+            // The response contains the full list of categories for this type
+            console.log('Updating DataStore, type:', type);
+            if (type === 'income') {
+                DataStore.income = responseData;
+                console.log('Updated DataStore.income:', DataStore.income);
+            } else if (type === 'expenses' || type === 'expense') {
+                // Handle both 'expenses' and 'expense' for compatibility
+                DataStore.expenses = responseData;
+                console.log('Updated DataStore.expenses:', DataStore.expenses);
+            } else {
+                console.error('Unknown type:', type);
+            }
+            
+            // Update the list to reflect the changes
+            if (type === 'income') {
+                this.updateIncomeList();
+            } else {
+                this.updateExpensesList();
+            }
+            
+            console.log('List updated, checking if icon appears...');
+            
+            // Also update Dashboard if it exists
+            if (window.Dashboard) {
+                Dashboard.update();
+            }
+            
+            console.log('Icon updated successfully');
+        } catch (error) {
+            console.error('Error updating category icon:', error);
+            alert('Failed to update icon: ' + (error.message || 'Please try again.'));
         }
     }
 };
