@@ -1048,7 +1048,7 @@ tbody tr.new-row .note-input:focus {
 }
 
 .emoji-picker-header {
-    padding: 20px;
+    padding: 12px 20px;
     border-bottom: 1px solid #e0e0e0;
     display: flex;
     align-items: center;
@@ -1104,14 +1104,30 @@ tbody tr.new-row .note-input:focus {
     color: #333;
 }
 
-.emoji-picker-grid {
-    padding: 20px;
-    overflow-y: auto;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
-    gap: 12px;
-    max-height: calc(85vh - 120px);
-    justify-items: center;
+.emoji-picker-remove-btn-inline {
+    margin-left: auto;
+    padding: 6px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    color: #666;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.emoji-picker-remove-btn-inline:hover {
+    background-color: #ffebee;
+    border-color: #d32f2f;
+    color: #d32f2f;
+}
+
+.emoji-picker-modal emoji-picker {
+    flex: 1;
+    overflow: hidden;
 }
 
 .emoji-option {
