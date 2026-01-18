@@ -121,8 +121,8 @@ const Dashboard = {
             console.error('Error loading budgets:', error);
         }
 
-        // Get only expense categories and sort alphabetically
-        const allCategories = (DataStore.expenses || []).slice().sort((a, b) => a.localeCompare(b));
+        // Get all categories (both income and expense) and sort alphabetically
+        const allCategories = [...(DataStore.income || []), ...(DataStore.expenses || [])].sort((a, b) => a.localeCompare(b));
 
         // Build budget table
         const tbody = document.getElementById('budget-tbody');
@@ -137,7 +137,21 @@ const Dashboard = {
             const row = document.createElement('tr');
             const actual = actualData[category] || 0;
             const planned = budgetData[category] || null;
-            const difference = planned !== null ? planned - actual : null;
+            
+            // Determine category type
+            const categoryType = DataStore.getCategoryType(category);
+            
+            // Calculate Remaining based on category type
+            // Income: Remaining = Actual - Planned
+            // Expense: Remaining = Planned - Actual
+            let remaining = null;
+            if (planned !== null) {
+                if (categoryType === 'Income') {
+                    remaining = actual - planned;
+                } else {
+                    remaining = planned - actual;
+                }
+            }
 
             // Category name
             const categoryCell = document.createElement('td');
@@ -176,27 +190,28 @@ const Dashboard = {
             actualCell.textContent = Utils.formatCurrency(actual);
             row.appendChild(actualCell);
 
-            // Difference - color code for expenses only
-            // Actual > Planned (negative difference) = red (bad, spent more)
-            // Actual < Planned (positive difference) = green (good, spent less)
-            const differenceCell = document.createElement('td');
-            if (difference !== null) {
-                differenceCell.textContent = Utils.formatCurrency(difference);
+            // Remaining - color code based on value
+            // Remaining = 0: black
+            // Remaining < 0: red
+            // Remaining > 0: green
+            const remainingCell = document.createElement('td');
+            if (remaining !== null) {
+                remainingCell.textContent = Utils.formatCurrency(remaining);
                 
-                if (difference < 0) {
-                    differenceCell.style.color = '#d32f2f'; // Red - spent more than planned
-                    differenceCell.style.fontWeight = 'bold';
-                } else if (difference > 0) {
-                    differenceCell.style.color = '#2e7d32'; // Green - spent less than planned
-                    differenceCell.style.fontWeight = 'bold';
+                if (remaining < 0) {
+                    remainingCell.style.color = '#d32f2f'; // Red
+                    remainingCell.style.fontWeight = 'bold';
+                } else if (remaining > 0) {
+                    remainingCell.style.color = '#2e7d32'; // Green
+                    remainingCell.style.fontWeight = 'bold';
                 } else {
-                    differenceCell.style.color = '#000'; // Black - exactly on budget
+                    remainingCell.style.color = '#000'; // Black - exactly on target
                 }
             } else {
-                differenceCell.textContent = '—';
-                differenceCell.style.color = '#999';
+                remainingCell.textContent = '—';
+                remainingCell.style.color = '#999';
             }
-            row.appendChild(differenceCell);
+            row.appendChild(remainingCell);
 
             tbody.appendChild(row);
         });
