@@ -13,9 +13,17 @@ const Dashboard = {
         const totalExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
         const netIncome = totalIncome - totalExpenses;
 
+        // Calculate Saving %
+        // Saving % = Total Savings / Total Income
+        let savingPercent = 0;
+        if (totalIncome > 0) {
+            savingPercent = (netIncome / totalIncome) * 100;
+        }
+
         document.getElementById('net-income').textContent = Utils.formatCurrency(netIncome);
         document.getElementById('total-income').textContent = Utils.formatCurrency(totalIncome);
         document.getElementById('total-expenses').textContent = Utils.formatCurrency(totalExpenses);
+        document.getElementById('saving-percent').textContent = savingPercent.toFixed(1) + '%';
 
         this.updateCharts(income, expenses);
         this.updatePaymentMethods(filtered);
