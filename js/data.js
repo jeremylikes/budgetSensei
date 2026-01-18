@@ -36,15 +36,6 @@ const DataStore = {
         return [...this.income.map(c => c.name || c), ...this.expenses.map(c => c.name || c)];
     },
     
-    // Helper to get category icon
-    getCategoryIcon(categoryName) {
-        const incomeCat = this.income.find(c => (c.name || c) === categoryName);
-        if (incomeCat) return incomeCat.icon || '';
-        const expenseCat = this.expenses.find(c => (c.name || c) === categoryName);
-        if (expenseCat) return expenseCat.icon || '';
-        return '';
-    },
-    
     // Helper to get category type
     getCategoryType(categoryName) {
         if (this.income.some(c => (c.name || c) === categoryName)) {

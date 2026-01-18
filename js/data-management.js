@@ -254,9 +254,8 @@ const DataManagement = {
             });
 
         sortedIncome.forEach((cat, index) => {
-            // Get category name and icon
+            // Get category name
             const catName = typeof cat === 'string' ? cat : (cat.name || cat);
-            const catIcon = typeof cat === 'string' ? '' : (cat.icon || '');
             
             // Find the original index in DataStore.income for data operations
             const originalIndex = DataStore.income.findIndex(c => {
@@ -268,7 +267,6 @@ const DataManagement = {
             li.dataset.index = originalIndex;
             li.dataset.originalValue = catName;
             li.dataset.categoryType = 'income';
-            li.dataset.icon = catIcon || ''; // Store icon for use when saving edits
             
             const isDefault = catName === 'Default';
             
@@ -280,66 +278,6 @@ const DataManagement = {
             if (isDefault) {
                 checkbox.disabled = true;
                 checkbox.title = 'Default income category cannot be selected';
-            }
-            
-            // Icon box
-            const iconBox = document.createElement('div');
-            iconBox.className = 'category-icon-box';
-            iconBox.innerHTML = catIcon || '<span class="icon-placeholder">📷</span>';
-            if (!isDefault) {
-                iconBox.style.cursor = 'pointer';
-                iconBox.title = 'Click to choose an icon';
-                iconBox.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    
-                    // Close any other editing fields BEFORE opening icon picker
-                    // This prevents blur events from triggering saves
-                    const list = li.parentElement;
-                    const otherEditing = list.querySelector('li.editing');
-                    if (otherEditing && otherEditing !== li) {
-                        const otherInput = otherEditing.querySelector('input.inline-edit-input');
-                        const otherOriginal = otherEditing.dataset.originalValue;
-                        if (otherInput) {
-                            console.log(`[Icon Click] Canceling edit for "${otherOriginal}" before opening icon picker`);
-                            // Set flag to prevent blur from saving
-                            otherInput.dataset.cancelEdit = 'true';
-                            // Remove the blur event listener BEFORE removing the input
-                            if (otherInput._blurHandler) {
-                                otherInput.removeEventListener('blur', otherInput._blurHandler);
-                                otherInput._blurHandler = null;
-                            }
-                            // Immediately remove the input to prevent blur event from firing
-                            // This is more reliable than relying on the blur handler to check the flag
-                            const nameSpan = otherEditing.querySelector('.editable-name');
-                            if (nameSpan && otherInput.parentElement === nameSpan) {
-                                nameSpan.removeChild(otherInput);
-                                nameSpan.textContent = otherOriginal;
-                                otherEditing.classList.remove('editing');
-                            } else {
-                                // Fallback to exitEditMode if structure is different
-                                this.exitEditMode(otherEditing, otherOriginal);
-                            }
-                        }
-                    }
-                    
-                    // Small delay to ensure any pending blur events have completed
-                    setTimeout(() => {
-                        // Recalculate index in case list was re-rendered (e.g., after icon update)
-                        const currentIndex = DataStore.income.findIndex(c => {
-                            const cName = typeof c === 'string' ? c : (c.name || c);
-                            return cName === catName;
-                        });
-                        if (currentIndex === -1) {
-                            console.error('Category not found in DataStore:', catName);
-                            return;
-                        }
-                        this.openIconPicker(iconBox, 'income', currentIndex, catName, catIcon);
-                    }, 50);
-                });
-            } else {
-                iconBox.style.cursor = 'not-allowed';
-                iconBox.style.opacity = '0.6';
             }
             
             // Editable name span (not editable for Default)
@@ -383,7 +321,6 @@ const DataManagement = {
             actionButtons.appendChild(deleteBtn);
             
             li.appendChild(checkbox);
-            li.appendChild(iconBox);
             li.appendChild(nameSpan);
             li.appendChild(actionButtons);
             list.appendChild(li);
@@ -409,9 +346,8 @@ const DataManagement = {
             });
 
         sortedExpenses.forEach((cat, index) => {
-            // Get category name and icon
+            // Get category name
             const catName = typeof cat === 'string' ? cat : (cat.name || cat);
-            const catIcon = typeof cat === 'string' ? '' : (cat.icon || '');
             
             // Find the original index in DataStore.expenses for data operations
             const originalIndex = DataStore.expenses.findIndex(c => {
@@ -423,7 +359,6 @@ const DataManagement = {
             li.dataset.index = originalIndex;
             li.dataset.originalValue = catName;
             li.dataset.categoryType = 'expenses';
-            li.dataset.icon = catIcon || ''; // Store icon for use when saving edits
             
             const isDefault = catName === 'Default';
             
@@ -435,66 +370,6 @@ const DataManagement = {
             if (isDefault) {
                 checkbox.disabled = true;
                 checkbox.title = 'Default expense category cannot be selected';
-            }
-            
-            // Icon box
-            const iconBox = document.createElement('div');
-            iconBox.className = 'category-icon-box';
-            iconBox.innerHTML = catIcon || '<span class="icon-placeholder">📷</span>';
-            if (!isDefault) {
-                iconBox.style.cursor = 'pointer';
-                iconBox.title = 'Click to choose an icon';
-                iconBox.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    
-                    // Close any other editing fields BEFORE opening icon picker
-                    // This prevents blur events from triggering saves
-                    const list = li.parentElement;
-                    const otherEditing = list.querySelector('li.editing');
-                    if (otherEditing && otherEditing !== li) {
-                        const otherInput = otherEditing.querySelector('input.inline-edit-input');
-                        const otherOriginal = otherEditing.dataset.originalValue;
-                        if (otherInput) {
-                            console.log(`[Icon Click] Canceling edit for "${otherOriginal}" before opening icon picker`);
-                            // Set flag to prevent blur from saving
-                            otherInput.dataset.cancelEdit = 'true';
-                            // Remove the blur event listener BEFORE removing the input
-                            if (otherInput._blurHandler) {
-                                otherInput.removeEventListener('blur', otherInput._blurHandler);
-                                otherInput._blurHandler = null;
-                            }
-                            // Immediately remove the input to prevent blur event from firing
-                            // This is more reliable than relying on the blur handler to check the flag
-                            const nameSpan = otherEditing.querySelector('.editable-name');
-                            if (nameSpan && otherInput.parentElement === nameSpan) {
-                                nameSpan.removeChild(otherInput);
-                                nameSpan.textContent = otherOriginal;
-                                otherEditing.classList.remove('editing');
-                            } else {
-                                // Fallback to exitEditMode if structure is different
-                                this.exitEditMode(otherEditing, otherOriginal);
-                            }
-                        }
-                    }
-                    
-                    // Small delay to ensure any pending blur events have completed
-                    setTimeout(() => {
-                        // Recalculate index in case list was re-rendered (e.g., after icon update)
-                        const currentIndex = DataStore.expenses.findIndex(c => {
-                            const cName = typeof c === 'string' ? c : (c.name || c);
-                            return cName === catName;
-                        });
-                        if (currentIndex === -1) {
-                            console.error('Category not found in DataStore:', catName);
-                            return;
-                        }
-                        this.openIconPicker(iconBox, 'expenses', currentIndex, catName, catIcon);
-                    }, 50);
-                });
-            } else {
-                iconBox.style.cursor = 'not-allowed';
-                iconBox.style.opacity = '0.6';
             }
             
             // Editable name span (not editable for Default)
@@ -538,7 +413,6 @@ const DataManagement = {
             actionButtons.appendChild(deleteBtn);
             
             li.appendChild(checkbox);
-            li.appendChild(iconBox);
             li.appendChild(nameSpan);
             li.appendChild(actionButtons);
             list.appendChild(li);
@@ -832,16 +706,9 @@ const DataManagement = {
         
         const index = parseInt(li.dataset.index);
         
-        // Get current icon from dataset (for categories) or leave undefined (for methods)
-        const currentIcon = (type === 'income' || type === 'expenses') ? (li.dataset.icon || '') : undefined;
-        
         try {
             const endpoint = type === 'income' ? 'income' : (type === 'expenses' ? 'expenses' : 'methods');
             const requestBody = { name: newValue };
-            // Include icon for categories to preserve it during name updates
-            if (currentIcon !== undefined) {
-                requestBody.icon = currentIcon;
-            }
             
             const response = await fetch(`${API.BASE}/${endpoint}/${index}`, {
                 method: 'PUT',
@@ -1164,199 +1031,6 @@ const DataManagement = {
                     alert('Failed to delete payment method. Please try again.');
                 }
             }
-        }
-    },
-    
-    // Open icon picker for a category
-    async openIconPicker(iconBox, type, index, categoryName, currentIcon) {
-        console.log('Opening icon picker:', { type, index, categoryName, currentIcon });
-        
-        // Cancel any other edits BEFORE opening the picker to prevent blur events
-        const listId = type === 'income' ? 'income-list' : 'expenses-list';
-        const list = document.getElementById(listId);
-        if (list) {
-            const otherEditing = list.querySelector('li.editing');
-            if (otherEditing) {
-                const otherInput = otherEditing.querySelector('input.inline-edit-input');
-                const otherOriginal = otherEditing.dataset.originalValue;
-                if (otherInput) {
-                    console.log(`[Icon Picker] Canceling edit for "${otherOriginal}" before opening picker`);
-                    otherInput.dataset.cancelEdit = 'true';
-                    // Remove the blur event listener BEFORE removing the input
-                    if (otherInput._blurHandler) {
-                        otherInput.removeEventListener('blur', otherInput._blurHandler);
-                        otherInput._blurHandler = null;
-                    }
-                    const nameSpan = otherEditing.querySelector('.editable-name');
-                    if (nameSpan && otherInput.parentElement === nameSpan) {
-                        nameSpan.removeChild(otherInput);
-                        nameSpan.textContent = otherOriginal;
-                        otherEditing.classList.remove('editing');
-                    } else {
-                        this.exitEditMode(otherEditing, otherOriginal);
-                    }
-                    // Wait for blur events to complete
-                    await new Promise(resolve => setTimeout(resolve, 150));
-                }
-            }
-        }
-        
-        // Ensure EmojiPicker is available
-        if (typeof window.EmojiPicker === 'undefined' && typeof EmojiPicker === 'undefined') {
-            console.error('EmojiPicker is not available. Waiting for it to load...');
-            // Wait a bit and try again
-            await new Promise(resolve => setTimeout(resolve, 100));
-            if (typeof window.EmojiPicker === 'undefined' && typeof EmojiPicker === 'undefined') {
-                console.error('EmojiPicker still not available after wait');
-                return;
-            }
-        }
-        
-        const picker = window.EmojiPicker || EmojiPicker;
-        picker.show((selectedIcon) => {
-            console.log('Icon selected in picker:', selectedIcon);
-            // Double-check no edits are in progress before updating
-            if (list) {
-                const stillEditing = list.querySelector('li.editing');
-                if (stillEditing) {
-                    console.warn('[Icon Picker] Edit still in progress, canceling before icon update');
-                    const stillInput = stillEditing.querySelector('input.inline-edit-input');
-                    const stillOriginal = stillEditing.dataset.originalValue;
-                    if (stillInput) {
-                        stillInput.dataset.cancelEdit = 'true';
-                        const stillNameSpan = stillEditing.querySelector('.editable-name');
-                        if (stillNameSpan && stillInput.parentElement === stillNameSpan) {
-                            stillNameSpan.removeChild(stillInput);
-                            stillNameSpan.textContent = stillOriginal;
-                            stillEditing.classList.remove('editing');
-                        } else {
-                            this.exitEditMode(stillEditing, stillOriginal);
-                        }
-                        // Wait a bit more before proceeding
-                        setTimeout(() => {
-                            this.updateCategoryIcon(type, index, categoryName, selectedIcon, iconBox);
-                        }, 100);
-                        return;
-                    }
-                }
-            }
-            // No edits in progress, proceed with icon update
-            this.updateCategoryIcon(type, index, categoryName, selectedIcon, iconBox);
-        }, currentIcon);
-    },
-    
-    // Update category icon
-    async updateCategoryIcon(type, index, categoryName, icon, iconBox) {
-        try {
-            // Recalculate index in case DataStore was updated (e.g., after previous icon update)
-            // This ensures we always use the current index, not a stale one
-            let currentIndex = index;
-            if (type === 'income') {
-                const foundIndex = DataStore.income.findIndex(c => {
-                    const cName = typeof c === 'string' ? c : (c.name || c);
-                    return cName === categoryName;
-                });
-                if (foundIndex !== -1) {
-                    // Verify the category at this index actually matches the name
-                    const categoryAtIndex = DataStore.income[foundIndex];
-                    const nameAtIndex = typeof categoryAtIndex === 'string' ? categoryAtIndex : (categoryAtIndex.name || categoryAtIndex);
-                    if (nameAtIndex === categoryName) {
-                        currentIndex = foundIndex;
-                        console.log(`[Icon Update] Found "${categoryName}" at index ${currentIndex} in DataStore.income`);
-                    } else {
-                        console.error(`[Icon Update] Index mismatch! Looking for "${categoryName}" but found "${nameAtIndex}" at index ${foundIndex}`);
-                        // Try to find it again or use the provided index
-                        currentIndex = index;
-                    }
-                } else {
-                    console.warn(`[Icon Update] Category "${categoryName}" not found in DataStore.income, using provided index ${index}`);
-                }
-            } else if (type === 'expenses' || type === 'expense') {
-                const foundIndex = DataStore.expenses.findIndex(c => {
-                    const cName = typeof c === 'string' ? c : (c.name || c);
-                    return cName === categoryName;
-                });
-                if (foundIndex !== -1) {
-                    // Verify the category at this index actually matches the name
-                    const categoryAtIndex = DataStore.expenses[foundIndex];
-                    const nameAtIndex = typeof categoryAtIndex === 'string' ? categoryAtIndex : (categoryAtIndex.name || categoryAtIndex);
-                    if (nameAtIndex === categoryName) {
-                        currentIndex = foundIndex;
-                        console.log(`[Icon Update] Found "${categoryName}" at index ${currentIndex} in DataStore.expenses`);
-                    } else {
-                        console.error(`[Icon Update] Index mismatch! Looking for "${categoryName}" but found "${nameAtIndex}" at index ${foundIndex}`);
-                        // Try to find it again or use the provided index
-                        currentIndex = index;
-                    }
-                } else {
-                    console.warn(`[Icon Update] Category "${categoryName}" not found in DataStore.expenses, using provided index ${index}`);
-                }
-            }
-            
-            console.log('Updating icon:', { type, originalIndex: index, currentIndex, categoryName, icon, iconLength: icon ? icon.length : 0 });
-            const url = `${API.BASE}/${type}/${currentIndex}`;
-            console.log('API URL:', url);
-            
-            const response = await fetch(url, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    name: categoryName,
-                    icon: icon || ''
-                })
-            });
-            
-            console.log('Response status:', response.status, response.statusText);
-            
-            // Get the response first to check if it's ok
-            const responseData = await response.json();
-            
-            if (!response.ok) {
-                console.error('API error response:', responseData);
-                throw new Error(responseData.error || 'Failed to update icon');
-            }
-            
-            console.log('Updated categories from server:', responseData);
-            console.log('Response data type:', Array.isArray(responseData) ? 'array' : typeof responseData);
-            if (Array.isArray(responseData) && responseData.length > 0) {
-                console.log('First category in response:', responseData[0]);
-            }
-            
-            // Update DataStore with the new data from the response
-            // The response contains the full list of categories for this type
-            console.log('Updating DataStore, type:', type);
-            if (type === 'income') {
-                DataStore.income = responseData;
-                console.log('Updated DataStore.income:', DataStore.income);
-            } else if (type === 'expenses' || type === 'expense') {
-                // Handle both 'expenses' and 'expense' for compatibility
-                DataStore.expenses = responseData;
-                console.log('Updated DataStore.expenses:', DataStore.expenses);
-            } else {
-                console.error('Unknown type:', type);
-            }
-            
-            // Update the list to reflect the changes
-            if (type === 'income') {
-                this.updateIncomeList();
-            } else {
-                this.updateExpensesList();
-            }
-            
-            console.log('List updated, checking if icon appears...');
-            
-            // Note: iconBox is now stale after re-render, so we don't update it
-            // The list has been re-rendered with the new icon already
-            
-            // Also update Dashboard if it exists
-            if (window.Dashboard) {
-                Dashboard.update();
-            }
-            
-            console.log('Icon updated successfully');
-        } catch (error) {
-            console.error('Error updating category icon:', error);
-            alert('Failed to update icon: ' + (error.message || 'Please try again.'));
         }
     }
 };

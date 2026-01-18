@@ -222,18 +222,9 @@ const Dashboard = {
                 }
             }
 
-            // Category name with icon
+            // Category name
             const categoryCell = document.createElement('td');
-            const categoryIcon = DataStore.getCategoryIcon(category);
-            if (categoryIcon) {
-                const iconSpan = document.createElement('span');
-                iconSpan.textContent = categoryIcon;
-                iconSpan.style.marginRight = '6px';
-                categoryCell.appendChild(iconSpan);
-            }
-            const categoryText = document.createElement('span');
-            categoryText.textContent = category;
-            categoryCell.appendChild(categoryText);
+            categoryCell.textContent = category;
             row.appendChild(categoryCell);
 
             // Planned input

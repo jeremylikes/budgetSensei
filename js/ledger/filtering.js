@@ -142,15 +142,6 @@ const LedgerFiltering = {
             let displayValue = value;
             if (field === 'date') {
                 displayValue = Utils.formatDate(value);
-            } else if (field === 'category') {
-                // Add icon for category filter
-                const categoryIcon = DataStore.getCategoryIcon(value);
-                if (categoryIcon) {
-                    const iconSpan = document.createElement('span');
-                    iconSpan.textContent = categoryIcon;
-                    iconSpan.style.marginRight = '6px';
-                    option.appendChild(iconSpan);
-                }
             }
             
             const textSpan = document.createElement('span');
