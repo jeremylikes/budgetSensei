@@ -34,12 +34,12 @@ const LedgerFiltering = {
             header.appendChild(filterBtn);
         }
 
-        // Create dropdown container
+        // Create dropdown container - append to body for proper positioning
         const dropdown = document.createElement('div');
         dropdown.className = 'filter-dropdown';
         dropdown.dataset.field = field;
         dropdown.style.display = 'none';
-        header.appendChild(dropdown);
+        document.body.appendChild(dropdown);
 
         // Toggle dropdown on click
         filterBtn.addEventListener('click', (e) => {
@@ -49,7 +49,7 @@ const LedgerFiltering = {
 
         // Close dropdown when clicking outside
         document.addEventListener('click', (e) => {
-            if (!header.contains(e.target)) {
+            if (!header.contains(e.target) && !dropdown.contains(e.target)) {
                 dropdown.style.display = 'none';
                 filterBtn.classList.remove('active');
             }
@@ -76,6 +76,10 @@ const LedgerFiltering = {
             button.classList.remove('active');
         } else {
             this.populateDropdown(field, dropdown);
+            // Position dropdown relative to the button
+            const buttonRect = button.getBoundingClientRect();
+            dropdown.style.left = buttonRect.left + 'px';
+            dropdown.style.top = (buttonRect.bottom + 2) + 'px';
             dropdown.style.display = 'block';
             button.classList.add('active');
         }

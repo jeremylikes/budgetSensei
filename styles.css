@@ -524,9 +524,7 @@ th.sortable:hover {
 
 /* Filter dropdown */
 .filter-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
+    position: fixed;
     background: white;
     border: 1px solid #ddd;
     border-radius: 4px;
@@ -535,7 +533,7 @@ th.sortable:hover {
     max-width: 250px;
     max-height: 300px;
     overflow-y: auto;
-    z-index: 1000;
+    z-index: 10000;
     margin-top: 2px;
 }
 
