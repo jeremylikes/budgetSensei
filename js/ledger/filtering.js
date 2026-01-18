@@ -6,12 +6,28 @@ const LedgerFiltering = {
         category: null,
         method: null
     },
+    searchTerm: '',
 
     setup() {
         // Setup filter icons for Date, Category, and Method
         this.setupFilterIcon('date');
         this.setupFilterIcon('category');
         this.setupFilterIcon('method');
+        
+        // Setup search input
+        this.setupSearch();
+    },
+    
+    setupSearch() {
+        const searchInput = document.getElementById('ledger-search');
+        if (!searchInput) return;
+        
+        searchInput.addEventListener('input', (e) => {
+            this.searchTerm = e.target.value;
+            if (window.Ledger) {
+                Ledger.update();
+            }
+        });
     },
 
     setupFilterIcon(field) {
@@ -231,6 +247,53 @@ const LedgerFiltering = {
             filtered = filtered.filter(t => t.method === this.filters.method);
         }
 
+        // Apply search filter
+        if (this.searchTerm && this.searchTerm.trim()) {
+            const searchLower = this.searchTerm.trim().toLowerCase();
+            try {
+                const regex = new RegExp(searchLower, 'i');
+                filtered = filtered.filter(t => {
+                    // Search across all relevant fields
+                    const dateFormatted = Utils.formatDate(t.date); // mm/dd/yyyy format
+                    const dateRaw = t.date; // yyyy-mm-dd format
+                    const description = t.description || '';
+                    const category = t.category || '';
+                    const method = t.method || '';
+                    const amount = String(t.amount);
+                    const amountFormatted = Utils.formatCurrency(t.amount);
+                    const note = t.note || '';
+                    
+                    return regex.test(dateFormatted) ||
+                           regex.test(dateRaw) ||
+                           regex.test(description) ||
+                           regex.test(category) ||
+                           regex.test(method) ||
+                           regex.test(amount) ||
+                           regex.test(amountFormatted) ||
+                           regex.test(note);
+                });
+            } catch (e) {
+                // If regex is invalid, fall back to simple string matching
+                filtered = filtered.filter(t => {
+                    const dateFormatted = Utils.formatDate(t.date);
+                    const description = (t.description || '').toLowerCase();
+                    const category = (t.category || '').toLowerCase();
+                    const method = (t.method || '').toLowerCase();
+                    const amount = String(t.amount);
+                    const amountFormatted = Utils.formatCurrency(t.amount).toLowerCase();
+                    const note = (t.note || '').toLowerCase();
+                    
+                    return dateFormatted.toLowerCase().includes(searchLower) ||
+                           description.includes(searchLower) ||
+                           category.includes(searchLower) ||
+                           method.includes(searchLower) ||
+                           amount.includes(searchLower) ||
+                           amountFormatted.includes(searchLower) ||
+                           note.includes(searchLower);
+                });
+            }
+        }
+
         return filtered;
     },
 
@@ -238,6 +301,13 @@ const LedgerFiltering = {
         this.filters.date = null;
         this.filters.category = null;
         this.filters.method = null;
+        this.searchTerm = '';
+        
+        // Clear search input
+        const searchInput = document.getElementById('ledger-search');
+        if (searchInput) {
+            searchInput.value = '';
+        }
         
         document.querySelectorAll('.filter-icon-btn').forEach(btn => {
             btn.classList.remove('has-filter', 'active');
