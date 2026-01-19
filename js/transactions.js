@@ -31,7 +31,8 @@ const Transactions = {
         const date = document.getElementById('transaction-date').value;
         const description = document.getElementById('transaction-description').value;
         const category = document.getElementById('transaction-category').value;
-        const method = document.getElementById('transaction-method').value;
+        const methodValue = document.getElementById('transaction-method').value;
+        const method = methodValue || 'Default'; // Default if empty
         // Automatically determine type from category
         const type = DataStore.getCategoryType(category);
         const amountValue = document.getElementById('transaction-amount').value.trim();

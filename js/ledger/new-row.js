@@ -95,10 +95,17 @@ const LedgerNewRow = {
         // Method cell
         const methodCell = document.createElement('td');
         const methodSelect = document.createElement('select');
-        methodSelect.required = true;
+        methodSelect.required = false;
         methodSelect.dataset.field = 'method';
         methodSelect.addEventListener('change', () => this.validate());
-        DataStore.methods.forEach(method => {
+        
+        // Get methods, use Default if none exist
+        let methods = [...DataStore.methods].filter(m => m !== 'Default');
+        if (methods.length === 0) {
+            methods = ['Default'];
+        }
+        methods.sort((a, b) => a.localeCompare(b));
+        methods.forEach(method => {
             const option = document.createElement('option');
             option.value = method;
             option.textContent = method;
@@ -237,7 +244,7 @@ const LedgerNewRow = {
         const isValid = date && 
                        description && 
                        category && 
-                       method && 
+                       //method && 
                        amountValue &&
                        !isNaN(amount) && 
                        amount > 0;
@@ -260,7 +267,7 @@ const LedgerNewRow = {
         const methodSelect = row.querySelector('select[data-field="method"]');
         const noteInput = row.querySelector('textarea');
         
-        if (!dateInput || !descInput || !amountInput || !catSelect || !methodSelect) {
+        if (!dateInput || !descInput || !amountInput || !catSelect /*|| !methodSelect*/) {
             alert('Error: Could not find all required fields. Please refresh the page and try again.');
             if (saveBtn) saveBtn.disabled = false;
             return;

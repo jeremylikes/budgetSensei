@@ -46,7 +46,7 @@ router.post('/api/transactions', requireAuth, (req, res) => {
         const { date, description, category, method, type, amount, note } = req.body;
         
         // Validate required fields
-        if (!date || !description || !category || !method || !type || amount === undefined || amount === null) {
+        if (!date || !description || !category /*|| !method*/ || !type || amount === undefined || amount === null) {
             return res.status(400).json({ error: 'All fields are required' });
         }
         
@@ -58,11 +58,12 @@ router.post('/api/transactions', requireAuth, (req, res) => {
         
         const id = Date.now();
         const noteValue = note || '';
+        const methodValue = method || 'Default';
         
-        db.run(`INSERT INTO transactions (id, date, description, category, method, type, amount, note, user_id) VALUES (${id}, '${escapeSql(date)}', '${escapeSql(description)}', '${escapeSql(category)}', '${escapeSql(method)}', '${escapeSql(type)}', ${amountNum}, '${escapeSql(noteValue)}', ${userId})`);
+        db.run(`INSERT INTO transactions (id, date, description, category, method, type, amount, note, user_id) VALUES (${id}, '${escapeSql(date)}', '${escapeSql(description)}', '${escapeSql(category)}', '${escapeSql(methodValue)}', '${escapeSql(type)}', ${amountNum}, '${escapeSql(noteValue)}', ${userId})`);
         saveDatabase();
         
-        const transaction = { id, date, description, category, method, type, amount: amountNum, note: noteValue };
+        const transaction = { id, date, description, category, method: methodValue, type, amount: amountNum, note: noteValue };
         res.json(transaction);
     } catch (error) {
         console.error('Error adding transaction:', error);

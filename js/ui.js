@@ -256,10 +256,10 @@ const UI = {
                 const amount = parseFloat(amountValue);
                 
                 // Form is valid if all required fields are filled and amount is valid
+                // Method is optional
                 const isValid = date && 
                                description && 
                                category && 
-                               method && 
                                amountValue &&
                                !isNaN(amount) && 
                                amount > 0;
@@ -315,9 +315,17 @@ const UI = {
 
         if (methodSelect) {
             methodSelect.innerHTML = '';
+            // Get methods, filter out Default unless it's the only option
+            let methods = [...DataStore.methods].filter(m => m !== 'Default');
+            
+            // If no user-defined methods exist, include Default as a fallback
+            if (methods.length === 0) {
+                methods = ['Default'];
+            }
+            
             // Sort methods alphabetically
-            const sortedMethods = [...DataStore.methods].sort((a, b) => a.localeCompare(b));
-            sortedMethods.forEach(method => {
+            methods.sort((a, b) => a.localeCompare(b));
+            methods.forEach(method => {
                 const option = document.createElement('option');
                 option.value = method;
                 option.textContent = method;
