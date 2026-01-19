@@ -9,6 +9,50 @@ const bcrypt = require('bcrypt');
 const { getDb, saveDatabase } = require('../db/database');
 const { escapeSql } = require('../db/helpers');
 
+// Seed default data for new users
+function seedDefaultData(db, userId) {
+    try {
+        // Add default income category
+        db.run(`INSERT INTO categories (name, type, user_id) VALUES ('Paycheck', 'Income', ${userId})`);
+        
+        // Add default expense categories
+        db.run(`INSERT INTO categories (name, type, user_id) VALUES ('Dining', 'Expense', ${userId})`);
+        db.run(`INSERT INTO categories (name, type, user_id) VALUES ('Rent', 'Expense', ${userId})`);
+        db.run(`INSERT INTO categories (name, type, user_id) VALUES ('Grocery', 'Expense', ${userId})`);
+        
+        // Add default payment methods
+        db.run(`INSERT INTO methods (name, user_id) VALUES ('American Express', ${userId})`);
+        db.run(`INSERT INTO methods (name, user_id) VALUES ('Bank Transfer', ${userId})`);
+        db.run(`INSERT INTO methods (name, user_id) VALUES ('Debit Card', ${userId})`);
+        db.run(`INSERT INTO methods (name, user_id) VALUES ('Venmo', ${userId})`);
+        
+        // Add default transactions
+        const now = new Date();
+        const today = now.toISOString().split('T')[0]; // YYYY-MM-DD
+        const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+        
+        // Transaction 1: Paycheck
+        const id1 = Date.now();
+        db.run(`INSERT INTO transactions (id, date, description, category, method, type, amount, note, user_id) 
+                VALUES (${id1}, '${today}', 'Paycheck 2', 'Paycheck', 'Bank Transfer', 'Income', 2000, '', ${userId})`);
+        
+        // Transaction 2: Rent
+        const id2 = Date.now() + 1;
+        db.run(`INSERT INTO transactions (id, date, description, category, method, type, amount, note, user_id) 
+                VALUES (${id2}, '${firstOfMonth}', 'Alpine Place Rent', 'Rent', 'Venmo', 'Expense', 1500, '', ${userId})`);
+        
+        // Transaction 3: Grocery
+        const id3 = Date.now() + 2;
+        db.run(`INSERT INTO transactions (id, date, description, category, method, type, amount, note, user_id) 
+                VALUES (${id3}, '${firstOfMonth}', 'Meal Prep', 'Grocery', 'Debit Card', 'Expense', 125, '', ${userId})`);
+        
+        console.log(`Seeded default data for user ${userId}`);
+    } catch (error) {
+        console.error('Error seeding default data:', error);
+        // Don't throw - seeding failure shouldn't prevent account creation
+    }
+}
+
 // Rate limiting for auth routes (prevent brute force attacks)
 // More lenient limits to avoid blocking legitimate users
 const authLimiter = rateLimit({
@@ -85,6 +129,10 @@ router.post('/api/auth/register', strictAuthLimiter, async (req, res) => {
         if (!user) {
             return res.status(500).json({ error: 'Failed to create user' });
         }
+        
+        // Seed default data for the new user
+        seedDefaultData(db, user.id);
+        saveDatabase();
         
         // Automatically log in the new user using Passport
         req.login(user, (err) => {
