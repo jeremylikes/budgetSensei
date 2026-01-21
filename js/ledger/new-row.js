@@ -155,7 +155,7 @@ const LedgerNewRow = {
         const noteInput = document.createElement('textarea');
         noteInput.className = 'note-input';
         noteInput.rows = 1;
-        noteInput.maxLength = 20;
+        noteInput.maxLength = 40;
         noteInput.placeholder = 'Optional note...';
         noteCell.appendChild(noteInput);
         
