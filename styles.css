@@ -24,7 +24,7 @@ body {
     max-width: 1200px;
     margin: 0 auto;
     background: white;
-    border-radius: 8px;
+    border-radius: 20px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     overflow: visible;
 }
@@ -41,6 +41,7 @@ body {
     justify-content: space-between;
     align-items: center;
     box-sizing: border-box;
+    border-radius: 20px 20px 0 0;
 }
 
 .logo-container {
@@ -94,6 +95,7 @@ body {
     z-index: 99;
     width: 100%;
     box-sizing: border-box;
+    border-radius: 0;
 }
 
 .tab-btn {
@@ -106,6 +108,7 @@ body {
     font-size: 16px;
     font-family: inherit;
     transition: background-color 0.3s;
+    border-radius: 0;
 }
 
 .tab-btn:hover {
@@ -120,6 +123,7 @@ body {
 .tab-content {
     display: none;
     padding: 20px;
+    border-radius: 0 0 20px 20px;
 }
 
 .tab-content.active {
@@ -144,6 +148,7 @@ body {
     padding-right: 20px;
     box-sizing: border-box;
     border-bottom: 1px solid #e0e0e0;
+    border-radius: 0;
 }
 
 .sum-display {
@@ -173,7 +178,7 @@ body {
     background: linear-gradient(135deg, #ffb7ce 0%, #ff9bb5 100%);
     color: var(--accent-text);
     border: none;
-    border-radius: 6px;
+    border-radius: 12px;
     padding: 10px 20px;
     font-size: 14px;
     font-weight: 600;
@@ -196,7 +201,7 @@ body {
 .ledger-search {
     padding: 10px 15px 10px 35px;
     border: 1px solid #ddd;
-    border-radius: 6px;
+    border-radius: 12px;
     font-size: 14px;
     width: 200px;
     transition: border-color 0.2s, box-shadow 0.2s;
@@ -215,7 +220,7 @@ body {
 .year-select, .month-select {
     padding: 8px 12px;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: 10px;
     font-size: 14px;
 }
 
@@ -248,7 +253,7 @@ body {
 .allocation-section {
     background: #f9f9f9;
     padding: 20px;
-    border-radius: 8px;
+    border-radius: 16px;
     border: 1px solid #ddd;
     margin-bottom: 30px;
 }
@@ -266,7 +271,7 @@ body {
 .chart-box {
     background: #f9f9f9;
     padding: 20px;
-    border-radius: 8px;
+    border-radius: 16px;
     border: 1px solid #ddd;
 }
 
@@ -278,7 +283,7 @@ body {
 .payment-section {
     background: #f9f9f9;
     padding: 20px;
-    border-radius: 8px;
+    border-radius: 16px;
     border: 1px solid #ddd;
 }
 
@@ -291,6 +296,8 @@ body {
     justify-content: space-between;
     padding: 10px;
     border-bottom: 1px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 4px;
 }
 
 .payment-item:last-child {
@@ -300,7 +307,7 @@ body {
 .cash-flow-section {
     background: #f9f9f9;
     padding: 20px;
-    border-radius: 8px;
+    border-radius: 16px;
     border: 1px solid #ddd;
     margin-bottom: 30px;
 }
@@ -318,7 +325,7 @@ body {
 .budget-section {
     background: #f9f9f9;
     padding: 20px;
-    border-radius: 8px;
+    border-radius: 16px;
     border: 1px solid #ddd;
     margin-bottom: 30px;
 }
@@ -337,7 +344,7 @@ body {
 .budget-tiles .tile {
     background-color: #e0e0e0;
     padding: 20px;
-    border-radius: 8px;
+    border-radius: 16px;
     color: #333;
     text-align: center;
 }
@@ -359,7 +366,7 @@ body {
     max-height: 400px;
     position: relative;
     background: white;
-    border-radius: 4px;
+    border-radius: 12px;
 }
 
 #budget-table {
@@ -374,12 +381,22 @@ body {
     position: sticky;
     top: 0;
     z-index: 10;
+    border-radius: 12px 12px 0 0;
 }
 
 #budget-table th {
     padding: 12px;
     text-align: left;
     font-weight: 700;
+    border-radius: 0;
+}
+
+#budget-table th:first-child {
+    border-radius: 12px 0 0 0;
+}
+
+#budget-table th:last-child {
+    border-radius: 0 12px 0 0;
 }
 
 #budget-table td {
@@ -391,6 +408,14 @@ body {
     background-color: #f5f5f5;
 }
 
+#budget-table tbody tr:last-child td:first-child {
+    border-radius: 0 0 0 12px;
+}
+
+#budget-table tbody tr:last-child td:last-child {
+    border-radius: 0 0 12px 0;
+}
+
 #budget-table tbody tr:last-child td {
     border-bottom: none;
 }
@@ -400,7 +425,7 @@ body {
     width: 100%;
     padding: 6px 8px;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: 8px;
     font-size: 14px;
     font-family: inherit;
 }
@@ -416,7 +441,7 @@ body {
     color: var(--accent-text);
     padding: 10px 20px;
     border: none;
-    border-radius: 4px;
+    border-radius: 12px;
     cursor: pointer;
     font-size: 14px;
     font-weight: 600;
@@ -436,7 +461,7 @@ body {
     background: linear-gradient(135deg, #ffb7ce 0%, #ff9bb5 100%);
     color: var(--accent-text);
     border: none;
-    border-radius: 5px;
+    border-radius: 12px;
     padding: 12px 20px;
     font-size: 16px;
     font-weight: bold;
@@ -475,7 +500,7 @@ body {
     background-color: #4CAF50;
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 18px;
     width: 32px;
@@ -501,11 +526,15 @@ body {
     max-height: calc(100vh - 300px);
     overflow-y: auto;
     position: relative;
+    border-radius: 12px;
+    background: white;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
+    border-radius: 12px;
+    overflow: hidden;
 }
 
 thead {
@@ -514,12 +543,21 @@ thead {
     position: sticky;
     top: 0;
     z-index: 10;
+    border-radius: 12px 12px 0 0;
 }
 
 th, td {
     padding: 10px 12px;
     text-align: left;
     border-bottom: 1px solid #ddd;
+}
+
+th:first-child {
+    border-radius: 12px 0 0 0;
+}
+
+th:last-child {
+    border-radius: 0 12px 0 0;
 }
 
 thead th {
@@ -570,7 +608,7 @@ th.sortable:hover {
 .filter-icon-btn.active {
     opacity: 1;
     background-color: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
+    border-radius: 6px;
 }
 
 .filter-icon-btn.has-filter {
@@ -583,7 +621,7 @@ th.sortable:hover {
     position: fixed;
     background: white;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     min-width: 150px;
     max-width: 250px;
@@ -600,6 +638,16 @@ th.sortable:hover {
     color: #333;
     transition: background-color 0.2s;
     border-bottom: 1px solid #f0f0f0;
+    border-radius: 0;
+}
+
+.filter-option:first-child {
+    border-radius: 12px 12px 0 0;
+}
+
+.filter-option:last-child {
+    border-bottom: none;
+    border-radius: 0 0 12px 12px;
 }
 
 .filter-option:last-child {
@@ -660,7 +708,7 @@ td:last-child {
     justify-content: center;
     line-height: 1;
     transition: all 0.2s;
-    border-radius: 4px;
+    border-radius: 8px;
 }
 
 .cancel-new-row-btn:hover {
@@ -674,6 +722,14 @@ td:last-child {
 
 tbody tr:hover {
     background-color: #f5f5f5;
+}
+
+tbody tr:last-child td:first-child {
+    border-radius: 0 0 0 12px;
+}
+
+tbody tr:last-child td:last-child {
+    border-radius: 0 0 12px 0;
 }
 
 /* Inline editing styles */
@@ -705,7 +761,7 @@ td.editable-cell.amount-income {
     width: 100%;
     padding: 8px;
     border: 2px solid #2196F3;
-    border-radius: 4px;
+    border-radius: 8px;
     font-size: 14px;
     font-family: inherit;
     background-color: white;
@@ -739,7 +795,7 @@ td.note-cell.editable-cell {
     height: 28px;
     padding: 0;
     border: 1px solid #ccc;
-    border-radius: 4px;
+    border-radius: 8px;
     background: transparent;
     box-sizing: border-box;
     position: relative;
@@ -762,7 +818,7 @@ td.note-cell.editable-cell {
     padding: 12px 16px;
     background-color: #333;
     color: #ffc107;
-    border-radius: 6px;
+    border-radius: 12px;
     font-size: 14px;
     white-space: pre-wrap;
     max-width: 900px;
@@ -791,7 +847,7 @@ tbody tr.new-row select {
     width: 100%;
     padding: 6px;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: 8px;
     font-size: 14px;
     font-family: inherit;
     box-sizing: border-box;
@@ -807,7 +863,7 @@ tbody tr.new-row .note-input {
     width: 100%;
     padding: 6px;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: 8px;
     font-size: 14px;
     font-family: inherit;
     resize: vertical;
@@ -832,7 +888,7 @@ tbody tr.new-row .note-input:focus {
     color: white;
     border: none;
     padding: 5px 10px;
-    border-radius: 4px;
+    border-radius: 8px;
     cursor: pointer;
     margin-right: 5px;
 }
@@ -846,7 +902,7 @@ tbody tr.new-row .note-input:focus {
     color: #cc0000;
     border: none;
     padding: 5px 10px;
-    border-radius: 4px;
+    border-radius: 8px;
     cursor: pointer;
 }
 
@@ -872,14 +928,14 @@ tbody tr.new-row .note-input:focus {
     flex: 1;
     padding: 10px;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: 12px;
     font-size: 14px;
 }
 
 .data-list {
     list-style: none;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: 12px;
     overflow: hidden;
 }
 
@@ -890,6 +946,16 @@ tbody tr.new-row .note-input:focus {
     justify-content: space-between;
     align-items: center;
     gap: 10px;
+    border-radius: 0;
+}
+
+.data-list li:first-child {
+    border-radius: 12px 12px 0 0;
+}
+
+.data-list li:last-child {
+    border-bottom: none;
+    border-radius: 0 0 12px 12px;
 }
 
 .data-list li.editing {
@@ -918,7 +984,7 @@ tbody tr.new-row .note-input:focus {
 
 .editable-name {
     padding: 4px 8px;
-    border-radius: 4px;
+    border-radius: 8px;
     transition: background-color 0.2s;
 }
 
@@ -946,7 +1012,7 @@ tbody tr.new-row .note-input:focus {
     background-color: white;
     margin: 2% auto;
     padding: 30px;
-    border-radius: 8px;
+    border-radius: 20px;
     width: 90%;
     max-width: 500px;
     max-height: 90vh;
@@ -988,7 +1054,7 @@ tbody tr.new-row .note-input:focus {
     width: 100%;
     padding: 10px;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: 12px;
     font-size: 14px;
     font-family: inherit;
     resize: vertical;
@@ -1010,7 +1076,7 @@ tbody tr.new-row .note-input:focus {
     color: white;
     padding: 10px 20px;
     border: none;
-    border-radius: 4px;
+    border-radius: 12px;
     cursor: pointer;
     font-size: 14px;
 }
@@ -1024,7 +1090,7 @@ tbody tr.new-row .note-input:focus {
     color: white;
     padding: 10px 20px;
     border: none;
-    border-radius: 4px;
+    border-radius: 12px;
     cursor: pointer;
     font-size: 14px;
 }
@@ -1040,6 +1106,7 @@ tbody tr.new-row .note-input:focus {
     text-align: center;
     border-top: 1px solid #e0e0e0;
     margin-top: 20px;
+    border-radius: 0 0 20px 20px;
 }
 
 .app-footer p {

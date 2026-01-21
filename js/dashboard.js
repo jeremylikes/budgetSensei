@@ -241,6 +241,12 @@ const Dashboard = {
             plannedInput.dataset.year = year;
             plannedInput.dataset.month = month;
             
+            // Store original value when input is focused
+            let originalValue = plannedInput.value;
+            plannedInput.addEventListener('focus', (e) => {
+                originalValue = e.target.value;
+            });
+            
             // Format on blur (save) - use setTimeout to allow focus to move to next input
             plannedInput.addEventListener('blur', async (e) => {
                 // Use setTimeout to allow the click event on the next input to complete first
@@ -254,16 +260,24 @@ const Dashboard = {
                     // Only save/refresh if we're not moving to another input
                     // This prevents the table from being rebuilt while trying to focus the next input
                     if (!isMovingToAnotherInput) {
+                        const currentValue = e.target.value.trim();
+                        // Save the value (even if empty - this will delete the budget entry)
+                        // The saveBudgetAmount function handles empty values by deleting the entry
                         await this.saveBudgetAmount(e.target);
                     }
                     // If moving to another input, the save will happen when that input blurs
                 }, 150);
             });
             
-            // Save on Enter key
+            // Handle Enter and Escape keys
             plannedInput.addEventListener('keydown', async (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
+                    e.target.blur();
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    // Clear the entry and exit edit mode
+                    e.target.value = '';
                     e.target.blur();
                 }
             });
