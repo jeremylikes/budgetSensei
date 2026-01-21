@@ -3,8 +3,8 @@
 const LedgerFiltering = {
     filters: {
         date: null,
-        category: null,
-        method: null
+        category: [], // Array for multiple selections
+        method: []    // Array for multiple selections
     },
     searchTerm: '',
 
@@ -160,19 +160,56 @@ const LedgerFiltering = {
                 displayValue = Utils.formatDate(value);
             }
             
-            const textSpan = document.createElement('span');
-            textSpan.textContent = displayValue;
-            option.appendChild(textSpan);
-            option.dataset.value = value;
-            
-            // Highlight if this value is currently filtered
-            if (this.filters[field] === value) {
-                option.classList.add('selected');
+            // For category and method, use checkboxes for multi-select
+            if (field === 'category' || field === 'method') {
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'filter-checkbox';
+                checkbox.value = value;
+                checkbox.checked = this.filters[field].includes(value);
+                
+                const textSpan = document.createElement('span');
+                textSpan.textContent = displayValue;
+                textSpan.style.marginLeft = '8px';
+                
+                option.appendChild(checkbox);
+                option.appendChild(textSpan);
+                option.dataset.value = value;
+                
+                // Highlight if checked
+                if (checkbox.checked) {
+                    option.classList.add('selected');
+                }
+                
+                // Handle checkbox change
+                checkbox.addEventListener('change', (e) => {
+                    e.stopPropagation();
+                    this.toggleFilterValue(field, value);
+                });
+                
+                // Also allow clicking the option to toggle
+                option.addEventListener('click', (e) => {
+                    if (e.target !== checkbox) {
+                        checkbox.checked = !checkbox.checked;
+                        this.toggleFilterValue(field, value);
+                    }
+                });
+            } else {
+                // Date filter remains single-select
+                const textSpan = document.createElement('span');
+                textSpan.textContent = displayValue;
+                option.appendChild(textSpan);
+                option.dataset.value = value;
+                
+                // Highlight if this value is currently filtered
+                if (this.filters[field] === value) {
+                    option.classList.add('selected');
+                }
+                
+                option.addEventListener('click', () => {
+                    this.applyFilter(field, value);
+                });
             }
-            
-            option.addEventListener('click', () => {
-                this.applyFilter(field, value);
-            });
             
             dropdown.appendChild(option);
         });
@@ -187,6 +224,7 @@ const LedgerFiltering = {
     },
 
     applyFilter(field, value) {
+        // Date filter remains single-select
         this.filters[field] = value;
         this.updateFilterIcon(field);
         
@@ -201,10 +239,64 @@ const LedgerFiltering = {
             window.Ledger.update();
         }
     },
+    
+    toggleFilterValue(field, value) {
+        // Only for category and method (multi-select fields)
+        if (field !== 'category' && field !== 'method') {
+            return;
+        }
+        
+        const index = this.filters[field].indexOf(value);
+        if (index > -1) {
+            // Remove from array
+            this.filters[field].splice(index, 1);
+        } else {
+            // Add to array
+            this.filters[field].push(value);
+        }
+        
+        // Update UI
+        this.updateFilterIcon(field);
+        this.updateDropdownCheckboxes(field);
+        
+        // Trigger update
+        if (window.Ledger) {
+            window.Ledger.update();
+        }
+    },
+    
+    updateDropdownCheckboxes(field) {
+        const dropdown = document.querySelector(`.filter-dropdown[data-field="${field}"]`);
+        if (!dropdown) return;
+        
+        dropdown.querySelectorAll('.filter-checkbox').forEach(checkbox => {
+            const value = checkbox.value;
+            checkbox.checked = this.filters[field].includes(value);
+            
+            const option = checkbox.closest('.filter-option');
+            if (option) {
+                if (checkbox.checked) {
+                    option.classList.add('selected');
+                } else {
+                    option.classList.remove('selected');
+                }
+            }
+        });
+    },
 
     clearFilter(field) {
-        this.filters[field] = null;
+        // Clear filter - use empty array for multi-select fields
+        if (field === 'category' || field === 'method') {
+            this.filters[field] = [];
+        } else {
+            this.filters[field] = null;
+        }
         this.updateFilterIcon(field);
+        
+        // Update checkboxes in dropdown if it's open
+        if (field === 'category' || field === 'method') {
+            this.updateDropdownCheckboxes(field);
+        }
         
         // Close dropdown
         const dropdown = document.querySelector(`.filter-dropdown[data-field="${field}"]`);
@@ -222,10 +314,26 @@ const LedgerFiltering = {
         const button = document.querySelector(`.filter-icon-btn[data-field="${field}"]`);
         if (!button) return;
 
-        if (this.filters[field]) {
+        // Check if filter is active
+        let hasFilter = false;
+        if (field === 'category' || field === 'method') {
+            hasFilter = this.filters[field].length > 0;
+        } else {
+            hasFilter = this.filters[field] !== null;
+        }
+
+        if (hasFilter) {
             button.classList.add('has-filter');
+            // Update title to show count for multi-select
+            if (field === 'category' || field === 'method') {
+                const count = this.filters[field].length;
+                button.title = `Filter by ${field} (${count} selected)`;
+            } else {
+                button.title = `Filter by ${field}`;
+            }
         } else {
             button.classList.remove('has-filter');
+            button.title = `Filter by ${field}`;
         }
     },
 
@@ -237,14 +345,14 @@ const LedgerFiltering = {
             filtered = filtered.filter(t => t.date === this.filters.date);
         }
 
-        // Apply category filter
-        if (this.filters.category) {
-            filtered = filtered.filter(t => t.category === this.filters.category);
+        // Apply category filter (multi-select)
+        if (this.filters.category && this.filters.category.length > 0) {
+            filtered = filtered.filter(t => this.filters.category.includes(t.category));
         }
 
-        // Apply method filter
-        if (this.filters.method) {
-            filtered = filtered.filter(t => t.method === this.filters.method);
+        // Apply method filter (multi-select)
+        if (this.filters.method && this.filters.method.length > 0) {
+            filtered = filtered.filter(t => this.filters.method.includes(t.method));
         }
 
         // Apply search filter
@@ -299,8 +407,8 @@ const LedgerFiltering = {
 
     clearAllFilters() {
         this.filters.date = null;
-        this.filters.category = null;
-        this.filters.method = null;
+        this.filters.category = [];
+        this.filters.method = [];
         this.searchTerm = '';
         
         // Clear search input
@@ -309,12 +417,26 @@ const LedgerFiltering = {
             searchInput.value = '';
         }
         
+        // Update all checkboxes
+        document.querySelectorAll('.filter-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+            const option = checkbox.closest('.filter-option');
+            if (option) {
+                option.classList.remove('selected');
+            }
+        });
+        
         document.querySelectorAll('.filter-icon-btn').forEach(btn => {
             btn.classList.remove('has-filter', 'active');
         });
         document.querySelectorAll('.filter-dropdown').forEach(dd => {
             dd.style.display = 'none';
         });
+        
+        // Trigger update
+        if (window.Ledger) {
+            window.Ledger.update();
+        }
     }
 };
 

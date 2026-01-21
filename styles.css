@@ -670,6 +670,26 @@ th.sortable:hover {
     font-style: italic;
 }
 
+/* Filter checkbox styling for multi-select filters */
+.filter-checkbox {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    margin: 0;
+    margin-right: 8px;
+    accent-color: #ffb7ce;
+    flex-shrink: 0;
+}
+
+.filter-option {
+    display: flex;
+    align-items: center;
+}
+
+.filter-option span {
+    flex: 1;
+}
+
 .filter-separator {
     height: 1px;
     background-color: #ddd;
