@@ -343,6 +343,18 @@ const Dashboard = {
         if (remainingTotalEl) {
             remainingTotalEl.textContent = Utils.formatCurrency(totalRemaining);
         }
+        
+        // Tint the Remaining card based on value - use direct inline style with stronger colors
+        const remainingTile = remainingTotalEl.closest('.tile');
+        if (remainingTile) {
+            if (totalRemaining < 0) {
+                // Negative - red background (stronger red)
+                remainingTile.style.backgroundColor = '#ffcdd2';
+            } else {
+                // Positive or zero - green background (stronger green)
+                remainingTile.style.backgroundColor = '#c8e6c9';
+            }
+        }
     },
 
     async saveBudgetAmount(input) {
