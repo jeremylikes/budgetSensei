@@ -32,9 +32,15 @@ Click **"Add Environment Variable"** for each of these:
 3. **RESEND_FROM_EMAIL**
    - **Key:** `RESEND_FROM_EMAIL`
    - **Value:** 
-     - **For testing:** `onboarding@resend.dev` (no verification needed)
-     - **For production:** Your verified domain email (e.g., `noreply@yourdomain.com`)
-   - **Note:** For production, you must verify your domain in Resend first
+     - **Recommended:** `onboarding@resend.dev` (works for both testing AND production - no verification needed!)
+     - **Alternative:** Your own verified domain email (e.g., `noreply@yourdomain.com`)
+   - **Important Notes:**
+     - `onboarding@resend.dev` is Resend's verified domain - you can use it for production! No domain verification needed.
+     - You **cannot** use Render's default domain (e.g., `your-app.onrender.com`) because you don't own it and can't add DNS records
+     - If you want to use your own domain, you must:
+       1. Own a custom domain (e.g., `yourdomain.com`)
+       2. Verify it in Resend (add DNS records to your domain registrar)
+       3. Then use any email from that domain (e.g., `noreply@yourdomain.com`)
 
 4. **BASE_URL**
    - **Key:** `BASE_URL`

@@ -12,11 +12,15 @@ This guide will walk you through setting up Resend as your email service provide
 
 ## Step 2: Set Up Your Environment Variables
 
+**Important:** Resend itself doesn't have environment variables - you just get the API key from Resend. The environment variables are set in your application (either locally or in your deployment platform).
+
+### For Local Development:
+
 1. Create a `.env` file in the root of your project (if it doesn't exist)
 2. Add the following variables:
 
 ```env
-# Resend API Key (required)
+# Resend API Key (required) - Get this from Resend dashboard (Step 1)
 RESEND_API_KEY=re_your_actual_api_key_here
 
 # From Email Address (required)
@@ -27,6 +31,10 @@ RESEND_FROM_EMAIL=onboarding@resend.dev
 # Application Base URL (for email links)
 BASE_URL=http://localhost:3000
 ```
+
+### For Render Deployment:
+
+**Don't use a `.env` file for Render!** Instead, set environment variables in Render's dashboard. See **[RENDER_ENV_SETUP.md](./RENDER_ENV_SETUP.md)** for detailed instructions on how to add environment variables in Render.
 
 ## Step 3: Verify Your Domain (Production Only)
 
