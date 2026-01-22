@@ -78,6 +78,9 @@ const Dashboard = {
                 responsive: true,
                 maintainAspectRatio: true,
                 plugins: {
+                    legend: {
+                        display: false
+                    },
                     tooltip: {
                         callbacks: {
                             label: function(context) {
@@ -120,6 +123,9 @@ const Dashboard = {
                 responsive: true,
                 maintainAspectRatio: true,
                 plugins: {
+                    legend: {
+                        display: false
+                    },
                     tooltip: {
                         callbacks: {
                             label: function(context) {
