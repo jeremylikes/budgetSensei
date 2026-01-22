@@ -47,6 +47,7 @@ const Dashboard = {
         this.updateBreakdown(income, expenses, totalIncome, totalExpenses);
         this.updatePaymentMethods(filtered);
         this.updateBudget(filtered, year, month);
+        this.updateBudgetChart(year);
         this.updateCashFlowChart(year);
     },
 
@@ -498,11 +499,184 @@ const Dashboard = {
             // Refresh budget display to update difference
             const filtered = Utils.getTransactionsForMonth(DataStore.transactions, year, month);
             this.updateBudget(filtered, year, month);
+            // Refresh budget chart
+            const yearSelect = document.getElementById('dashboard-year');
+            if (yearSelect) {
+                this.updateBudgetChart(parseInt(yearSelect.value));
+            }
         } catch (error) {
             console.error('Error saving budget:', error);
             alert('Failed to save budget amount. Please try again.');
             input.focus();
         }
+    },
+
+    async updateBudgetChart(year) {
+        // Get all transactions for the year (using same date parsing as getTransactionsForMonth)
+        const allTransactions = DataStore.transactions.filter(t => {
+            // Parse date string directly to avoid timezone issues
+            const dateParts = t.date.split('-');
+            if (dateParts.length !== 3) {
+                // Fallback to Date object if format is unexpected
+                const tDate = new Date(t.date);
+                return tDate.getFullYear() === year;
+            }
+            const transactionYear = parseInt(dateParts[0], 10);
+            return transactionYear === year;
+        });
+
+        // Get expense categories (same as budget table uses)
+        const expenseCategories = [
+            ...(DataStore.expenses || []).map(c => typeof c === 'string' ? c : (c.name || c))
+        ];
+
+        // Calculate actual spending per month (expenses only, matching budget table logic)
+        const monthlyActual = {};
+        for (let month = 1; month <= 12; month++) {
+            monthlyActual[month] = 0;
+        }
+
+        allTransactions.forEach(t => {
+            if (t.type === 'Expense' && expenseCategories.includes(t.category)) {
+                // Parse date string directly to avoid timezone issues (same as getTransactionsForMonth)
+                const dateParts = t.date.split('-');
+                let transactionMonth;
+                if (dateParts.length !== 3) {
+                    // Fallback to Date object if format is unexpected
+                    const tDate = new Date(t.date);
+                    transactionMonth = tDate.getMonth() + 1;
+                } else {
+                    transactionMonth = parseInt(dateParts[1], 10);
+                }
+                monthlyActual[transactionMonth] = (monthlyActual[transactionMonth] || 0) + t.amount;
+            }
+        });
+
+        // Get budget data for all months of the year
+        const monthlyPlanned = {};
+        for (let month = 1; month <= 12; month++) {
+            monthlyPlanned[month] = 0;
+        }
+
+        // Fetch budget data for all months
+        const budgetPromises = [];
+        for (let month = 1; month <= 12; month++) {
+            budgetPromises.push(
+                fetch(`${API.BASE}/budgets/${year}/${month}`)
+                    .then(res => res.ok ? res.json() : {})
+                    .catch(() => ({}))
+            );
+        }
+
+        const budgetResults = await Promise.all(budgetPromises);
+        budgetResults.forEach((budgetData, index) => {
+            const month = index + 1;
+            // Sum planned amounts only for expense categories (matching budget table logic)
+            expenseCategories.forEach(category => {
+                if (budgetData[category] !== undefined) {
+                    monthlyPlanned[month] += budgetData[category];
+                }
+            });
+        });
+
+        // Prepare chart data
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const plannedValues = [];
+        const actualValues = [];
+
+        for (let month = 1; month <= 12; month++) {
+            plannedValues.push(monthlyPlanned[month] || 0);
+            actualValues.push(monthlyActual[month] || 0);
+        }
+
+        // Destroy existing chart if it exists
+        const ctx = document.getElementById('budget-chart');
+        if (!ctx) return;
+
+        if (window.budgetChart) {
+            window.budgetChart.destroy();
+        }
+
+        window.budgetChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: monthNames,
+                datasets: [
+                    {
+                        label: 'Planned',
+                        data: plannedValues,
+                        backgroundColor: '#ffb7ce',
+                        borderColor: '#ff9bb5',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Actual',
+                        data: actualValues,
+                        backgroundColor: '#87CEEB',
+                        borderColor: '#6BB6D6',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: {
+                                family: "'Nunito', sans-serif",
+                                size: 12,
+                                weight: 600
+                            },
+                            padding: 15,
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        enabled: true,
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ${Utils.formatCurrency(context.parsed.y)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return Utils.formatCurrency(value);
+                            },
+                            font: {
+                                family: "'Nunito', sans-serif",
+                                size: 11
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            font: {
+                                family: "'Nunito', sans-serif",
+                                size: 11,
+                                weight: 600
+                            }
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
     },
 
     updateCashFlowChart(year) {
