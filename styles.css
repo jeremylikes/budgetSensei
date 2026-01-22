@@ -258,10 +258,10 @@ body {
 .tile .amount.has-tooltip::after {
     content: attr(data-tooltip);
     position: absolute;
-    bottom: 100%;
+    top: 100%;
     left: 50%;
     transform: translateX(-50%);
-    margin-bottom: 8px;
+    margin-top: 8px;
     padding: 8px 12px;
     background-color: #333;
     color: white;
@@ -285,12 +285,12 @@ body {
 .tile .amount.has-tooltip::before {
     content: '';
     position: absolute;
-    bottom: 100%;
+    top: 100%;
     left: 50%;
     transform: translateX(-50%);
-    margin-bottom: 2px;
+    margin-top: 2px;
     border: 5px solid transparent;
-    border-top-color: #333;
+    border-bottom-color: #333;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s ease;
