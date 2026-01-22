@@ -43,10 +43,81 @@ const Dashboard = {
         document.getElementById('total-expenses').textContent = Utils.formatCurrency(totalExpenses);
         document.getElementById('saving-percent').textContent = savingPercent.toFixed(1) + '%';
 
+        // Update tooltips with percentage breakdowns
+        this.updateTooltips(income, expenses, totalIncome, totalExpenses);
+
         this.updateCharts(income, expenses);
         this.updatePaymentMethods(filtered);
         this.updateBudget(filtered, year, month);
         this.updateCashFlowChart(year);
+    },
+
+    updateTooltips(income, expenses, totalIncome, totalExpenses) {
+        // Calculate income breakdown
+        const incomeData = {};
+        income.forEach(t => {
+            incomeData[t.category] = (incomeData[t.category] || 0) + t.amount;
+        });
+        
+        // Calculate expense breakdown
+        const expenseData = {};
+        expenses.forEach(t => {
+            expenseData[t.category] = (expenseData[t.category] || 0) + t.amount;
+        });
+        
+        // Create income tooltip content (sorted largest to smallest, limited to 20 items)
+        const incomeItems = Object.entries(incomeData)
+            .map(([category, amount]) => ({
+                category,
+                amount,
+                percentage: totalIncome > 0 ? (amount / totalIncome) * 100 : 0
+            }))
+            .sort((a, b) => b.amount - a.amount);
+        
+        const incomeBreakdown = incomeItems
+            .slice(0, 20)
+            .map(item => `${item.category} ${Utils.formatCurrency(item.amount)} ${item.percentage.toFixed(1)}%`)
+            .concat(incomeItems.length > 20 ? ['...'] : [])
+            .join('\n');
+        
+        // Create expense tooltip content (sorted largest to smallest, limited to 20 items)
+        const expenseItems = Object.entries(expenseData)
+            .map(([category, amount]) => ({
+                category,
+                amount,
+                percentage: totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0
+            }))
+            .sort((a, b) => b.amount - a.amount);
+        
+        const expenseBreakdown = expenseItems
+            .slice(0, 20)
+            .map(item => `${item.category} ${Utils.formatCurrency(item.amount)} ${item.percentage.toFixed(1)}%`)
+            .concat(expenseItems.length > 20 ? ['...'] : [])
+            .join('\n');
+        
+        // Update tooltips
+        const totalIncomeEl = document.getElementById('total-income');
+        const totalExpensesEl = document.getElementById('total-expenses');
+        
+        if (totalIncomeEl) {
+            if (incomeBreakdown) {
+                totalIncomeEl.setAttribute('data-tooltip', incomeBreakdown);
+                totalIncomeEl.classList.add('has-tooltip');
+            } else {
+                totalIncomeEl.removeAttribute('data-tooltip');
+                totalIncomeEl.classList.remove('has-tooltip');
+            }
+        }
+        
+        if (totalExpensesEl) {
+            if (expenseBreakdown) {
+                totalExpensesEl.setAttribute('data-tooltip', expenseBreakdown);
+                totalExpensesEl.classList.add('has-tooltip');
+            } else {
+                totalExpensesEl.removeAttribute('data-tooltip');
+                totalExpensesEl.classList.remove('has-tooltip');
+            }
+        }
     },
 
     updateCharts(income, expenses) {
