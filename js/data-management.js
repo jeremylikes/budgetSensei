@@ -294,7 +294,14 @@ const DataManagement = {
             iconBtn.className = 'category-icon-btn';
             // Get icon from DataStore if available
             const categoryData = DataStore.income.find(c => (c.name || c) === catName);
-            const currentIcon = (categoryData && categoryData.icon) ? categoryData.icon : '🎨';
+            // Get icon - handle both object format and string format
+            let currentIcon = '🎨';
+            if (categoryData && typeof categoryData === 'object' && categoryData.icon) {
+                const iconValue = categoryData.icon;
+                if (iconValue && typeof iconValue === 'string' && iconValue.length > 0) {
+                    currentIcon = iconValue;
+                }
+            }
             iconBtn.textContent = currentIcon;
             iconBtn.title = currentIcon === '🎨' ? 'Icon' : `Icon: ${currentIcon}`;
             iconBtn.onclick = (e) => {
@@ -302,8 +309,8 @@ const DataManagement = {
                 this.showEmojiPicker(iconBtn, catName, 'income', originalIndex, iconContainer);
             };
             
-            // Clear button (only show if icon is set)
-            if (currentIcon !== '🎨') {
+            // Clear button (only show if icon is set and not the default)
+            if (currentIcon && currentIcon !== '🎨') {
                 const clearBtn = document.createElement('button');
                 clearBtn.className = 'icon-clear-btn';
                 clearBtn.innerHTML = '×';
@@ -420,7 +427,14 @@ const DataManagement = {
             iconBtn.className = 'category-icon-btn';
             // Get icon from DataStore if available
             const categoryData = DataStore.expenses.find(c => (c.name || c) === catName);
-            const currentIcon = (categoryData && categoryData.icon) ? categoryData.icon : '🎨';
+            // Get icon - handle both object format and string format
+            let currentIcon = '🎨';
+            if (categoryData && typeof categoryData === 'object' && categoryData.icon) {
+                const iconValue = categoryData.icon;
+                if (iconValue && typeof iconValue === 'string' && iconValue.length > 0) {
+                    currentIcon = iconValue;
+                }
+            }
             iconBtn.textContent = currentIcon;
             iconBtn.title = currentIcon === '🎨' ? 'Icon' : `Icon: ${currentIcon}`;
             iconBtn.onclick = (e) => {
@@ -428,8 +442,8 @@ const DataManagement = {
                 this.showEmojiPicker(iconBtn, catName, 'expenses', originalIndex, iconContainer);
             };
             
-            // Clear button (only show if icon is set)
-            if (currentIcon !== '🎨') {
+            // Clear button (only show if icon is set and not the default)
+            if (currentIcon && currentIcon !== '🎨') {
                 const clearBtn = document.createElement('button');
                 clearBtn.className = 'icon-clear-btn';
                 clearBtn.innerHTML = '×';
@@ -541,7 +555,15 @@ const DataManagement = {
                 const mName = typeof m === 'string' ? m : (m.name || m);
                 return mName === methodName;
             });
-            const currentIcon = (methodData && methodData.icon) ? methodData.icon : '🎨';
+            // Get icon - handle both object format and string format
+            let currentIcon = '🎨';
+            if (methodData && typeof methodData === 'object' && methodData.icon) {
+                const iconValue = methodData.icon;
+                if (iconValue && typeof iconValue === 'string' && iconValue.length > 0) {
+                    currentIcon = iconValue;
+                }
+            }
+            
             iconBtn.textContent = currentIcon;
             iconBtn.title = currentIcon === '🎨' ? 'Icon' : `Icon: ${currentIcon}`;
             iconBtn.onclick = (e) => {
@@ -549,8 +571,10 @@ const DataManagement = {
                 this.showEmojiPicker(iconBtn, methodName, 'methods', originalIndex, iconContainer);
             };
             
-            // Clear button (only show if icon is set)
-            if (currentIcon !== '🎨') {
+            iconContainer.appendChild(iconBtn);
+            
+            // Clear button (only show if icon is set and not the default)
+            if (currentIcon && currentIcon !== '🎨') {
                 const clearBtn = document.createElement('button');
                 clearBtn.className = 'icon-clear-btn';
                 clearBtn.innerHTML = '×';
@@ -561,8 +585,6 @@ const DataManagement = {
                 };
                 iconContainer.appendChild(clearBtn);
             }
-            
-            iconContainer.appendChild(iconBtn);
             
             // Editable name span
             const nameSpan = document.createElement('span');
@@ -592,7 +614,7 @@ const DataManagement = {
             actionButtons.appendChild(deleteBtn);
             
             li.appendChild(checkbox);
-            li.appendChild(iconBtn);
+            li.appendChild(iconContainer);
             li.appendChild(nameSpan);
             li.appendChild(actionButtons);
             list.appendChild(li);
@@ -1214,17 +1236,12 @@ const DataManagement = {
                 const data = await API.loadData();
                 DataStore.init(data);
                 
-                // Update all views
+                // Update all views (this will recreate the clear buttons automatically)
                 if (categoryType === 'income' || categoryType === 'expenses') {
                     this.updateIncomeList();
                     this.updateExpensesList();
                 } else if (categoryType === 'methods') {
                     this.updateMethodsList();
-                }
-                
-                // Update the clear button visibility
-                if (iconContainer) {
-                    this.updateIconClearButton(iconContainer, iconBtn, emoji, categoryName, categoryType);
                 }
                 
                 if (window.Dashboard) Dashboard.update();
