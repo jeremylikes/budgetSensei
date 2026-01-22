@@ -1291,7 +1291,8 @@ const DataManagement = {
                 e.stopPropagation();
                 await this.clearIcon(categoryName, categoryType, iconBtn, iconContainer);
             };
-            iconContainer.insertBefore(clearBtn, iconBtn);
+            // Append to container (will appear on top due to absolute positioning)
+            iconContainer.appendChild(clearBtn);
         }
     },
 
