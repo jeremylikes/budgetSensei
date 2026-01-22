@@ -349,15 +349,18 @@ const Dashboard = {
             remainingTotalEl.textContent = Utils.formatCurrency(totalRemaining);
         }
         
-        // Tint the Remaining card based on value - use direct inline style with stronger colors
+        // Tint the Remaining card based on value using CSS classes
         const remainingTile = remainingTotalEl.closest('.tile');
         if (remainingTile) {
+            // Remove any existing state classes
+            remainingTile.classList.remove('remaining-negative', 'remaining-positive');
+            
             if (totalRemaining < 0) {
-                // Negative - red background (stronger red)
-                remainingTile.style.backgroundColor = '#ffcdd2';
+                // Negative - red background
+                remainingTile.classList.add('remaining-negative');
             } else {
-                // Positive or zero - green background (stronger green)
-                remainingTile.style.backgroundColor = '#c8e6c9';
+                // Positive or zero - green background
+                remainingTile.classList.add('remaining-positive');
             }
         }
     },
