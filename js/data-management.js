@@ -286,8 +286,8 @@ const DataManagement = {
             
             // Icon button container
             const iconContainer = document.createElement('div');
-            iconContainer.style.position = 'relative';
-            iconContainer.style.display = 'inline-block';
+            iconContainer.style.display = 'inline-flex';
+            iconContainer.style.alignItems = 'center';
             iconContainer.style.marginRight = '10px';
             
             const iconBtn = document.createElement('button');
@@ -309,7 +309,7 @@ const DataManagement = {
                 this.showEmojiPicker(iconBtn, catName, 'income', originalIndex, iconContainer);
             };
             
-            // Clear button (only show if icon is set and not the default)
+            // Clear button (only show if icon is set and not the default) - add BEFORE icon button
             if (currentIcon && currentIcon !== '🎨') {
                 const clearBtn = document.createElement('button');
                 clearBtn.className = 'icon-clear-btn';
@@ -419,8 +419,8 @@ const DataManagement = {
             
             // Icon button container
             const iconContainer = document.createElement('div');
-            iconContainer.style.position = 'relative';
-            iconContainer.style.display = 'inline-block';
+            iconContainer.style.display = 'inline-flex';
+            iconContainer.style.alignItems = 'center';
             iconContainer.style.marginRight = '10px';
             
             const iconBtn = document.createElement('button');
@@ -442,7 +442,7 @@ const DataManagement = {
                 this.showEmojiPicker(iconBtn, catName, 'expenses', originalIndex, iconContainer);
             };
             
-            // Clear button (only show if icon is set and not the default)
+            // Clear button (only show if icon is set and not the default) - add BEFORE icon button
             if (currentIcon && currentIcon !== '🎨') {
                 const clearBtn = document.createElement('button');
                 clearBtn.className = 'icon-clear-btn';
@@ -544,8 +544,8 @@ const DataManagement = {
             
             // Icon button container
             const iconContainer = document.createElement('div');
-            iconContainer.style.position = 'relative';
-            iconContainer.style.display = 'inline-block';
+            iconContainer.style.display = 'inline-flex';
+            iconContainer.style.alignItems = 'center';
             iconContainer.style.marginRight = '10px';
             
             const iconBtn = document.createElement('button');
@@ -571,9 +571,7 @@ const DataManagement = {
                 this.showEmojiPicker(iconBtn, methodName, 'methods', originalIndex, iconContainer);
             };
             
-            iconContainer.appendChild(iconBtn);
-            
-            // Clear button (only show if icon is set and not the default)
+            // Clear button (only show if icon is set and not the default) - add BEFORE icon button
             if (currentIcon && currentIcon !== '🎨') {
                 const clearBtn = document.createElement('button');
                 clearBtn.className = 'icon-clear-btn';
@@ -585,6 +583,8 @@ const DataManagement = {
                 };
                 iconContainer.appendChild(clearBtn);
             }
+            
+            iconContainer.appendChild(iconBtn);
             
             // Editable name span
             const nameSpan = document.createElement('span');
@@ -1197,10 +1197,52 @@ const DataManagement = {
         `;
         document.head.appendChild(style);
         
-        // Position picker near the icon button
+        // Position picker near the icon button, ensuring it stays within viewport
         const rect = iconBtn.getBoundingClientRect();
+        
+        // Set initial position (will be adjusted after render)
         picker.style.top = `${rect.bottom + 5}px`;
         picker.style.left = `${rect.left}px`;
+        
+        // Add picker to DOM first
+        document.body.appendChild(picker);
+        
+        // Use requestAnimationFrame to ensure picker has rendered and we can measure it
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                const pickerRect = picker.getBoundingClientRect();
+                const viewportHeight = window.innerHeight;
+                const viewportWidth = window.innerWidth;
+                
+                // Default: position below button
+                let top = rect.bottom + 5;
+                let left = rect.left;
+                
+                // Check if picker would be clipped at bottom
+                if (top + pickerRect.height > viewportHeight) {
+                    // Position above button instead
+                    top = rect.top - pickerRect.height - 5;
+                    // If still doesn't fit above, position at bottom of viewport with padding
+                    if (top < 0) {
+                        top = Math.max(10, viewportHeight - pickerRect.height - 10);
+                    }
+                }
+                
+                // Check if picker would be clipped on the right
+                if (left + pickerRect.width > viewportWidth) {
+                    // Align to right edge of viewport with padding
+                    left = viewportWidth - pickerRect.width - 10;
+                }
+                
+                // Check if picker would be clipped on the left
+                if (left < 0) {
+                    left = 10;
+                }
+                
+                picker.style.top = `${top}px`;
+                picker.style.left = `${left}px`;
+            });
+        });
         
         // Handle emoji selection
         picker.addEventListener('emoji-click', async (event) => {
@@ -1260,9 +1302,6 @@ const DataManagement = {
             }
         };
         
-        // Add picker to body
-        document.body.appendChild(picker);
-        
         // Wait for picker to render, then style the search input
         setTimeout(() => {
             // Try to find and style the search input
@@ -1298,7 +1337,7 @@ const DataManagement = {
             existingClear.remove();
         }
         
-        // Add clear button if icon is set (not the default 🎨)
+        // Add clear button if icon is set (not the default 🎨) - insert BEFORE icon button
         if (icon && icon !== '🎨') {
             const clearBtn = document.createElement('button');
             clearBtn.className = 'icon-clear-btn';
@@ -1308,8 +1347,8 @@ const DataManagement = {
                 e.stopPropagation();
                 await this.clearIcon(categoryName, categoryType, iconBtn, iconContainer);
             };
-            // Append to container (will appear on top due to absolute positioning)
-            iconContainer.appendChild(clearBtn);
+            // Insert before icon button so it appears on the left
+            iconContainer.insertBefore(clearBtn, iconBtn);
         }
     },
 
