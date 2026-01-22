@@ -33,6 +33,7 @@ const Transactions = {
         const category = document.getElementById('transaction-category').value;
         const methodValue = document.getElementById('transaction-method').value;
         const method = methodValue || 'Default'; // Default if empty
+        const recurring = 'none'; // Recurring is handled via the inline form, not the modal
         // Automatically determine type from category
         const type = DataStore.getCategoryType(category);
         const amountValue = document.getElementById('transaction-amount').value.trim();
@@ -47,18 +48,18 @@ const Transactions = {
         try {
             let response;
             if (this.editingTransactionId !== null) {
-                // Update existing transaction
+                // Update existing transaction (include recurring)
                 response = await fetch(`${API.BASE}/transactions/${this.editingTransactionId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ date, description, category, method, type, amount, note })
+                    body: JSON.stringify({ date, description, category, method, type, amount, note, recurring })
                 });
             } else {
                 // Add new transaction
                 response = await fetch(`${API.BASE}/transactions`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ date, description, category, method, type, amount, note })
+                    body: JSON.stringify({ date, description, category, method, type, amount, note, recurring })
                 });
             }
             
@@ -75,6 +76,10 @@ const Transactions = {
                 throw new Error(errorMessage);
             }
 
+            // Check if this was a recurring transaction
+            const responseData = await response.json();
+            const recurringCount = responseData._recurringCount || 1;
+            
             const data = await API.loadData();
             DataStore.init(data);
 
@@ -84,6 +89,11 @@ const Transactions = {
                 document.getElementById('transaction-form').reset();
             }
             this.editingTransactionId = null;
+            
+            // Log success message if multiple transactions were created
+            if (recurringCount > 1) {
+                console.log(`Created ${recurringCount} recurring transactions`);
+            }
             
             Dashboard.update();
             Ledger.update();

@@ -25,6 +25,26 @@ const LedgerNewRow = {
         });
         checkboxCell.appendChild(cancelBtn);
         
+        // Recurring button cell (between cancel and description)
+        const recurringCell = document.createElement('td');
+        const recurringBtn = document.createElement('button');
+        recurringBtn.className = 'recurring-btn';
+        recurringBtn.type = 'button';
+        recurringBtn.title = 'Set recurring frequency';
+        recurringBtn.dataset.recurring = 'none'; // Default value
+        // Recycle icon SVG
+        recurringBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+            <path d="M21 3v5h-5"/>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+            <path d="M3 21v-5h5"/>
+        </svg>`;
+        recurringBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            await this.showRecurringModal(recurringBtn, row);
+        });
+        recurringCell.appendChild(recurringBtn);
+        
         // Date cell
         const dateCell = document.createElement('td');
         const dateInput = document.createElement('input');
@@ -47,8 +67,11 @@ const LedgerNewRow = {
             dayToUse = currentDay; // Use current day if same month/year
         }
         
-        const defaultDate = new Date(selectedYear, selectedMonth - 1, dayToUse);
-        dateInput.valueAsDate = defaultDate;
+        // Format as YYYY-MM-DD to avoid timezone issues with valueAsDate
+        const yearStr = String(selectedYear);
+        const monthStr = String(selectedMonth).padStart(2, '0');
+        const dayStr = String(dayToUse).padStart(2, '0');
+        dateInput.value = `${yearStr}-${monthStr}-${dayStr}`;
         
         dateInput.required = true;
         dateInput.dataset.field = 'date';
@@ -173,6 +196,7 @@ const LedgerNewRow = {
         deleteCell.appendChild(saveBtn);
         
         row.appendChild(checkboxCell);
+        row.appendChild(recurringCell);
         row.appendChild(dateCell);
         row.appendChild(descCell);
         row.appendChild(catCell);
@@ -268,6 +292,7 @@ const LedgerNewRow = {
         const amountInput = row.querySelector('input[data-field="amount"]');
         const catSelect = row.querySelector('select[data-field="category"]');
         const methodSelect = row.querySelector('select[data-field="method"]');
+        const recurringBtn = row.querySelector('.recurring-btn');
         const noteInput = row.querySelector('textarea');
         
         if (!dateInput || !descInput || !amountInput || !catSelect /*|| !methodSelect*/) {
@@ -280,6 +305,9 @@ const LedgerNewRow = {
         const description = descInput.value.trim();
         const category = catSelect.value;
         const method = methodSelect.value;
+        // Only send recurring if it's set (not 'none' or null)
+        const recurringBtnValue = recurringBtn ? recurringBtn.dataset.recurring : null;
+        const recurring = (recurringBtnValue && recurringBtnValue !== 'none') ? recurringBtnValue : 'none';
         // Automatically determine type from category
         const type = DataStore.getCategoryType(category);
         let amountValue = amountInput.value.trim();
@@ -303,7 +331,7 @@ const LedgerNewRow = {
             const response = await fetch(`${API.BASE}/transactions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ date, description, category, method, type, amount, note })
+                body: JSON.stringify({ date, description, category, method, type, amount, note, recurring })
             });
             
             if (!response.ok) {
@@ -318,9 +346,27 @@ const LedgerNewRow = {
                 throw new Error(errorMessage);
             }
             
+            // Check if this was a recurring transaction
+            const responseData = await response.json();
+            const recurringCount = responseData._recurringCount || 1;
+            
+            // Clear the recurring button highlight after save (no longer needed)
+            if (recurringBtn) {
+                recurringBtn.dataset.recurring = 'none';
+                this.updateRecurringButtonStyle(recurringBtn, 'none');
+            }
+            
             // Success - reload data and update views
             const data = await API.loadData();
             DataStore.init(data);
+            
+            // Remove the new row
+            row.remove();
+            
+            // Log success message if multiple transactions were created
+            if (recurringCount > 1) {
+                console.log(`Created ${recurringCount} recurring transactions`);
+            }
             
             // Trigger update via Ledger
             if (window.Ledger) {
@@ -352,6 +398,112 @@ const LedgerNewRow = {
             
             // Re-enable save button on error
             if (saveBtn) saveBtn.disabled = false;
+        }
+    },
+
+    async showRecurringModal(recurringBtn, row, transactionId = null) {
+        // Remove any existing modal
+        const existingModal = document.getElementById('recurring-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // Get current recurring value from button dataset (for new rows)
+        const currentRecurring = recurringBtn ? (recurringBtn.dataset.recurring || null) : null;
+
+        // Create modal
+        const modal = document.createElement('div');
+        modal.id = 'recurring-modal';
+        modal.className = 'recurring-modal-overlay';
+        modal.innerHTML = `
+            <div class="recurring-modal-content">
+                <h3>Recurring Frequency</h3>
+                <div class="recurring-options">
+                    <button class="recurring-option ${currentRecurring === 'weekly' ? 'active' : ''}" data-value="weekly">
+                        <span class="option-label">Weekly</span>
+                    </button>
+                    <button class="recurring-option ${currentRecurring === 'bi-weekly' ? 'active' : ''}" data-value="bi-weekly">
+                        <span class="option-label">Bi-weekly</span>
+                    </button>
+                    <button class="recurring-option ${currentRecurring === 'monthly' ? 'active' : ''}" data-value="monthly">
+                        <span class="option-label">Monthly</span>
+                    </button>
+                </div>
+                <div class="recurring-modal-actions">
+                    <button class="recurring-cancel-btn">Cancel</button>
+                    <button class="recurring-save-btn">Save</button>
+                </div>
+            </div>
+        `;
+
+        // Initialize selectedValue with current value if it exists
+        let selectedValue = currentRecurring;
+
+        // Handle option selection
+        modal.querySelectorAll('.recurring-option').forEach(option => {
+            option.addEventListener('click', () => {
+                modal.querySelectorAll('.recurring-option').forEach(opt => opt.classList.remove('active'));
+                option.classList.add('active');
+                selectedValue = option.dataset.value;
+            });
+        });
+
+        // Handle save
+        modal.querySelector('.recurring-save-btn').addEventListener('click', async () => {
+            // Only proceed if a value was selected
+            if (!selectedValue) {
+                modal.remove();
+                return;
+            }
+            
+            // If this is an existing transaction, generate recurring duplicates
+            if (transactionId && window.LedgerBulk) {
+                try {
+                    // Update the transaction with recurring to generate duplicates
+                    // The backend will generate duplicates but not store the recurring field
+                    await window.LedgerBulk.updateTransactionField(transactionId, 'recurring', selectedValue);
+                    
+                    // Refresh the view to show the new transactions
+                    if (window.Ledger) {
+                        await window.Ledger.update();
+                    }
+                } catch (error) {
+                    console.error('Error generating recurring transactions:', error);
+                    alert('Failed to generate recurring transactions. Please try again.');
+                    modal.remove();
+                    return;
+                }
+            } else {
+                // For new rows, store the selected value and highlight the button
+                recurringBtn.dataset.recurring = selectedValue;
+                this.updateRecurringButtonStyle(recurringBtn, selectedValue);
+            }
+            
+            modal.remove();
+        });
+
+        // Handle cancel
+        modal.querySelector('.recurring-cancel-btn').addEventListener('click', () => {
+            modal.remove();
+        });
+
+        // Close on overlay click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+
+        document.body.appendChild(modal);
+    },
+
+    updateRecurringButtonStyle(btn, recurring) {
+        // Only highlight for new rows (not persisted transactions)
+        // Highlight in yellow if a recurring value is set
+        if (recurring && recurring !== 'none') {
+            btn.classList.add('recurring-active');
+        } else {
+            btn.classList.remove('recurring-active');
         }
     }
 };

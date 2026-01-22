@@ -1,7 +1,8 @@
 // Database Migrations
 // Handles database schema migrations
 
-const { getDb, saveDatabase } = require('./database');
+// Use lazy loading to avoid circular dependency
+// getDb and saveDatabase are loaded when needed, not at module load time
 const { ensureColumn, columnExists } = require('./helpers');
 
 // Run database migrations
@@ -27,6 +28,14 @@ async function runMigrations(db) {
             console.log('✓ Migration completed: note column added');
         } else {
             console.log('✓ Migration check completed: note column already exists');
+        }
+        
+        // Migration: Add 'recurring' column to transactions table
+        const recurringAdded = ensureColumn('transactions', 'recurring', 'TEXT', db);
+        if (recurringAdded) {
+            console.log('✓ Migration completed: recurring column added');
+        } else {
+            console.log('✓ Migration check completed: recurring column already exists');
         }
         
         // Migration: Add 'type' column to categories table
@@ -61,6 +70,7 @@ async function runMigrations(db) {
                         
                         db.run(`UPDATE categories SET type = '${categoryType}' WHERE id = ${catId}`);
                     });
+                    const { saveDatabase } = require('./database');
                     saveDatabase();
                     console.log('✓ Migration completed: Set types for existing categories');
                 }
@@ -90,6 +100,7 @@ async function runMigrations(db) {
                     const nullCount = nullCategories[0] && nullCategories[0].values.length > 0 ? nullCategories[0].values[0][0] : 0;
                     if (nullCount > 0) {
                         db.run(`UPDATE categories SET user_id = ${adminUserId} WHERE user_id IS NULL`);
+                        const { saveDatabase } = require('./database');
                         saveDatabase();
                         console.log(`✓ Migration completed: ${nullCount} orphaned categories assigned to admin`);
                     }
@@ -99,6 +110,7 @@ async function runMigrations(db) {
                     const nullCount = nullCategories[0] && nullCategories[0].values.length > 0 ? nullCategories[0].values[0][0] : 0;
                     if (nullCount > 0) {
                         db.run("DELETE FROM categories WHERE user_id IS NULL");
+                        const { saveDatabase } = require('./database');
                         saveDatabase();
                         console.log(`✓ Migration completed: ${nullCount} orphaned categories deleted (no admin user)`);
                     }
@@ -117,6 +129,7 @@ async function runMigrations(db) {
                     const nullCount = nullMethods[0] && nullMethods[0].values.length > 0 ? nullMethods[0].values[0][0] : 0;
                     if (nullCount > 0) {
                         db.run(`UPDATE methods SET user_id = ${adminUserId} WHERE user_id IS NULL`);
+                        const { saveDatabase } = require('./database');
                         saveDatabase();
                         console.log(`✓ Migration completed: ${nullCount} orphaned methods assigned to admin`);
                     }
@@ -126,6 +139,7 @@ async function runMigrations(db) {
                     const nullCount = nullMethods[0] && nullMethods[0].values.length > 0 ? nullMethods[0].values[0][0] : 0;
                     if (nullCount > 0) {
                         db.run("DELETE FROM methods WHERE user_id IS NULL");
+                        const { saveDatabase } = require('./database');
                         saveDatabase();
                         console.log(`✓ Migration completed: ${nullCount} orphaned methods deleted (no admin user)`);
                     }
@@ -151,6 +165,7 @@ async function runMigrations(db) {
                         UNIQUE(category, year, month, user_id)
                     )
                 `);
+                const { saveDatabase } = require('./database');
                 saveDatabase();
                 console.log('✓ Migration completed: budgets table created');
                 
@@ -198,6 +213,7 @@ async function runMigrations(db) {
                         created_at TEXT NOT NULL DEFAULT (datetime('now'))
                     )
                 `);
+                const { saveDatabase } = require('./database');
                 saveDatabase();
                 console.log('✓ Migration completed: users table created');
             } catch (error) {
@@ -242,6 +258,7 @@ async function runMigrations(db) {
                 // Create admin user
                 const passwordHash = await bcrypt.hash('likes5578', 10);
                 db.run(`INSERT INTO users (username, password_hash) VALUES ('admin', '${escapeSql(passwordHash)}')`);
+                const { saveDatabase } = require('./database');
                 saveDatabase();
                 
                 // Get the admin user ID
@@ -299,6 +316,7 @@ async function runMigrations(db) {
                 }
                 
                 if (migrated) {
+                    const { saveDatabase } = require('./database');
                     saveDatabase();
                     console.log('✓ Migration completed: Existing data migrated to admin user');
                 } else {
@@ -353,6 +371,7 @@ async function runMigrations(db) {
                     // Rename new table
                     db.run(`ALTER TABLE categories_new RENAME TO categories`);
                     
+                    const { saveDatabase } = require('./database');
                     saveDatabase();
                     console.log('✓ Migration completed: categories table UNIQUE constraint updated to include user_id');
                 } else {
@@ -398,6 +417,7 @@ async function runMigrations(db) {
                     // Rename new table
                     db.run(`ALTER TABLE methods_new RENAME TO methods`);
                     
+                    const { saveDatabase } = require('./database');
                     saveDatabase();
                     console.log('✓ Migration completed: methods table UNIQUE constraint updated to include user_id');
                 } else {

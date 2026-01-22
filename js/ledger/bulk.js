@@ -46,6 +46,11 @@ const LedgerBulk = {
                     note: transaction.note || ''
                 };
                 
+                // Only include recurring if it's being set (for generating duplicates)
+                if (field === 'recurring' && value && value !== 'none') {
+                    updateData.recurring = value;
+                }
+                
                 // Update the specific field
                 if (field === 'amount') {
                     updateData.amount = parseFloat(value);
@@ -117,9 +122,17 @@ const LedgerBulk = {
             // When category changes, automatically update type based on category
             updateData.category = value;
             updateData.type = DataStore.getCategoryType(value);
+        } else if (field === 'recurring') {
+            // For recurring, only include it if it's set (to generate duplicates)
+            // Don't store it in the database
+            if (value && value !== 'none') {
+                updateData.recurring = value;
+            }
         } else {
             updateData[field] = value;
         }
+        
+        console.log(`[updateTransactionField] Updating transaction ${id}, field: ${field}, value: ${value}`);
         
         const response = await fetch(`${API.BASE}/transactions/${id}`, {
             method: 'PUT',
@@ -132,6 +145,9 @@ const LedgerBulk = {
             throw new Error(errorData.error || 'Failed to update transaction');
         }
         
+        // Get the updated transaction from response
+        const updatedTransaction = await response.json();
+        
         // Refresh data and update views
         const refreshedData = await API.loadData();
         DataStore.init(refreshedData);
@@ -143,6 +159,9 @@ const LedgerBulk = {
         if (window.Ledger) {
             window.Ledger.update();
         }
+        
+        // Return the updated transaction for caller to use
+        return updatedTransaction;
     }
 };
 

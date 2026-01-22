@@ -3,8 +3,10 @@
 // Helper function to check if a column exists in a table
 function columnExists(tableName, columnName, db = null) {
     // If db not provided, try to get it (for backward compatibility)
+    // Use lazy loading to avoid circular dependency
     if (!db) {
         try {
+            // Lazy load to avoid circular dependency
             const { getDb } = require('./database');
             db = getDb();
         } catch (error) {
@@ -31,8 +33,10 @@ function columnExists(tableName, columnName, db = null) {
 // Helper function to add a column to a table if it doesn't exist
 function ensureColumn(tableName, columnName, columnDefinition, db = null) {
     // If db not provided, try to get it (for backward compatibility)
+    // Use lazy loading to avoid circular dependency
     if (!db) {
         try {
+            // Lazy load to avoid circular dependency
             const { getDb, saveDatabase } = require('./database');
             db = getDb();
             if (!db) return false;
@@ -58,6 +62,7 @@ function ensureColumn(tableName, columnName, columnDefinition, db = null) {
     
     if (!columnExists(tableName, columnName, db)) {
         try {
+            // Lazy load to avoid circular dependency
             const { saveDatabase } = require('./database');
             console.log(`Adding column ${columnName} to ${tableName} table...`);
             db.run(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDefinition}`);

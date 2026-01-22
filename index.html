@@ -231,6 +231,7 @@
                             <th style="width: 50px;">
                                 <input type="checkbox" id="select-all-checkbox" class="select-all-checkbox" title="Select All">
                             </th>
+                            <th style="width: 40px;" title="Recurring"></th>
                             <th class="sortable" data-sort="date" data-default="desc">
                                 Date <span class="sort-indicator">▼</span>
                             </th>
@@ -313,10 +314,17 @@
                     <select id="transaction-method"></select>
                 </div>
                 <div class="form-group">
-                </div>
-                <div class="form-group">
                     <label for="transaction-amount">Amount:</label>
                     <input type="text" id="transaction-amount" placeholder="0.00" required>
+                </div>
+                <div class="form-group">
+                    <label for="transaction-recurring">Recurring:</label>
+                    <select id="transaction-recurring">
+                        <option value="none">One-time</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="bi-weekly">Bi-weekly</option>
+                        <option value="monthly">Monthly</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="transaction-note">Note (optional):</label>

@@ -22,6 +22,27 @@ const LedgerTable = {
         });
         checkboxCell.appendChild(checkbox);
         
+        // Recurring button cell (no highlighting - just a button to generate duplicates)
+        const recurringCell = document.createElement('td');
+        const recurringBtn = document.createElement('button');
+        recurringBtn.className = 'recurring-btn';
+        recurringBtn.type = 'button';
+        recurringBtn.title = 'Generate recurring transactions';
+        // Recycle icon SVG
+        recurringBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+            <path d="M21 3v5h-5"/>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+            <path d="M3 21v-5h5"/>
+        </svg>`;
+        recurringBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (window.LedgerNewRow && window.LedgerNewRow.showRecurringModal) {
+                await window.LedgerNewRow.showRecurringModal(recurringBtn, row, transaction.id);
+            }
+        });
+        recurringCell.appendChild(recurringBtn);
+        
         // Date cell
         const dateCell = document.createElement('td');
         dateCell.className = 'editable-cell';
@@ -107,6 +128,7 @@ const LedgerTable = {
         deleteCell.appendChild(deleteBtn);
         
         row.appendChild(checkboxCell);
+        row.appendChild(recurringCell);
         row.appendChild(dateCell);
         row.appendChild(descCell);
         row.appendChild(catCell);
@@ -123,7 +145,7 @@ const LedgerTable = {
             method: transaction.method,
             type: transaction.type, // Keep for backward compatibility
             amount: transaction.amount,
-            note: note
+            note: note,
         });
         
         // Setup inline editing handlers
