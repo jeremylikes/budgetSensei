@@ -255,8 +255,7 @@ body {
     position: relative;
 }
 
-.tile .amount.has-tooltip::after {
-    content: attr(data-tooltip);
+.tile .amount.has-tooltip .custom-tooltip {
     position: absolute;
     top: 100%;
     left: 50%;
@@ -268,7 +267,6 @@ body {
     border-radius: 6px;
     font-size: 12px;
     font-family: 'Nunito', sans-serif;
-    white-space: pre-line;
     text-align: left;
     min-width: 225px;
     opacity: 0;
@@ -276,29 +274,36 @@ body {
     transition: opacity 0.2s ease;
     z-index: 1000;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    line-height: 1.5;
 }
 
-.tile .amount.has-tooltip:hover::after {
+.tile .amount.has-tooltip:hover .custom-tooltip {
     opacity: 1;
 }
 
-.tile .amount.has-tooltip::before {
+.tile .amount.has-tooltip .custom-tooltip::before {
     content: '';
     position: absolute;
-    top: 100%;
+    bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
-    margin-top: 2px;
+    margin-bottom: 2px;
     border: 5px solid transparent;
     border-bottom-color: #333;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
     z-index: 1001;
 }
 
-.tile .amount.has-tooltip:hover::before {
-    opacity: 1;
+.tile .amount.has-tooltip .custom-tooltip .tooltip-category {
+    color: #ffffff;
+    font-weight: bold;
+}
+
+.tile .amount.has-tooltip .custom-tooltip .tooltip-amount {
+    color: #90EE90;
+}
+
+.tile .amount.has-tooltip .custom-tooltip .tooltip-percent {
+    color: #d0c5f7;
 }
 
 .allocation-section {

@@ -76,9 +76,9 @@ const Dashboard = {
         
         const incomeBreakdown = incomeItems
             .slice(0, 20)
-            .map(item => `${item.category} ${Utils.formatCurrency(item.amount)} ${item.percentage.toFixed(1)}%`)
+            .map(item => `<span class="tooltip-category">${item.category}</span> <span class="tooltip-amount">${Utils.formatCurrency(item.amount)}</span> <span class="tooltip-percent">${item.percentage.toFixed(1)}%</span>`)
             .concat(incomeItems.length > 20 ? ['...'] : [])
-            .join('\n');
+            .join('<br>');
         
         // Create expense tooltip content (sorted largest to smallest, limited to 20 items)
         const expenseItems = Object.entries(expenseData)
@@ -91,32 +91,36 @@ const Dashboard = {
         
         const expenseBreakdown = expenseItems
             .slice(0, 20)
-            .map(item => `${item.category} ${Utils.formatCurrency(item.amount)} ${item.percentage.toFixed(1)}%`)
+            .map(item => `<span class="tooltip-category">${item.category}</span> <span class="tooltip-amount">${Utils.formatCurrency(item.amount)}</span> <span class="tooltip-percent">${item.percentage.toFixed(1)}%</span>`)
             .concat(expenseItems.length > 20 ? ['...'] : [])
-            .join('\n');
+            .join('<br>');
         
         // Update tooltips
         const totalIncomeEl = document.getElementById('total-income');
         const totalExpensesEl = document.getElementById('total-expenses');
         
-        if (totalIncomeEl) {
-            if (incomeBreakdown) {
-                totalIncomeEl.setAttribute('data-tooltip', incomeBreakdown);
-                totalIncomeEl.classList.add('has-tooltip');
-            } else {
-                totalIncomeEl.removeAttribute('data-tooltip');
-                totalIncomeEl.classList.remove('has-tooltip');
-            }
+        // Remove existing tooltip elements
+        const existingTooltips = document.querySelectorAll('.custom-tooltip');
+        existingTooltips.forEach(tooltip => tooltip.remove());
+        
+        if (totalIncomeEl && incomeBreakdown) {
+            totalIncomeEl.classList.add('has-tooltip');
+            const tooltip = document.createElement('div');
+            tooltip.className = 'custom-tooltip';
+            tooltip.innerHTML = incomeBreakdown;
+            totalIncomeEl.appendChild(tooltip);
+        } else if (totalIncomeEl) {
+            totalIncomeEl.classList.remove('has-tooltip');
         }
         
-        if (totalExpensesEl) {
-            if (expenseBreakdown) {
-                totalExpensesEl.setAttribute('data-tooltip', expenseBreakdown);
-                totalExpensesEl.classList.add('has-tooltip');
-            } else {
-                totalExpensesEl.removeAttribute('data-tooltip');
-                totalExpensesEl.classList.remove('has-tooltip');
-            }
+        if (totalExpensesEl && expenseBreakdown) {
+            totalExpensesEl.classList.add('has-tooltip');
+            const tooltip = document.createElement('div');
+            tooltip.className = 'custom-tooltip';
+            tooltip.innerHTML = expenseBreakdown;
+            totalExpensesEl.appendChild(tooltip);
+        } else if (totalExpensesEl) {
+            totalExpensesEl.classList.remove('has-tooltip');
         }
     },
 
