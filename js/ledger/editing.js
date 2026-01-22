@@ -270,11 +270,18 @@ const LedgerEditing = {
             });
         } else if (field === 'method') {
             input = document.createElement('select');
+            // Handle both old format (strings) and new format (objects with name)
             DataStore.methods.forEach(method => {
+                const methodName = typeof method === 'string' ? method : (method.name || method);
+                const methodIcon = typeof method === 'object' && method.icon ? method.icon : '';
                 const option = document.createElement('option');
-                option.value = method;
-                option.textContent = method;
-                if (method === currentValue) option.selected = true;
+                option.value = methodName;
+                if (methodIcon) {
+                    option.textContent = `${methodIcon} ${methodName}`;
+                } else {
+                    option.textContent = methodName;
+                }
+                if (methodName === currentValue) option.selected = true;
                 input.appendChild(option);
             });
         } else if (field === 'date') {

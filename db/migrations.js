@@ -177,6 +177,14 @@ async function runMigrations(db) {
             console.log('✓ Migration check completed: icon column already exists');
         }
         
+        // Migration: Add 'icon' column to methods table
+        const methodIconColumnAdded = ensureColumn('methods', 'icon', 'TEXT', db);
+        if (methodIconColumnAdded) {
+            console.log('✓ Migration completed: icon column added to methods');
+        } else {
+            console.log('✓ Migration check completed: icon column already exists in methods');
+        }
+        
         // Migration: Create users table if it doesn't exist
         const usersTableCheck = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='users'");
         if (!usersTableCheck[0] || usersTableCheck[0].values.length === 0) {

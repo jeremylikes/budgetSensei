@@ -28,7 +28,13 @@ const DataStore = {
             return { name: item.name || item, icon: item.icon || '' };
         });
         
-        this.methods = data.methods || ['Cash', 'Credit Card', 'Debit Card', 'Bank Transfer'];
+        const methodsData = data.methods || ['Cash', 'Credit Card', 'Debit Card', 'Bank Transfer'];
+        this.methods = methodsData.map(item => {
+            if (typeof item === 'string') {
+                return { name: item, icon: '' };
+            }
+            return { name: item.name || item, icon: item.icon || '' };
+        });
     },
     
     // Helper to get all categories (for backward compatibility during migration)
@@ -44,5 +50,18 @@ const DataStore = {
             return 'Expense';
         }
         return 'Expense'; // Default
+    },
+    
+    // Helper to get category icon
+    getCategoryIcon(categoryName) {
+        const category = this.income.find(c => (c.name || c) === categoryName) || 
+                        this.expenses.find(c => (c.name || c) === categoryName);
+        return (category && category.icon) ? category.icon : '';
+    },
+    
+    // Helper to get method icon
+    getMethodIcon(methodName) {
+        const method = this.methods.find(m => (m.name || m) === methodName);
+        return (method && method.icon) ? method.icon : '';
     }
 };

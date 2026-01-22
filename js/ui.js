@@ -305,10 +305,16 @@ const UI = {
             }
             
             allCategories.sort((a, b) => a.localeCompare(b));
-            allCategories.forEach(cat => {
+            allCategories.forEach(catName => {
                 const option = document.createElement('option');
-                option.value = cat;
-                option.textContent = cat;
+                option.value = catName;
+                // Get icon if available
+                const categoryIcon = DataStore.getCategoryIcon(catName);
+                if (categoryIcon) {
+                    option.textContent = `${categoryIcon} ${catName}`;
+                } else {
+                    option.textContent = catName;
+                }
                 categorySelect.appendChild(option);
             });
         }
@@ -316,7 +322,10 @@ const UI = {
         if (methodSelect) {
             methodSelect.innerHTML = '';
             // Get methods, filter out Default unless it's the only option
-            let methods = [...DataStore.methods].filter(m => m !== 'Default');
+            // Handle both old format (strings) and new format (objects with name)
+            let methods = [...DataStore.methods]
+                .map(m => typeof m === 'string' ? m : (m.name || m))
+                .filter(m => m !== 'Default');
             
             // If no user-defined methods exist, include Default as a fallback
             if (methods.length === 0) {
@@ -325,10 +334,20 @@ const UI = {
             
             // Sort methods alphabetically
             methods.sort((a, b) => a.localeCompare(b));
-            methods.forEach(method => {
+            methods.forEach(methodName => {
                 const option = document.createElement('option');
-                option.value = method;
-                option.textContent = method;
+                option.value = methodName;
+                // Get icon if available
+                const methodData = DataStore.methods.find(m => {
+                    const mName = typeof m === 'string' ? m : (m.name || m);
+                    return mName === methodName;
+                });
+                const methodIcon = (methodData && typeof methodData === 'object' && methodData.icon) ? methodData.icon : '';
+                if (methodIcon) {
+                    option.textContent = `${methodIcon} ${methodName}`;
+                } else {
+                    option.textContent = methodName;
+                }
                 methodSelect.appendChild(option);
             });
         }

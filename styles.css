@@ -932,6 +932,108 @@ tbody tr.new-row .note-input:focus {
     background-color: #fff5f5;
 }
 
+/* Category icon button */
+.category-icon-btn {
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0;
+    transition: all 0.2s ease;
+}
+
+.category-icon-btn:hover {
+    background-color: #e0e0e0;
+    border-color: #ccc;
+    transform: scale(1.05);
+}
+
+.category-icon-btn:active {
+    transform: scale(0.95);
+}
+
+/* Category and method icons in tables */
+.category-icon,
+.method-icon {
+    margin-right: 4px;
+    font-size: 1em;
+    display: inline-block;
+}
+
+/* Icon clear button */
+.icon-clear-btn {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 18px;
+    height: 18px;
+    background-color: #cc0000;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    z-index: 10;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: all 0.2s ease;
+}
+
+.icon-clear-btn:hover {
+    background-color: #aa0000;
+    transform: scale(1.1);
+}
+
+.icon-clear-btn:active {
+    transform: scale(0.95);
+}
+
+/* Emoji picker styling */
+emoji-picker {
+    --emoji-size: 1.5rem;
+    --num-columns: 8;
+    --category-emoji-size: 1.2rem;
+    --border-radius: 8px;
+    --background: white;
+    --border-color: #ddd;
+    --button-hover-background: #f5f5f5;
+    --font-family: 'Nunito', sans-serif;
+}
+
+/* Emoji picker search input text color */
+emoji-picker input,
+emoji-picker input[type="search"],
+emoji-picker input[type="text"],
+emoji-picker .search,
+emoji-picker input.search {
+    color: #333 !important;
+    background-color: white !important;
+}
+
+emoji-picker input::placeholder,
+emoji-picker input[type="search"]::placeholder,
+emoji-picker input[type="text"]::placeholder,
+emoji-picker .search::placeholder,
+emoji-picker input.search::placeholder {
+    color: #999 !important;
+    opacity: 1 !important;
+}
+
+/* Target shadow DOM if needed */
+emoji-picker::part(search-input) {
+    color: #333 !important;
+}
+
 .data-section {
     margin-bottom: 30px;
 }

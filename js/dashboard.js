@@ -227,7 +227,12 @@ const Dashboard = {
 
             // Category name
             const categoryCell = document.createElement('td');
-            categoryCell.textContent = category;
+            const categoryIcon = DataStore.getCategoryIcon(category);
+            if (categoryIcon) {
+                categoryCell.innerHTML = `<span class="category-icon">${categoryIcon}</span> ${category}`;
+            } else {
+                categoryCell.textContent = category;
+            }
             row.appendChild(categoryCell);
 
             // Planned input

@@ -94,8 +94,16 @@ router.get('/api/income', requireAuth, (req, res) => {
             ensureColumn('categories', 'type', 'TEXT', db);
         }
         
-        const result = db.exec(`SELECT name FROM categories WHERE type = 'Income' AND user_id = ${userId} AND name != 'Default' ORDER BY name`);
-        const categories = result[0] ? result[0].values.map(row => row[0]) : [];
+        // Ensure icon column exists
+        if (!columnExists('categories', 'icon', db)) {
+            ensureColumn('categories', 'icon', 'TEXT', db);
+        }
+        
+        const result = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Income' AND user_id = ${userId} AND name != 'Default' ORDER BY name`);
+        const categories = result[0] ? result[0].values.map(row => ({
+            name: row[0],
+            icon: row[1] || ''
+        })) : [];
         res.json(categories);
     } catch (error) {
         console.error('Error reading income categories:', error);
@@ -121,8 +129,16 @@ router.get('/api/expenses', requireAuth, (req, res) => {
             ensureColumn('categories', 'type', 'TEXT', db);
         }
         
-        const result = db.exec(`SELECT name FROM categories WHERE type = 'Expense' AND user_id = ${userId} AND name != 'Default' ORDER BY name`);
-        const categories = result[0] ? result[0].values.map(row => row[0]) : [];
+        // Ensure icon column exists
+        if (!columnExists('categories', 'icon', db)) {
+            ensureColumn('categories', 'icon', 'TEXT', db);
+        }
+        
+        const result = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM categories WHERE type = 'Expense' AND user_id = ${userId} AND name != 'Default' ORDER BY name`);
+        const categories = result[0] ? result[0].values.map(row => ({
+            name: row[0],
+            icon: row[1] || ''
+        })) : [];
         res.json(categories);
     } catch (error) {
         console.error('Error reading expense categories:', error);
@@ -456,6 +472,41 @@ router.delete('/api/income/:name', requireAuth, (req, res) => {
     } catch (error) {
         console.error('Error deleting income category:', error);
         res.status(500).json({ error: 'Failed to delete income category' });
+    }
+});
+
+// Update category icon
+router.put('/api/categories/:type/:name/icon', requireAuth, (req, res) => {
+    try {
+        const db = getDb();
+        if (!db) {
+            return res.status(500).json({ error: 'Database not initialized' });
+        }
+        
+        const userId = getCurrentUserId(req);
+        const type = req.params.type; // 'Income' or 'Expense'
+        const categoryName = decodeURIComponent(req.params.name);
+        const icon = req.body.icon || '';
+        
+        // Ensure icon column exists
+        if (!columnExists('categories', 'icon', db)) {
+            ensureColumn('categories', 'icon', 'TEXT', db);
+        }
+        
+        // Check if category exists and belongs to user
+        const existing = db.exec(`SELECT id FROM categories WHERE name = '${escapeSql(categoryName)}' AND type = '${type}' AND user_id = ${userId}`);
+        if (!existing[0] || existing[0].values.length === 0) {
+            return res.status(404).json({ error: 'Category not found' });
+        }
+        
+        // Update icon
+        db.run(`UPDATE categories SET icon = '${escapeSql(icon)}' WHERE name = '${escapeSql(categoryName)}' AND type = '${type}' AND user_id = ${userId}`);
+        saveDatabase();
+        
+        res.json({ success: true, icon: icon });
+    } catch (error) {
+        console.error('Error updating category icon:', error);
+        res.status(500).json({ error: 'Failed to update category icon' });
     }
 });
 

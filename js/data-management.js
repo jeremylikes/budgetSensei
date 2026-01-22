@@ -175,12 +175,16 @@ const DataManagement = {
             
             // Add each item
             for (const item of items) {
-                // Skip if already exists
-                if (DataStore.methods.includes(item)) {
-                    failCount++;
-                    errors.push(`"${item}" already exists`);
-                    continue;
-                }
+            // Skip if already exists
+            const methodExists = DataStore.methods.some(m => {
+                const mName = typeof m === 'string' ? m : (m.name || m);
+                return mName === item;
+            });
+            if (methodExists) {
+                failCount++;
+                errors.push(`"${item}" already exists`);
+                continue;
+            }
                 
                 try {
                     const response = await fetch(`${API.BASE}/methods`, {
@@ -280,6 +284,39 @@ const DataManagement = {
                 checkbox.title = 'Default income category cannot be selected';
             }
             
+            // Icon button container
+            const iconContainer = document.createElement('div');
+            iconContainer.style.position = 'relative';
+            iconContainer.style.display = 'inline-block';
+            iconContainer.style.marginRight = '10px';
+            
+            const iconBtn = document.createElement('button');
+            iconBtn.className = 'category-icon-btn';
+            // Get icon from DataStore if available
+            const categoryData = DataStore.income.find(c => (c.name || c) === catName);
+            const currentIcon = (categoryData && categoryData.icon) ? categoryData.icon : '🎨';
+            iconBtn.textContent = currentIcon;
+            iconBtn.title = currentIcon === '🎨' ? 'Icon' : `Icon: ${currentIcon}`;
+            iconBtn.onclick = (e) => {
+                e.stopPropagation();
+                this.showEmojiPicker(iconBtn, catName, 'income', originalIndex, iconContainer);
+            };
+            
+            // Clear button (only show if icon is set)
+            if (currentIcon !== '🎨') {
+                const clearBtn = document.createElement('button');
+                clearBtn.className = 'icon-clear-btn';
+                clearBtn.innerHTML = '×';
+                clearBtn.title = 'Remove icon';
+                clearBtn.onclick = async (e) => {
+                    e.stopPropagation();
+                    await this.clearIcon(catName, 'income', iconBtn, iconContainer);
+                };
+                iconContainer.appendChild(clearBtn);
+            }
+            
+            iconContainer.appendChild(iconBtn);
+            
             // Editable name span (not editable for Default)
             const nameSpan = document.createElement('span');
             nameSpan.className = 'income-name editable-name';
@@ -321,6 +358,7 @@ const DataManagement = {
             actionButtons.appendChild(deleteBtn);
             
             li.appendChild(checkbox);
+            li.appendChild(iconContainer);
             li.appendChild(nameSpan);
             li.appendChild(actionButtons);
             list.appendChild(li);
@@ -372,6 +410,39 @@ const DataManagement = {
                 checkbox.title = 'Default expense category cannot be selected';
             }
             
+            // Icon button container
+            const iconContainer = document.createElement('div');
+            iconContainer.style.position = 'relative';
+            iconContainer.style.display = 'inline-block';
+            iconContainer.style.marginRight = '10px';
+            
+            const iconBtn = document.createElement('button');
+            iconBtn.className = 'category-icon-btn';
+            // Get icon from DataStore if available
+            const categoryData = DataStore.expenses.find(c => (c.name || c) === catName);
+            const currentIcon = (categoryData && categoryData.icon) ? categoryData.icon : '🎨';
+            iconBtn.textContent = currentIcon;
+            iconBtn.title = currentIcon === '🎨' ? 'Icon' : `Icon: ${currentIcon}`;
+            iconBtn.onclick = (e) => {
+                e.stopPropagation();
+                this.showEmojiPicker(iconBtn, catName, 'expenses', originalIndex, iconContainer);
+            };
+            
+            // Clear button (only show if icon is set)
+            if (currentIcon !== '🎨') {
+                const clearBtn = document.createElement('button');
+                clearBtn.className = 'icon-clear-btn';
+                clearBtn.innerHTML = '×';
+                clearBtn.title = 'Remove icon';
+                clearBtn.onclick = async (e) => {
+                    e.stopPropagation();
+                    await this.clearIcon(catName, 'expenses', iconBtn, iconContainer);
+                };
+                iconContainer.appendChild(clearBtn);
+            }
+            
+            iconContainer.appendChild(iconBtn);
+            
             // Editable name span (not editable for Default)
             const nameSpan = document.createElement('span');
             nameSpan.className = 'expense-name editable-name';
@@ -413,6 +484,7 @@ const DataManagement = {
             actionButtons.appendChild(deleteBtn);
             
             li.appendChild(checkbox);
+            li.appendChild(iconContainer);
             li.appendChild(nameSpan);
             li.appendChild(actionButtons);
             list.appendChild(li);
@@ -424,17 +496,31 @@ const DataManagement = {
         list.innerHTML = '';
 
         // Filter out "Default" from display and sort alphabetically
+        // Handle both old format (strings) and new format (objects with name)
         const sortedMethods = [...DataStore.methods]
-            .filter(method => method !== 'Default')
-            .sort((a, b) => a.localeCompare(b));
+            .filter(method => {
+                const methodName = typeof method === 'string' ? method : (method.name || method);
+                return methodName !== 'Default';
+            })
+            .sort((a, b) => {
+                const aName = typeof a === 'string' ? a : (a.name || a);
+                const bName = typeof b === 'string' ? b : (b.name || b);
+                return aName.localeCompare(bName);
+            });
 
         sortedMethods.forEach((method) => {
+            // Get method name
+            const methodName = typeof method === 'string' ? method : (method.name || method);
+            
             // Find the original index in DataStore.methods for data operations
-            const originalIndex = DataStore.methods.indexOf(method);
+            const originalIndex = DataStore.methods.findIndex(m => {
+                const mName = typeof m === 'string' ? m : (m.name || m);
+                return mName === methodName;
+            });
             
             const li = document.createElement('li');
             li.dataset.index = originalIndex;
-            li.dataset.originalValue = method;
+            li.dataset.originalValue = methodName;
             
             // Checkbox
             const checkbox = document.createElement('input');
@@ -442,15 +528,51 @@ const DataManagement = {
             checkbox.className = 'row-checkbox';
             checkbox.style.marginRight = '10px';
             
+            // Icon button container
+            const iconContainer = document.createElement('div');
+            iconContainer.style.position = 'relative';
+            iconContainer.style.display = 'inline-block';
+            iconContainer.style.marginRight = '10px';
+            
+            const iconBtn = document.createElement('button');
+            iconBtn.className = 'category-icon-btn';
+            // Get icon from DataStore if available
+            const methodData = DataStore.methods.find(m => {
+                const mName = typeof m === 'string' ? m : (m.name || m);
+                return mName === methodName;
+            });
+            const currentIcon = (methodData && methodData.icon) ? methodData.icon : '🎨';
+            iconBtn.textContent = currentIcon;
+            iconBtn.title = currentIcon === '🎨' ? 'Icon' : `Icon: ${currentIcon}`;
+            iconBtn.onclick = (e) => {
+                e.stopPropagation();
+                this.showEmojiPicker(iconBtn, methodName, 'methods', originalIndex, iconContainer);
+            };
+            
+            // Clear button (only show if icon is set)
+            if (currentIcon !== '🎨') {
+                const clearBtn = document.createElement('button');
+                clearBtn.className = 'icon-clear-btn';
+                clearBtn.innerHTML = '×';
+                clearBtn.title = 'Remove icon';
+                clearBtn.onclick = async (e) => {
+                    e.stopPropagation();
+                    await this.clearIcon(methodName, 'methods', iconBtn, iconContainer);
+                };
+                iconContainer.appendChild(clearBtn);
+            }
+            
+            iconContainer.appendChild(iconBtn);
+            
             // Editable name span
             const nameSpan = document.createElement('span');
             nameSpan.className = 'method-name editable-name';
-            nameSpan.textContent = method;
+            nameSpan.textContent = methodName;
             nameSpan.style.cursor = 'pointer';
             nameSpan.style.flex = '1';
             nameSpan.addEventListener('click', (e) => {
                 if (!li.classList.contains('editing')) {
-                    this.enterEditMode(li, nameSpan, 'method', originalIndex, method);
+                    this.enterEditMode(li, nameSpan, 'method', originalIndex, methodName);
                 }
             });
             
@@ -461,7 +583,7 @@ const DataManagement = {
             deleteBtn.title = 'Delete';
             deleteBtn.onclick = (e) => {
                 e.stopPropagation();
-                this.deleteMethod(method);
+                this.deleteMethod(methodName);
             };
             
             // Action buttons container
@@ -470,6 +592,7 @@ const DataManagement = {
             actionButtons.appendChild(deleteBtn);
             
             li.appendChild(checkbox);
+            li.appendChild(iconBtn);
             li.appendChild(nameSpan);
             li.appendChild(actionButtons);
             list.appendChild(li);
@@ -1020,6 +1143,206 @@ const DataManagement = {
                     alert('Failed to delete payment method. Please try again.');
                 }
             }
+        }
+    },
+
+    async showEmojiPicker(iconBtn, categoryName, categoryType, categoryIndex, iconContainer = null) {
+        // Remove any existing picker
+        const existingPicker = document.querySelector('emoji-picker');
+        if (existingPicker) {
+            existingPicker.remove();
+        }
+
+        // Create emoji picker element
+        const picker = document.createElement('emoji-picker');
+        picker.style.position = 'fixed';
+        picker.style.zIndex = '10000';
+        picker.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+        picker.style.borderRadius = '8px';
+        
+        // Add style tag to ensure search input text is visible
+        const style = document.createElement('style');
+        style.textContent = `
+            emoji-picker input,
+            emoji-picker input[type="search"],
+            emoji-picker input[type="text"] {
+                color: #333 !important;
+            }
+            emoji-picker input::placeholder {
+                color: #999 !important;
+                opacity: 1 !important;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Position picker near the icon button
+        const rect = iconBtn.getBoundingClientRect();
+        picker.style.top = `${rect.bottom + 5}px`;
+        picker.style.left = `${rect.left}px`;
+        
+        // Handle emoji selection
+        picker.addEventListener('emoji-click', async (event) => {
+            const emoji = event.detail.unicode;
+            iconBtn.textContent = emoji;
+            iconBtn.title = `Icon: ${emoji}`;
+            
+            // Remove picker after selection
+            picker.remove();
+            
+            // Save icon to backend
+            try {
+                let endpoint;
+                if (categoryType === 'methods') {
+                    endpoint = `${API.BASE}/methods/${encodeURIComponent(categoryName)}/icon`;
+                } else {
+                    // Map 'income' -> 'Income', 'expenses' -> 'Expense'
+                    const typeForRoute = categoryType === 'income' ? 'Income' : 'Expense';
+                    endpoint = `${API.BASE}/categories/${typeForRoute}/${encodeURIComponent(categoryName)}/icon`;
+                }
+                
+                const response = await fetch(endpoint, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ icon: emoji })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save icon');
+                }
+                
+                // Reload data to get updated icons
+                const data = await API.loadData();
+                DataStore.init(data);
+                
+                // Update all views
+                if (categoryType === 'income' || categoryType === 'expenses') {
+                    this.updateIncomeList();
+                    this.updateExpensesList();
+                } else if (categoryType === 'methods') {
+                    this.updateMethodsList();
+                }
+                
+                // Update the clear button visibility
+                if (iconContainer) {
+                    this.updateIconClearButton(iconContainer, iconBtn, emoji, categoryName, categoryType);
+                }
+                
+                if (window.Dashboard) Dashboard.update();
+                if (window.Ledger) Ledger.update();
+            } catch (error) {
+                console.error('Error saving icon:', error);
+                alert('Failed to save icon. Please try again.');
+            }
+        });
+        
+        // Close picker when clicking outside
+        const closePicker = (e) => {
+            if (!picker.contains(e.target) && e.target !== iconBtn) {
+                picker.remove();
+                document.removeEventListener('click', closePicker);
+            }
+        };
+        
+        // Add picker to body
+        document.body.appendChild(picker);
+        
+        // Wait for picker to render, then style the search input
+        setTimeout(() => {
+            // Try to find and style the search input
+            const searchInputs = picker.querySelectorAll('input[type="search"], input[type="text"], input');
+            searchInputs.forEach(input => {
+                input.style.color = '#333';
+                input.style.backgroundColor = 'white';
+                if (input.placeholder) {
+                    input.style.setProperty('--placeholder-color', '#999', 'important');
+                }
+            });
+            
+            // Also try shadow DOM if it exists
+            if (picker.shadowRoot) {
+                const shadowInputs = picker.shadowRoot.querySelectorAll('input[type="search"], input[type="text"], input');
+                shadowInputs.forEach(input => {
+                    input.style.color = '#333';
+                    input.style.backgroundColor = 'white';
+                });
+            }
+        }, 50);
+        
+        // Add click outside listener after a short delay to avoid immediate close
+        setTimeout(() => {
+            document.addEventListener('click', closePicker);
+        }, 100);
+    },
+
+    updateIconClearButton(iconContainer, iconBtn, icon, categoryName, categoryType) {
+        // Remove existing clear button
+        const existingClear = iconContainer.querySelector('.icon-clear-btn');
+        if (existingClear) {
+            existingClear.remove();
+        }
+        
+        // Add clear button if icon is set (not the default 🎨)
+        if (icon && icon !== '🎨') {
+            const clearBtn = document.createElement('button');
+            clearBtn.className = 'icon-clear-btn';
+            clearBtn.innerHTML = '×';
+            clearBtn.title = 'Remove icon';
+            clearBtn.onclick = async (e) => {
+                e.stopPropagation();
+                await this.clearIcon(categoryName, categoryType, iconBtn, iconContainer);
+            };
+            iconContainer.insertBefore(clearBtn, iconBtn);
+        }
+    },
+
+    async clearIcon(categoryName, categoryType, iconBtn, iconContainer) {
+        try {
+            let endpoint;
+            if (categoryType === 'methods') {
+                endpoint = `${API.BASE}/methods/${encodeURIComponent(categoryName)}/icon`;
+            } else {
+                // Map 'income' -> 'Income', 'expenses' -> 'Expense'
+                const typeForRoute = categoryType === 'income' ? 'Income' : 'Expense';
+                endpoint = `${API.BASE}/categories/${typeForRoute}/${encodeURIComponent(categoryName)}/icon`;
+            }
+            
+            const response = await fetch(endpoint, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ icon: '' })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to clear icon');
+            }
+            
+            // Update UI
+            iconBtn.textContent = '🎨';
+            iconBtn.title = 'Icon';
+            
+            // Remove clear button
+            const clearBtn = iconContainer.querySelector('.icon-clear-btn');
+            if (clearBtn) {
+                clearBtn.remove();
+            }
+            
+            // Reload data to get updated icons
+            const data = await API.loadData();
+            DataStore.init(data);
+            
+            // Update all views
+            if (categoryType === 'income' || categoryType === 'expenses') {
+                this.updateIncomeList();
+                this.updateExpensesList();
+            } else if (categoryType === 'methods') {
+                this.updateMethodsList();
+            }
+            
+            if (window.Dashboard) Dashboard.update();
+            if (window.Ledger) Ledger.update();
+        } catch (error) {
+            console.error('Error clearing icon:', error);
+            alert('Failed to clear icon. Please try again.');
         }
     }
 };

@@ -4,7 +4,7 @@
 const express = require('express');
 const router = express.Router();
 const { getDb, saveDatabase } = require('../db/database');
-const { escapeSql } = require('../db/helpers');
+const { escapeSql, ensureColumn, columnExists } = require('../db/helpers');
 const { requireAuth, getCurrentUserId } = require('../middleware/auth');
 
 // Get all methods
@@ -16,9 +16,18 @@ router.get('/api/methods', requireAuth, (req, res) => {
         }
         
         const userId = getCurrentUserId(req);
+        
+        // Ensure icon column exists
+        if (!columnExists('methods', 'icon', db)) {
+            ensureColumn('methods', 'icon', 'TEXT', db);
+        }
+        
         // Sort with "Default" first, then alphabetically
-        const result = db.exec(`SELECT name FROM methods WHERE user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
-        const methods = result[0] ? result[0].values.map(row => row[0]) : [];
+        const result = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM methods WHERE user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
+        const methods = result[0] ? result[0].values.map(row => ({
+            name: row[0],
+            icon: row[1] || ''
+        })) : [];
         res.json(methods);
     } catch (error) {
         console.error('Error reading methods:', error);
@@ -120,6 +129,40 @@ router.put('/api/methods/:index', requireAuth, (req, res) => {
     } catch (error) {
         console.error('Error updating method:', error);
         res.status(500).json({ error: 'Failed to update method' });
+    }
+});
+
+// Update method icon
+router.put('/api/methods/:name/icon', requireAuth, (req, res) => {
+    try {
+        const db = getDb();
+        if (!db) {
+            return res.status(500).json({ error: 'Database not initialized' });
+        }
+        
+        const userId = getCurrentUserId(req);
+        const methodName = decodeURIComponent(req.params.name);
+        const icon = req.body.icon || '';
+        
+        // Ensure icon column exists
+        if (!columnExists('methods', 'icon', db)) {
+            ensureColumn('methods', 'icon', 'TEXT', db);
+        }
+        
+        // Check if method exists and belongs to user
+        const existing = db.exec(`SELECT id FROM methods WHERE name = '${escapeSql(methodName)}' AND user_id = ${userId}`);
+        if (!existing[0] || existing[0].values.length === 0) {
+            return res.status(404).json({ error: 'Method not found' });
+        }
+        
+        // Update icon
+        db.run(`UPDATE methods SET icon = '${escapeSql(icon)}' WHERE name = '${escapeSql(methodName)}' AND user_id = ${userId}`);
+        saveDatabase();
+        
+        res.json({ success: true, icon: icon });
+    } catch (error) {
+        console.error('Error updating method icon:', error);
+        res.status(500).json({ error: 'Failed to update method icon' });
     }
 });
 

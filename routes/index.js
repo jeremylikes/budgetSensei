@@ -74,7 +74,12 @@ router.get('/api/data', requireAuth, (req, res) => {
             }
         }
         
-        const methods = db.exec(`SELECT name FROM methods WHERE user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
+        // Ensure icon column exists for methods
+        if (!columnExists('methods', 'icon', db)) {
+            ensureColumn('methods', 'icon', 'TEXT', db);
+        }
+        
+        const methods = db.exec(`SELECT name, COALESCE(icon, '') as icon FROM methods WHERE user_id = ${userId} ORDER BY CASE WHEN name = 'Default' THEN 0 ELSE 1 END, name`);
         
         // Process transactions and ensure type matches category
         let needsSave = false;
@@ -140,11 +145,14 @@ router.get('/api/data', requireAuth, (req, res) => {
             expensesWithIcons = expenseCategories[0] ? expenseCategories[0].values.map(row => ({ name: row[0], icon: '' })) : [];
         }
         
+        // Get methods with icons
+        const methodsWithIcons = methods[0] ? methods[0].values.map(row => ({ name: row[0], icon: row[1] || '' })) : [];
+        
         res.json({
             transactions: processedTransactions,
             income: incomeWithIcons,
             expenses: expensesWithIcons,
-            methods: methods[0] ? methods[0].values.map(row => row[0]) : []
+            methods: methodsWithIcons
         });
     } catch (error) {
         console.error('Error reading data:', error);

@@ -39,14 +39,24 @@ const LedgerTable = {
         // Category cell
         const catCell = document.createElement('td');
         catCell.className = 'editable-cell';
-        catCell.textContent = transaction.category;
+        const categoryIcon = DataStore.getCategoryIcon(transaction.category);
+        if (categoryIcon) {
+            catCell.innerHTML = `<span class="category-icon">${categoryIcon}</span> ${transaction.category}`;
+        } else {
+            catCell.textContent = transaction.category;
+        }
         catCell.dataset.field = 'category';
         catCell.dataset.value = transaction.category;
         
         // Method cell
         const methodCell = document.createElement('td');
         methodCell.className = 'editable-cell';
-        methodCell.textContent = transaction.method;
+        const methodIcon = DataStore.getMethodIcon(transaction.method);
+        if (methodIcon) {
+            methodCell.innerHTML = `<span class="method-icon">${methodIcon}</span> ${transaction.method}`;
+        } else {
+            methodCell.textContent = transaction.method;
+        }
         methodCell.dataset.field = 'method';
         methodCell.dataset.value = transaction.method;
         
@@ -152,6 +162,22 @@ const LedgerTable = {
             }
             cell.appendChild(noteBox);
             cell.dataset.value = noteValue;
+        } else if (field === 'category') {
+            const categoryIcon = DataStore.getCategoryIcon(value);
+            if (categoryIcon) {
+                cell.innerHTML = `<span class="category-icon">${categoryIcon}</span> ${value}`;
+            } else {
+                cell.textContent = value;
+            }
+            cell.dataset.value = value;
+        } else if (field === 'method') {
+            const methodIcon = DataStore.getMethodIcon(value);
+            if (methodIcon) {
+                cell.innerHTML = `<span class="method-icon">${methodIcon}</span> ${value}`;
+            } else {
+                cell.textContent = value;
+            }
+            cell.dataset.value = value;
         } else {
             cell.textContent = value;
             cell.dataset.value = value;

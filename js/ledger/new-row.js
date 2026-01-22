@@ -100,7 +100,10 @@ const LedgerNewRow = {
         methodSelect.addEventListener('change', () => this.validate());
         
         // Get methods, use Default if none exist
-        let methods = [...DataStore.methods].filter(m => m !== 'Default');
+        // Handle both old format (strings) and new format (objects with name)
+        let methods = [...DataStore.methods]
+            .map(m => typeof m === 'string' ? m : (m.name || m))
+            .filter(m => m !== 'Default');
         if (methods.length === 0) {
             methods = ['Default'];
         }

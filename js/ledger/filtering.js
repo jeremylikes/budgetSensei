@@ -169,7 +169,15 @@ const LedgerFiltering = {
                 checkbox.checked = this.filters[field].includes(value);
                 
                 const textSpan = document.createElement('span');
-                textSpan.textContent = displayValue;
+                // Add icon if available
+                const icon = field === 'category' 
+                    ? DataStore.getCategoryIcon(value)
+                    : DataStore.getMethodIcon(value);
+                if (icon) {
+                    textSpan.innerHTML = `<span class="${field}-icon">${icon}</span> ${displayValue}`;
+                } else {
+                    textSpan.textContent = displayValue;
+                }
                 textSpan.style.marginLeft = '8px';
                 
                 option.appendChild(checkbox);
