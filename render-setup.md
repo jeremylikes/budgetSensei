@@ -24,11 +24,16 @@
 
 4. **Add Environment Variables**
    - Scroll down to "Environment Variables"
-   - Click "Add Environment Variable"
-   - **Key:** `SESSION_SECRET`
-   - **Value:** (generate a random string - run `openssl rand -base64 32` in terminal, or use any long random string)
-   - Click "Add"
-   - Optional: Add `NODE_ENV` with value `production` (recommended)
+   - Click "Add Environment Variable" for each:
+   
+   **Required:**
+   - **SESSION_SECRET**: (generate a random string - run `openssl rand -base64 32` in terminal)
+   - **RESEND_API_KEY**: Your Resend API key (starts with `re_`) - get from https://resend.com/api-keys
+   - **RESEND_FROM_EMAIL**: `onboarding@resend.dev` (for testing) or your verified domain email
+   - **BASE_URL**: Your Render service URL (e.g., `https://budget-sensei.onrender.com`)
+   
+   **Optional (Recommended):**
+   - **NODE_ENV**: `production`
 
 5. **Deploy**
    - Scroll to bottom

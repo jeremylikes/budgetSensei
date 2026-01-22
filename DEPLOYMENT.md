@@ -51,6 +51,16 @@
   - Generate one: `openssl rand -base64 32` (in terminal)
   - Or use any long random string
 
+**Email Service (Resend) - Required for email features:**
+- `RESEND_API_KEY` - Your Resend API key (starts with `re_`)
+  - Get it from https://resend.com/api-keys
+- `RESEND_FROM_EMAIL` - The email address to send from
+  - For testing: `onboarding@resend.dev` (no verification needed)
+  - For production: Use your verified domain (e.g., `noreply@yourdomain.com`)
+- `BASE_URL` - Your application's public URL
+  - Example: `https://budget-sensei.onrender.com`
+  - Used in email links (password reset, verification, etc.)
+
 **Optional but Recommended:**
 - `NODE_ENV=production` - Enables production optimizations and secure cookies
 
