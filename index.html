@@ -64,7 +64,10 @@
                     <input type="password" id="login-password" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box;">
                 </div>
                 <button type="submit" id="login-submit" class="btn-accent" disabled style="width: 100%; margin-bottom: 15px;">Login</button>
-                <p style="text-align: center; margin: 0;">
+                <p style="text-align: center; margin: 10px 0 0 0;">
+                    <a href="#" id="show-forgot-password" style="color: #ffb7ce; text-decoration: none; font-size: 14px;">Forgot password?</a>
+                </p>
+                <p style="text-align: center; margin: 15px 0 0 0;">
                     <a href="#" id="show-register" style="color: #ffb7ce; text-decoration: none;">Don't have an account? <strong>Register</strong></a>
                 </p>
             </form>
@@ -77,6 +80,10 @@
                     <input type="text" id="register-username" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box;">
                 </div>
                 <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; color: #333; font-weight: bold;">Email</label>
+                    <input type="email" id="register-email" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box;">
+                </div>
+                <div style="margin-bottom: 15px;">
                     <label style="display: block; margin-bottom: 5px; color: #333; font-weight: bold;">Password (min. 8 characters)</label>
                     <input type="password" id="register-password" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box;">
                 </div>
@@ -84,11 +91,101 @@
                     <label style="display: block; margin-bottom: 5px; color: #333; font-weight: bold;">Confirm Password</label>
                     <input type="password" id="register-confirm-password" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box;">
                 </div>
-                <button type="submit" id="register-submit" class="btn-accent" style="width: 100%; margin-bottom: 15px;">Register</button>
+                <button type="submit" id="register-submit" class="btn-accent" style="width: 100%; margin-bottom: 15px;">Create Account</button>
                 <p style="text-align: center; margin: 0;">
                     <a href="#" id="show-login" style="color: #ffb7ce; text-decoration: none;">Already have an account? Login</a>
                 </p>
             </form>
+            
+            <!-- Forgot Password Form -->
+            <form id="forgot-password-form" style="display: none;">
+                <div id="forgot-password-error" style="color: red; margin-bottom: 15px; min-height: 20px;"></div>
+                <div id="forgot-password-success" style="color: green; margin-bottom: 15px; min-height: 20px;"></div>
+                <p style="color: #666; margin-bottom: 20px;">Enter your email address and we'll send you a link to reset your password.</p>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; color: #333; font-weight: bold;">Email</label>
+                    <input type="email" id="forgot-password-email" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box;">
+                </div>
+                <button type="submit" id="forgot-password-submit" class="btn-accent" style="width: 100%; margin-bottom: 15px;">Send Reset Link</button>
+                <p style="text-align: center; margin: 0;">
+                    <a href="#" id="show-login-from-forgot" style="color: #ffb7ce; text-decoration: none;">Back to Login</a>
+                </p>
+            </form>
+            
+            <!-- Check Email Page -->
+            <div id="check-email-page" style="display: none; text-align: center;">
+                <h2 style="color: #333; margin-bottom: 20px;">Check Your Email</h2>
+                <p style="color: #666; margin-bottom: 30px;">We've sent a verification link to your email address. Please click the link to verify your account.</p>
+                <p style="color: #999; font-size: 14px;">The verification link will expire in 10 minutes.</p>
+            </div>
+            
+            <!-- Resend Verification Page (for accounts with unverified email) -->
+            <div id="resend-verification-page" style="display: none;">
+                <h2 style="color: #333; margin-bottom: 20px; text-align: center;">Verify Your Email Address</h2>
+                <p style="color: #666; margin-bottom: 20px; text-align: center;">Your account has an email address but it hasn't been verified yet.</p>
+                <p style="color: #666; margin-bottom: 20px; text-align: center;" id="resend-verification-email-display"></p>
+                <form id="resend-verification-form">
+                    <div id="resend-verification-error" style="color: red; margin-bottom: 15px; min-height: 20px;"></div>
+                    <div id="resend-verification-success" style="color: green; margin-bottom: 15px; min-height: 20px;"></div>
+                    <button type="submit" id="resend-verification-submit" class="btn-accent" style="width: 100%; margin-bottom: 15px;">Resend Verification Email</button>
+                </form>
+                <p style="text-align: center; margin-top: 20px;">
+                    <a href="#" id="go-to-login-from-resend-verification" style="color: #ffb7ce; text-decoration: none;">Back to Login</a>
+                </p>
+            </div>
+            
+            <!-- Account Verified Page -->
+            <div id="account-verified-page" style="display: none; text-align: center;">
+                <h2 style="color: #333; margin-bottom: 20px;">Account Verified and Created</h2>
+                <p style="color: #666; margin-bottom: 30px;">Your account has been successfully verified! You can now log in.</p>
+                <a href="#" id="go-to-login" class="btn-accent" style="display: inline-block; padding: 12px 24px; text-decoration: none; border-radius: 8px;">Go to Login</a>
+            </div>
+            
+            <!-- Reset Password Page -->
+            <div id="reset-password-page" style="display: none;">
+                <h2 style="color: #333; margin-bottom: 20px; text-align: center;">Reset Your Password</h2>
+                <form id="reset-password-form">
+                    <div id="reset-password-error" style="color: red; margin-bottom: 15px; min-height: 20px;"></div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; color: #333; font-weight: bold;">New Password</label>
+                        <input type="password" id="reset-password-new" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; color: #333; font-weight: bold;">Confirm New Password</label>
+                        <input type="password" id="reset-password-confirm" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box;">
+                    </div>
+                    <button type="submit" id="reset-password-submit" class="btn-accent" style="width: 100%; margin-bottom: 15px;">Reset Password</button>
+                </form>
+            </div>
+            
+            <!-- Password Reset Success Page -->
+            <div id="reset-success-page" style="display: none; text-align: center;">
+                <h2 style="color: #333; margin-bottom: 20px;">Password Reset Successfully</h2>
+                <p style="color: #666; margin-bottom: 30px;">Your password has been reset. You can now log in with your new password.</p>
+                <a href="#" id="go-to-login-from-reset" class="btn-accent" style="display: inline-block; padding: 12px 24px; text-decoration: none; border-radius: 8px;">Go to Login</a>
+            </div>
+            
+            <!-- Email Association Page (for existing accounts) -->
+            <div id="email-association-page" style="display: none;">
+                <h2 style="color: #333; margin-bottom: 20px; text-align: center;">Please Associate an Email to This Account</h2>
+                <p style="color: #666; margin-bottom: 20px; text-align: center;">Your account needs an email address to continue. Please enter your email below.</p>
+                <form id="email-association-form">
+                    <div id="email-association-error" style="color: red; margin-bottom: 15px; min-height: 20px;"></div>
+                    <div id="email-association-success" style="color: green; margin-bottom: 15px; min-height: 20px;"></div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; color: #333; font-weight: bold;">Email</label>
+                        <input type="email" id="email-association-email" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box;">
+                    </div>
+                    <button type="submit" id="email-association-submit" class="btn-accent" style="width: 100%; margin-bottom: 15px;">Send Verification Link</button>
+                </form>
+            </div>
+            
+            <!-- Email Association Success Page -->
+            <div id="email-association-success-page" style="display: none; text-align: center;">
+                <h2 style="color: #333; margin-bottom: 20px;">Account Email Setup Successfully</h2>
+                <p style="color: #666; margin-bottom: 30px;">Your email has been successfully associated with your account. You can now log in with your existing credentials.</p>
+                <a href="#" id="go-to-login-from-email-association" class="btn-accent" style="display: inline-block; padding: 12px 24px; text-decoration: none; border-radius: 8px;">Go to Login</a>
+            </div>
         </div>
     </div>
     

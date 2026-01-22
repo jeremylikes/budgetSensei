@@ -83,6 +83,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Setup login screen UI first
     Auth.setupLoginScreen();
     
+    // Handle URL parameters (verification, password reset, etc.)
+    Auth.handleUrlParameters();
+    
+    // Check if we're on a special page that doesn't require auth
+    const urlParams = new URLSearchParams(window.location.search);
+    const verifyToken = urlParams.get('verify') === 'email' ? urlParams.get('token') : null;
+    const resetToken = urlParams.get('reset') === 'password' ? urlParams.get('token') : null;
+    const verified = urlParams.get('verified') === 'true';
+    const emailAssociated = urlParams.get('email_associated') === 'true';
+    
+    // If we're on a verification or reset page, don't check auth yet
+    if (verifyToken || resetToken || verified || emailAssociated) {
+        return; // Let handleUrlParameters handle the display
+    }
+    
     // Check authentication
     const isAuthenticated = await Auth.checkSession();
     if (!isAuthenticated) {

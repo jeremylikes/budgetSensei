@@ -1,6 +1,9 @@
 // Main Server Entry Point
 // Coordinates all modules and starts the Express server
 
+// Load environment variables from .env file (for local development)
+require('dotenv').config();
+
 const express = require('express');
 const { initializeDatabase, saveDatabase, getDb } = require('./db/database');
 const { setupMiddleware } = require('./middleware');
