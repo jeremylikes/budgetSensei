@@ -43,16 +43,14 @@ const Dashboard = {
         document.getElementById('total-expenses').textContent = Utils.formatCurrency(totalExpenses);
         document.getElementById('saving-percent').textContent = savingPercent.toFixed(1) + '%';
 
-        // Update tooltips with percentage breakdowns
-        this.updateTooltips(income, expenses, totalIncome, totalExpenses);
-
         this.updateCharts(income, expenses);
+        this.updateBreakdown(income, expenses, totalIncome, totalExpenses);
         this.updatePaymentMethods(filtered);
         this.updateBudget(filtered, year, month);
         this.updateCashFlowChart(year);
     },
 
-    updateTooltips(income, expenses, totalIncome, totalExpenses) {
+    updateBreakdown(income, expenses, totalIncome, totalExpenses) {
         // Calculate income breakdown
         const incomeData = {};
         income.forEach(t => {
@@ -65,7 +63,7 @@ const Dashboard = {
             expenseData[t.category] = (expenseData[t.category] || 0) + t.amount;
         });
         
-        // Create income tooltip content (sorted largest to smallest, limited to 20 items)
+        // Create income items (sorted largest to smallest)
         const incomeItems = Object.entries(incomeData)
             .map(([category, amount]) => ({
                 category,
@@ -74,13 +72,7 @@ const Dashboard = {
             }))
             .sort((a, b) => b.amount - a.amount);
         
-        const incomeBreakdown = incomeItems
-            .slice(0, 20)
-            .map(item => `<span class="tooltip-category">${item.category}</span> <span class="tooltip-amount">${Utils.formatCurrency(item.amount)}</span> <span class="tooltip-percent">${item.percentage.toFixed(1)}%</span>`)
-            .concat(incomeItems.length > 20 ? ['...'] : [])
-            .join('<br>');
-        
-        // Create expense tooltip content (sorted largest to smallest, limited to 20 items)
+        // Create expense items (sorted largest to smallest)
         const expenseItems = Object.entries(expenseData)
             .map(([category, amount]) => ({
                 category,
@@ -89,38 +81,46 @@ const Dashboard = {
             }))
             .sort((a, b) => b.amount - a.amount);
         
-        const expenseBreakdown = expenseItems
-            .slice(0, 20)
-            .map(item => `<span class="tooltip-category">${item.category}</span> <span class="tooltip-amount">${Utils.formatCurrency(item.amount)}</span> <span class="tooltip-percent">${item.percentage.toFixed(1)}%</span>`)
-            .concat(expenseItems.length > 20 ? ['...'] : [])
-            .join('<br>');
-        
-        // Update tooltips
-        const totalIncomeEl = document.getElementById('total-income');
-        const totalExpensesEl = document.getElementById('total-expenses');
-        
-        // Remove existing tooltip elements
-        const existingTooltips = document.querySelectorAll('.custom-tooltip');
-        existingTooltips.forEach(tooltip => tooltip.remove());
-        
-        if (totalIncomeEl && incomeBreakdown) {
-            totalIncomeEl.classList.add('has-tooltip');
-            const tooltip = document.createElement('div');
-            tooltip.className = 'custom-tooltip';
-            tooltip.innerHTML = incomeBreakdown;
-            totalIncomeEl.appendChild(tooltip);
-        } else if (totalIncomeEl) {
-            totalIncomeEl.classList.remove('has-tooltip');
+        // Update income breakdown
+        const incomeBreakdownEl = document.getElementById('income-breakdown');
+        if (incomeBreakdownEl) {
+            if (incomeItems.length === 0) {
+                incomeBreakdownEl.innerHTML = '<div class="breakdown-empty">No income transactions</div>';
+            } else {
+                incomeBreakdownEl.innerHTML = incomeItems.map(item => {
+                    const icon = DataStore.getCategoryIcon(item.category);
+                    return `
+                        <div class="breakdown-item">
+                            <span class="breakdown-category">
+                                ${icon ? `<span class="category-icon">${icon}</span> ` : ''}${item.category}
+                            </span>
+                            <span class="breakdown-amount">${Utils.formatCurrency(item.amount)}</span>
+                            <span class="breakdown-percent">${item.percentage.toFixed(1)}%</span>
+                        </div>
+                    `;
+                }).join('');
+            }
         }
         
-        if (totalExpensesEl && expenseBreakdown) {
-            totalExpensesEl.classList.add('has-tooltip');
-            const tooltip = document.createElement('div');
-            tooltip.className = 'custom-tooltip';
-            tooltip.innerHTML = expenseBreakdown;
-            totalExpensesEl.appendChild(tooltip);
-        } else if (totalExpensesEl) {
-            totalExpensesEl.classList.remove('has-tooltip');
+        // Update expense breakdown
+        const expenseBreakdownEl = document.getElementById('expense-breakdown');
+        if (expenseBreakdownEl) {
+            if (expenseItems.length === 0) {
+                expenseBreakdownEl.innerHTML = '<div class="breakdown-empty">No expense transactions</div>';
+            } else {
+                expenseBreakdownEl.innerHTML = expenseItems.map(item => {
+                    const icon = DataStore.getCategoryIcon(item.category);
+                    return `
+                        <div class="breakdown-item">
+                            <span class="breakdown-category">
+                                ${icon ? `<span class="category-icon">${icon}</span> ` : ''}${item.category}
+                            </span>
+                            <span class="breakdown-amount">${Utils.formatCurrency(item.amount)}</span>
+                            <span class="breakdown-percent">${item.percentage.toFixed(1)}%</span>
+                        </div>
+                    `;
+                }).join('');
+            }
         }
     },
 
