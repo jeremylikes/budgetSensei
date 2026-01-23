@@ -154,7 +154,11 @@ const Auth = {
             });
             const data = await response.json();
             if (data.success) {
-                return { success: true, message: data.message || 'Verification email sent' };
+                return { 
+                    success: true, 
+                    emailSent: data.emailSent !== false, // Default to true if not specified
+                    message: data.message || 'Verification email sent' 
+                };
             } else {
                 return { success: false, error: data.error || 'Failed to send verification email' };
             }
@@ -796,10 +800,20 @@ const Auth = {
                 
                 const result = await this.requestEmailAssociation(username, email);
                 if (result.success) {
-                    if (emailAssociationError) emailAssociationError.textContent = '';
-                    if (emailAssociationSuccess) emailAssociationSuccess.textContent = result.message || 'Verification email sent! Please check your email.';
-                    // Show check email page
-                    this.showPage('check-email-page');
+                    if (result.emailSent === false) {
+                        // Email wasn't sent, show error message
+                        if (emailAssociationError) {
+                            emailAssociationError.textContent = result.message || 'Account updated, but verification email could not be sent.';
+                        }
+                        if (emailAssociationSuccess) emailAssociationSuccess.textContent = '';
+                        emailAssociationSubmit.disabled = false;
+                        emailAssociationSubmit.textContent = 'Send Verification Link';
+                    } else {
+                        // Email was sent, show check email page
+                        if (emailAssociationError) emailAssociationError.textContent = '';
+                        if (emailAssociationSuccess) emailAssociationSuccess.textContent = result.message || 'Verification email sent! Please check your email.';
+                        this.showPage('check-email-page');
+                    }
                 } else {
                     if (emailAssociationError) emailAssociationError.textContent = result.error;
                     if (emailAssociationSuccess) emailAssociationSuccess.textContent = '';
