@@ -66,6 +66,11 @@ async function initializeApp() {
         UI.populateCategoryMethodDropdowns();
         setupUserMenu();
         
+        // Update Add Transaction button state on initial load
+        if (window.Ledger && window.Ledger.updateAddTransactionButton) {
+            window.Ledger.updateAddTransactionButton();
+        }
+        
         // Setup ledger sorting
         Ledger.setupSortableColumns();
         

@@ -1,6 +1,8 @@
 // New Row Creation - Available globally as LedgerNewRow
 
 const LedgerNewRow = {
+    escapeHandler: null,  // Store escape handler so we can remove it when needed
+    
     add() {
         const tbody = document.getElementById('ledger-tbody');
         
@@ -22,6 +24,15 @@ const LedgerNewRow = {
         cancelBtn.title = 'Cancel';
         cancelBtn.addEventListener('click', () => {
             row.remove();
+            // Remove escape handler
+            if (this.escapeHandler) {
+                document.removeEventListener('keydown', this.escapeHandler);
+                this.escapeHandler = null;
+            }
+            // Update Add Transaction button state
+            if (window.Ledger && window.Ledger.updateAddTransactionButton) {
+                window.Ledger.updateAddTransactionButton();
+            }
         });
         checkboxCell.appendChild(cancelBtn);
         
@@ -208,17 +219,32 @@ const LedgerNewRow = {
         // Insert at the beginning of tbody
         tbody.insertBefore(row, tbody.firstChild);
         
+        // Remove any existing escape handler
+        if (this.escapeHandler) {
+            document.removeEventListener('keydown', this.escapeHandler);
+        }
+        
         // Add Escape key handler to cancel adding new transaction
-        const escapeHandler = (e) => {
+        this.escapeHandler = (e) => {
             if (e.key === 'Escape') {
                 const newRow = document.querySelector('tr.new-row');
                 if (newRow) {
                     newRow.remove();
-                    document.removeEventListener('keydown', escapeHandler);
+                    document.removeEventListener('keydown', this.escapeHandler);
+                    this.escapeHandler = null;
+                    // Update Add Transaction button state
+                    if (window.Ledger && window.Ledger.updateAddTransactionButton) {
+                        window.Ledger.updateAddTransactionButton();
+                    }
                 }
             }
         };
-        document.addEventListener('keydown', escapeHandler);
+        document.addEventListener('keydown', this.escapeHandler);
+        
+        // Update Add Transaction button state when new row is added
+        if (window.Ledger && window.Ledger.updateAddTransactionButton) {
+            window.Ledger.updateAddTransactionButton();
+        }
         
         // Focus on description field
         descInput.focus();
@@ -280,6 +306,12 @@ const LedgerNewRow = {
     },
 
     async save(row) {
+        // Update Add Transaction button state after saving
+        const updateButtonState = () => {
+            if (window.Ledger && window.Ledger.updateAddTransactionButton) {
+                window.Ledger.updateAddTransactionButton();
+            }
+        };
         // Disable save button to prevent double-clicks
         const saveBtn = row.querySelector('.save-inline-btn');
         if (saveBtn) {
@@ -367,6 +399,9 @@ const LedgerNewRow = {
             if (recurringCount > 1) {
                 console.log(`Created ${recurringCount} recurring transactions`);
             }
+            
+            // Update Add Transaction button state
+            updateButtonState();
             
             // Trigger update via Ledger
             if (window.Ledger) {
