@@ -126,6 +126,29 @@ const Dashboard = {
     },
 
     updateCharts(income, expenses) {
+        // Pastel color palette matching site theme
+        const pastelColors = [
+            '#ffb7ce',  // Site accent pink
+            '#87CEEB',  // Sky blue (from budget chart)
+            '#FFDAB9',  // Peach puff
+            '#B0E0E6',  // Powder blue
+            '#DDA0DD',  // Plum
+            '#FFE4B5',  // Moccasin
+            '#F0E68C',  // Khaki
+            '#98D8C8',  // Mint green
+            '#FFB6C1',  // Light pink
+            '#AFEEEE'   // Pale turquoise
+        ];
+        
+        // Helper function to get colors, cycling through the palette
+        const getPastelColors = (count) => {
+            const colors = [];
+            for (let i = 0; i < count; i++) {
+                colors.push(pastelColors[i % pastelColors.length]);
+            }
+            return colors;
+        };
+        
         // Income Chart
         const incomeData = {};
         income.forEach(t => {
@@ -137,17 +160,15 @@ const Dashboard = {
         
         const incomeValues = Object.values(incomeData);
         const incomeTotal = incomeValues.reduce((sum, val) => sum + val, 0);
+        const incomeLabels = Object.keys(incomeData);
         
         window.incomeChart = new Chart(incomeCtx, {
             type: 'pie',
             data: {
-                labels: Object.keys(incomeData),
+                labels: incomeLabels,
                 datasets: [{
                     data: incomeValues,
-                    backgroundColor: [
-                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
-                        '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
-                    ]
+                    backgroundColor: getPastelColors(incomeLabels.length)
                 }]
             },
             options: {
@@ -182,17 +203,15 @@ const Dashboard = {
         
         const expenseValues = Object.values(expenseData);
         const expenseTotal = expenseValues.reduce((sum, val) => sum + val, 0);
+        const expenseLabels = Object.keys(expenseData);
         
         window.expenseChart = new Chart(expenseCtx, {
             type: 'pie',
             data: {
-                labels: Object.keys(expenseData),
+                labels: expenseLabels,
                 datasets: [{
                     data: expenseValues,
-                    backgroundColor: [
-                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
-                        '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
-                    ]
+                    backgroundColor: getPastelColors(expenseLabels.length)
                 }]
             },
             options: {
@@ -718,6 +737,10 @@ const Dashboard = {
             window.cashFlowChart.destroy();
         }
 
+        // Pastel colors for cashflow chart (matching pie chart theme)
+        const pastelGreen = '#98D8C8';  // Mint green for positive values
+        const pastelRed = '#FFA0A0';    // Pastel red for negative values
+        
         window.cashFlowChart = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -727,8 +750,8 @@ const Dashboard = {
                         label: 'Total Savings',
                         type: 'bar',
                         data: monthlySavings,
-                        backgroundColor: monthlySavings.map(val => val >= 0 ? '#2e7d32' : '#d32f2f'),
-                        borderColor: monthlySavings.map(val => val >= 0 ? '#2e7d32' : '#d32f2f'),
+                        backgroundColor: monthlySavings.map(val => val >= 0 ? pastelGreen : pastelRed),
+                        borderColor: monthlySavings.map(val => val >= 0 ? pastelGreen : pastelRed),
                         borderWidth: 1,
                         order: 2
                     },

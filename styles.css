@@ -519,11 +519,11 @@ body {
 
 /* Remaining card state classes */
 .budget-tiles .tile.remaining-negative {
-    background-color: #f88373;
+    background-color: #FFA0A0;  /* Pastel red (matches cashflow chart) */
 }
 
 .budget-tiles .tile.remaining-positive {
-    background-color: #77a06b;
+    background-color: #98D8C8;  /* Pastel mint green (matches cashflow chart) */
 }
 
 
