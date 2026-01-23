@@ -43,7 +43,7 @@ async function sendPasswordResetEmail(email, resetToken, baseUrl) {
         return false;
     }
     
-    const resetUrl = `${baseUrl}/?token=${resetToken}`;
+    const resetUrl = `${baseUrl}/?reset=password&token=${resetToken}`;
     
     try {
         const { data, error } = await client.emails.send({
@@ -80,7 +80,7 @@ async function sendPasswordResetEmail(email, resetToken, baseUrl) {
     }
 }
 
-// Send email verification email
+// Send email verification email (for account creation)
 async function sendVerificationEmail(email, verificationToken, baseUrl) {
     const client = initializeResend();
     if (!client) {
@@ -88,36 +88,46 @@ async function sendVerificationEmail(email, verificationToken, baseUrl) {
         return false;
     }
     
-    const verificationUrl = `${baseUrl}/?verify=email&token=${verificationToken}`;
+    const verificationUrl = `${baseUrl}/api/auth/verify-email?token=${verificationToken}`;
     
     try {
         const { data, error } = await client.emails.send({
             from: getFromEmail(),
             to: email,
-            subject: 'Verify Your BudgetSensei Email',
+            subject: 'Verify Your BudgetSensei Account',
             html: `
                 <div style="font-family: 'Nunito', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                     <h2 style="color: #333;">Verify Your Email Address</h2>
-                    <p>Thank you for adding an email address to your BudgetSensei account.</p>
-                    <p>Please click the link below to verify your email address:</p>
+                    <p>Thank you for creating your BudgetSensei account!</p>
+                    <p>Please click the link below to verify your email address and activate your account:</p>
                     <p style="margin: 20px 0;">
                         <a href="${verificationUrl}" style="background-color: #ffb7ce; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">Verify Email</a>
                     </p>
                     <p>Or copy and paste this link into your browser:</p>
                     <p style="color: #666; word-break: break-all; font-size: 12px;">${verificationUrl}</p>
-                    <p style="color: #999; font-size: 12px; margin-top: 30px;">This link will expire in 24 hours.</p>
-                    <p style="color: #999; font-size: 12px;">If you didn't add this email, please ignore this email.</p>
+                    <p style="color: #999; font-size: 12px; margin-top: 30px;">This link will expire in 10 minutes.</p>
+                    <p style="color: #999; font-size: 12px;">If you didn't create this account, please ignore this email.</p>
                 </div>
             `,
-            text: `Verify Your Email Address\n\nClick this link to verify your email: ${verificationUrl}\n\nThis link will expire in 24 hours.\n\nIf you didn't add this email, please ignore this email.`
+            text: `Verify Your Email Address\n\nThank you for creating your BudgetSensei account!\n\nClick this link to verify your email: ${verificationUrl}\n\nThis link will expire in 10 minutes.\n\nIf you didn't create this account, please ignore this email.`
         });
         
         if (error) {
             console.error('Error sending verification email:', error);
+            // Log more details for debugging
+            if (error.message) {
+                console.error('  Error message:', error.message);
+            }
+            if (error.statusCode) {
+                console.error('  Status code:', error.statusCode);
+            }
             return false;
         }
         
         console.log(`Verification email sent to ${email}`);
+        if (data && data.id) {
+            console.log(`  Email ID: ${data.id}`);
+        }
         return true;
     } catch (error) {
         console.error('Error sending verification email:', error);

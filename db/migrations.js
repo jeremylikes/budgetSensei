@@ -223,6 +223,37 @@ async function runMigrations(db) {
             console.log('✓ Migration check completed: users table already exists');
         }
         
+        // Migration: Add email and verification fields to users table
+        const emailAdded = ensureColumn('users', 'email', 'TEXT', db);
+        if (emailAdded) {
+            console.log('✓ Migration completed: email column added to users');
+        }
+        
+        const emailVerifiedAdded = ensureColumn('users', 'email_verified', 'INTEGER DEFAULT 0', db);
+        if (emailVerifiedAdded) {
+            console.log('✓ Migration completed: email_verified column added to users');
+        }
+        
+        const verificationTokenAdded = ensureColumn('users', 'verification_token', 'TEXT', db);
+        if (verificationTokenAdded) {
+            console.log('✓ Migration completed: verification_token column added to users');
+        }
+        
+        const verificationTokenExpiresAdded = ensureColumn('users', 'verification_token_expires', 'TEXT', db);
+        if (verificationTokenExpiresAdded) {
+            console.log('✓ Migration completed: verification_token_expires column added to users');
+        }
+        
+        const resetTokenAdded = ensureColumn('users', 'reset_token', 'TEXT', db);
+        if (resetTokenAdded) {
+            console.log('✓ Migration completed: reset_token column added to users');
+        }
+        
+        const resetTokenExpiresAdded = ensureColumn('users', 'reset_token_expires', 'TEXT', db);
+        if (resetTokenExpiresAdded) {
+            console.log('✓ Migration completed: reset_token_expires column added to users');
+        }
+        
         // Migration: Add user_id columns to all tables
         const userIdAddedToTransactions = ensureColumn('transactions', 'user_id', 'INTEGER', db);
         if (userIdAddedToTransactions) {
