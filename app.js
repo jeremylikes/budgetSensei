@@ -1,6 +1,50 @@
 // Main Application Coordinator
 // This file orchestrates all modules and initializes the application
 
+// Update username greeting
+function updateUsernameGreeting() {
+    const greeting = document.getElementById('username-greeting');
+    if (greeting && Auth.currentUser && Auth.currentUser.username) {
+        greeting.textContent = `Hi, ${Auth.currentUser.username}`;
+    } else if (greeting) {
+        greeting.textContent = '';
+    }
+}
+
+// Setup user menu dropdown
+function setupUserMenu() {
+    const userBtn = document.getElementById('user-btn');
+    const userMenu = document.getElementById('user-menu');
+    
+    if (!userBtn || !userMenu) return;
+    
+    // Update username greeting
+    updateUsernameGreeting();
+    
+    // Toggle menu on button click
+    userBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        userMenu.classList.toggle('show');
+    });
+    
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!userBtn.contains(e.target) && !userMenu.contains(e.target)) {
+            userMenu.classList.remove('show');
+        }
+    });
+    
+    // Close menu when clicking on menu item
+    const menuItem = userMenu.querySelector('.user-menu-item');
+    if (menuItem) {
+        menuItem.addEventListener('click', () => {
+            userMenu.classList.remove('show');
+            // TODO: Add user settings functionality here
+            console.log('User Settings clicked');
+        });
+    }
+}
+
 async function initializeApp() {
     try {
         // Load data from API
@@ -20,6 +64,7 @@ async function initializeApp() {
         UI.setupDateSelectors();
         UI.setupTransactionModal();
         UI.populateCategoryMethodDropdowns();
+        setupUserMenu();
         
         // Setup ledger sorting
         Ledger.setupSortableColumns();

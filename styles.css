@@ -44,6 +44,98 @@ body {
     border-radius: 20px 20px 0 0;
 }
 
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+}
+
+.user-menu-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.username-greeting {
+    color: #0066cc;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'Nunito', sans-serif;
+    white-space: nowrap;
+}
+
+.user-btn {
+    background: transparent;
+    border: 2px solid #e0e0e0;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #666;
+    padding: 0;
+}
+
+.user-btn:hover {
+    background: #f5f5f5;
+    border-color: #ffb7ce;
+    color: #333;
+    transform: scale(1.05);
+}
+
+.user-btn:active {
+    transform: scale(0.95);
+}
+
+.user-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 180px;
+    padding: 8px 0;
+    display: none;
+    z-index: 1000;
+    border: 1px solid #e0e0e0;
+}
+
+.user-menu.show {
+    display: block;
+    animation: fadeInDown 0.2s ease;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.user-menu-item {
+    padding: 12px 20px;
+    cursor: pointer;
+    color: #333;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+    font-family: 'Nunito', sans-serif;
+}
+
+.user-menu-item:hover {
+    background-color: #f5f5f5;
+}
+
 .logo-container {
     display: flex;
     justify-content: flex-start;
@@ -124,6 +216,9 @@ body {
     display: none;
     padding: 20px;
     border-radius: 0 0 20px 20px;
+    position: relative;
+    z-index: 1;
+    background-color: white;
 }
 
 .tab-content.active {

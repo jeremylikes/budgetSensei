@@ -195,14 +195,28 @@
                 <img src="images/pink_pig_transparent_bg_logo.png" alt="Budget Sensei Logo" class="logo-image">
                 <h1 class="logo-text">BudgetSensei</h1>
             </div>
-            <button id="logout-btn" class="btn-accent" style="margin-left: auto; padding: 8px 12px; border-radius: 5px; display: flex; align-items: center; gap: 6px;" title="Logout">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                    <polyline points="16 17 21 12 16 7"/>
-                    <line x1="21" y1="12" x2="9" y2="12"/>
-                </svg>
-                <span>Sign Out</span>
-            </button>
+            <div class="header-actions">
+                <div class="user-menu-container">
+                    <span id="username-greeting" class="username-greeting"></span>
+                    <button id="user-btn" class="user-btn" title="User Menu">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="8" r="4"/>
+                            <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+                        </svg>
+                    </button>
+                    <div id="user-menu" class="user-menu">
+                        <div class="user-menu-item">User Settings</div>
+                    </div>
+                </div>
+                <button id="logout-btn" class="btn-accent" style="padding: 8px 12px; border-radius: 5px; display: flex; align-items: center; gap: 6px;" title="Logout">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    <span>Sign Out</span>
+                </button>
+            </div>
         </header>
         <nav class="tabs">
             <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
