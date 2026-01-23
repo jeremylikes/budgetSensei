@@ -131,6 +131,13 @@ async function sendVerificationEmail(email, verificationToken, baseUrl) {
         return true;
     } catch (error) {
         console.error('Error sending verification email:', error);
+        // Log full error details for debugging
+        if (error.message) {
+            console.error('  Exception message:', error.message);
+        }
+        if (error.stack) {
+            console.error('  Stack trace:', error.stack);
+        }
         return false;
     }
 }

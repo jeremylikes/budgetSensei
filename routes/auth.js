@@ -591,17 +591,34 @@ router.post('/api/auth/request-email-association', strictAuthLimiter, async (req
         
         // Send verification email
         const baseUrl = process.env.BASE_URL || req.protocol + '://' + req.get('host');
-        const emailSent = await sendVerificationEmail(email, verificationToken, baseUrl);
-        
-        if (!emailSent) {
-            console.error('Failed to send verification email');
-            return res.status(500).json({ error: 'Failed to send verification email' });
+        try {
+            const emailSent = await sendVerificationEmail(email, verificationToken, baseUrl);
+            
+            if (!emailSent) {
+                console.error('Failed to send verification email for email association');
+                // Return success but indicate email wasn't sent (similar to registration)
+                // This handles cases where Resend has limitations (e.g., testing mode)
+                return res.status(200).json({ 
+                    success: true, 
+                    emailSent: false,
+                    message: 'Account updated, but verification email could not be sent. This may be due to Resend testing limitations. Please contact support or verify your domain in Resend for production use.'
+                });
+            }
+            
+            res.json({ 
+                success: true, 
+                emailSent: true,
+                message: 'Verification email sent. Please check your email.' 
+            });
+        } catch (emailError) {
+            console.error('Exception sending verification email for email association:', emailError);
+            // Still return success but indicate email wasn't sent
+            return res.status(200).json({ 
+                success: true, 
+                emailSent: false,
+                message: 'Account updated, but verification email could not be sent. Please try again or contact support.'
+            });
         }
-        
-        res.json({ 
-            success: true, 
-            message: 'Verification email sent. Please check your email.' 
-        });
     } catch (error) {
         console.error('Error requesting email association:', error);
         res.status(500).json({ error: 'Failed to process email association request' });
