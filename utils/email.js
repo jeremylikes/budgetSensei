@@ -30,6 +30,17 @@ function getFromEmail() {
     return process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 }
 
+// Create professional email header with app name (matching site styling)
+function createEmailHeader(baseUrl) {
+    return `
+        <div style="text-align: center; margin-bottom: 40px; padding-bottom: 30px; border-bottom: 2px solid #ffb7ce;">
+            <h1 style="color: #333; font-size: 42px; font-weight: 800; margin: 0; letter-spacing: 2px; font-family: 'Nunito', 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.2;">
+                Budget<span style="color: #ffb7ce;">Sensei</span>
+            </h1>
+        </div>
+    `;
+}
+
 // Generate a secure random token
 function generateToken() {
     return crypto.randomBytes(32).toString('hex');
@@ -51,7 +62,8 @@ async function sendPasswordResetEmail(email, resetToken, baseUrl) {
             to: email,
             subject: 'Reset Your BudgetSensei Password',
             html: `
-                <div style="font-family: 'Nunito', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="font-family: 'Nunito', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
+                    ${createEmailHeader(baseUrl)}
                     <h2 style="color: #333;">Reset Your Password</h2>
                     <p>You requested to reset your password for your BudgetSensei account.</p>
                     <p>Click the link below to reset your password:</p>
@@ -63,6 +75,8 @@ async function sendPasswordResetEmail(email, resetToken, baseUrl) {
                     <p style="color: #999; font-size: 12px; margin-top: 30px;">This link will expire in 1 hour.</p>
                     <p style="color: #999; font-size: 12px;">If you didn't request this, please ignore this email.</p>
                 </div>
+                </body>
+                </html>
             `,
             text: `Reset Your Password\n\nClick this link to reset your password: ${resetUrl}\n\nThis link will expire in 1 hour.\n\nIf you didn't request this, please ignore this email.`
         });
@@ -96,7 +110,14 @@ async function sendVerificationEmail(email, verificationToken, baseUrl) {
             to: email,
             subject: 'Verify Your BudgetSensei Account',
             html: `
-                <div style="font-family: 'Nunito', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+                </head>
+                <body style="margin: 0; padding: 0;">
+                <div style="font-family: 'Nunito', 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
+                    ${createEmailHeader(baseUrl)}
                     <h2 style="color: #333;">Verify Your Email Address</h2>
                     <p>Thank you for creating your BudgetSensei account!</p>
                     <p>Please click the link below to verify your email address and activate your account:</p>
@@ -108,6 +129,8 @@ async function sendVerificationEmail(email, verificationToken, baseUrl) {
                     <p style="color: #999; font-size: 12px; margin-top: 30px;">This link will expire in 10 minutes.</p>
                     <p style="color: #999; font-size: 12px;">If you didn't create this account, please ignore this email.</p>
                 </div>
+                </body>
+                </html>
             `,
             text: `Verify Your Email Address\n\nThank you for creating your BudgetSensei account!\n\nClick this link to verify your email: ${verificationUrl}\n\nThis link will expire in 10 minutes.\n\nIf you didn't create this account, please ignore this email.`
         });
@@ -156,7 +179,14 @@ async function sendWelcomeEmail(email, username, baseUrl) {
             to: email,
             subject: 'Welcome to BudgetSensei!',
             html: `
-                <div style="font-family: 'Nunito', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+                </head>
+                <body style="margin: 0; padding: 0;">
+                <div style="font-family: 'Nunito', 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
+                    ${createEmailHeader(baseUrl)}
                     <h2 style="color: #333;">Welcome to BudgetSensei, ${username}!</h2>
                     <p>Thank you for creating your account. You're all set to start tracking your budget and managing your finances.</p>
                     <p style="margin: 20px 0;">
@@ -171,6 +201,8 @@ async function sendWelcomeEmail(email, username, baseUrl) {
                     </ul>
                     <p style="color: #999; font-size: 12px; margin-top: 30px;">If you have any questions, feel free to reach out to our support team.</p>
                 </div>
+                </body>
+                </html>
             `,
             text: `Welcome to BudgetSensei, ${username}!\n\nThank you for creating your account. You're all set to start tracking your budget and managing your finances.\n\nVisit ${baseUrl} to get started.\n\nIf you have any questions, feel free to reach out to our support team.`
         });
@@ -195,7 +227,7 @@ function isValidEmail(email) {
 }
 
 // Send password reset code email (7-digit code)
-async function sendPasswordResetCodeEmail(email, resetCode) {
+async function sendPasswordResetCodeEmail(email, resetCode, baseUrl = '') {
     const client = initializeResend();
     if (!client) {
         console.error('Cannot send email: Resend API key not configured');
@@ -208,7 +240,14 @@ async function sendPasswordResetCodeEmail(email, resetCode) {
             to: email,
             subject: 'Your BudgetSensei Password Reset Code',
             html: `
-                <div style="font-family: 'Nunito', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+                </head>
+                <body style="margin: 0; padding: 0;">
+                <div style="font-family: 'Nunito', 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
+                    ${createEmailHeader(baseUrl)}
                     <h2 style="color: #333;">Password Reset Code</h2>
                     <p>You requested to reset your password for your BudgetSensei account.</p>
                     <p style="font-size: 24px; font-weight: bold; color: #ffb7ce; letter-spacing: 4px; text-align: center; margin: 30px 0;">
@@ -218,6 +257,8 @@ async function sendPasswordResetCodeEmail(email, resetCode) {
                     <p style="color: #999; font-size: 12px; margin-top: 30px;">This code will expire in 5 minutes.</p>
                     <p style="color: #999; font-size: 12px;">If you didn't request this, please ignore this email.</p>
                 </div>
+                </body>
+                </html>
             `,
             text: `Password Reset Code\n\nYour password reset code is: ${resetCode}\n\nEnter this code in the password reset form to continue.\n\nThis code will expire in 5 minutes.\n\nIf you didn't request this, please ignore this email.`
         });

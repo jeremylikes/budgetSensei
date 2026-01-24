@@ -83,7 +83,8 @@ router.post('/request-password-reset-code', requireAuth, async (req, res) => {
 
         // Send email with code
         try {
-            await sendPasswordResetCodeEmail(user.email, resetCode);
+            const baseUrl = process.env.BASE_URL || req.protocol + '://' + req.get('host');
+            await sendPasswordResetCodeEmail(user.email, resetCode, baseUrl);
             res.json({ success: true });
         } catch (emailError) {
             console.error('Error sending reset code email:', emailError);
