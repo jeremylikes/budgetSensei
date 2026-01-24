@@ -194,10 +194,52 @@ function isValidEmail(email) {
     return emailRegex.test(email);
 }
 
+// Send password reset code email (7-digit code)
+async function sendPasswordResetCodeEmail(email, resetCode) {
+    const client = initializeResend();
+    if (!client) {
+        console.error('Cannot send email: Resend API key not configured');
+        throw new Error('Email service not configured');
+    }
+    
+    try {
+        const { data, error } = await client.emails.send({
+            from: getFromEmail(),
+            to: email,
+            subject: 'Your BudgetSensei Password Reset Code',
+            html: `
+                <div style="font-family: 'Nunito', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #333;">Password Reset Code</h2>
+                    <p>You requested to reset your password for your BudgetSensei account.</p>
+                    <p style="font-size: 24px; font-weight: bold; color: #ffb7ce; letter-spacing: 4px; text-align: center; margin: 30px 0;">
+                        ${resetCode}
+                    </p>
+                    <p>Enter this code in the password reset form to continue.</p>
+                    <p style="color: #999; font-size: 12px; margin-top: 30px;">This code will expire in 5 minutes.</p>
+                    <p style="color: #999; font-size: 12px;">If you didn't request this, please ignore this email.</p>
+                </div>
+            `,
+            text: `Password Reset Code\n\nYour password reset code is: ${resetCode}\n\nEnter this code in the password reset form to continue.\n\nThis code will expire in 5 minutes.\n\nIf you didn't request this, please ignore this email.`
+        });
+        
+        if (error) {
+            console.error('Error sending password reset code email:', error);
+            throw error;
+        }
+        
+        console.log(`Password reset code email sent to ${email}`);
+        return true;
+    } catch (error) {
+        console.error('Error sending password reset code email:', error);
+        throw error;
+    }
+}
+
 module.exports = {
     generateToken,
     sendPasswordResetEmail,
     sendVerificationEmail,
     sendWelcomeEmail,
+    sendPasswordResetCodeEmail,
     isValidEmail
 };

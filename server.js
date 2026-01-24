@@ -23,6 +23,7 @@ const transactionRoutes = require('./routes/transactions');
 const { router: categoryRoutes } = require('./routes/categories');
 const methodRoutes = require('./routes/methods');
 const budgetRoutes = require('./routes/budgets');
+const userRoutes = require('./routes/user');
 
 // Auth routes (no authentication required)
 app.use(authRoutes);
@@ -34,6 +35,7 @@ app.use(transactionRoutes);
 app.use(categoryRoutes);
 app.use(methodRoutes);
 app.use(budgetRoutes);
+app.use('/api/user', userRoutes);
 
 // Start server - wait for database initialization
 async function startServer() {

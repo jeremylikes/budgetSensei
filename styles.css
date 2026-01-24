@@ -53,17 +53,6 @@ body {
 
 .user-menu-container {
     position: relative;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.username-greeting {
-    color: #0066cc;
-    font-size: 14px;
-    font-weight: 600;
-    font-family: 'Nunito', sans-serif;
-    white-space: nowrap;
 }
 
 .user-btn {
@@ -134,6 +123,23 @@ body {
 
 .user-menu-item:hover {
     background-color: #f5f5f5;
+}
+
+.user-menu-greeting {
+    padding: 12px 20px;
+    color: #666;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: 'Nunito', sans-serif;
+    border-bottom: 1px solid #e0e0e0;
+    margin-bottom: 4px;
+    cursor: default;
+}
+
+.user-menu-divider {
+    height: 1px;
+    background-color: #e0e0e0;
+    margin: 4px 0;
 }
 
 .logo-container {
@@ -1365,6 +1371,215 @@ emoji-picker::part(search-input) {
 
 .data-section h2 {
     margin-bottom: 15px;
+}
+
+/* User Settings Styles */
+.user-settings-container {
+    padding: 30px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.user-settings-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 30px;
+    font-family: 'Nunito', sans-serif;
+}
+
+.user-settings-section {
+    margin-bottom: 30px;
+}
+
+.user-settings-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #666;
+    margin-bottom: 8px;
+    font-family: 'Nunito', sans-serif;
+}
+
+.inline-edit-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.inline-edit-input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 16px;
+    font-family: 'Nunito', sans-serif;
+    transition: all 0.2s ease;
+    background-color: #f9f9f9;
+}
+
+.inline-edit-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    background-color: white;
+}
+
+.inline-edit-input[readonly] {
+    cursor: pointer;
+    background-color: #f9f9f9;
+    pointer-events: auto;
+    user-select: none;
+}
+
+.inline-edit-input[readonly]:active {
+    background-color: #e8e8e8;
+}
+
+.inline-edit-input[readonly]:hover {
+    background-color: #f0f0f0;
+}
+
+.inline-edit-save-btn {
+    padding: 12px 24px;
+    background-color: var(--accent-color);
+    color: var(--accent-text);
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    transition: background-color 0.2s ease;
+    display: inline-block;
+    visibility: visible;
+    opacity: 1;
+    white-space: nowrap;
+}
+
+.inline-edit-save-btn:hover {
+    background-color: var(--accent-hover);
+}
+
+.inline-edit-save-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.password-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.password-input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 16px;
+    font-family: 'Nunito', sans-serif;
+    transition: all 0.2s ease;
+    background-color: #f9f9f9;
+}
+
+.password-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    background-color: white;
+}
+
+.password-input[readonly] {
+    cursor: default;
+    pointer-events: auto;
+}
+
+.password-reset-btn {
+    padding: 12px 24px;
+    background-color: #666;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    transition: background-color 0.2s ease;
+}
+
+.password-reset-btn:hover {
+    background-color: #555;
+}
+
+.password-reset-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.password-reset-field {
+    margin-bottom: 15px;
+}
+
+.reset-code-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 16px;
+    font-family: 'Nunito', sans-serif;
+    transition: all 0.2s ease;
+    background-color: #f5f5f5;
+    color: #999;
+}
+
+.reset-code-input:disabled {
+    cursor: not-allowed;
+}
+
+.reset-code-input:not(:disabled) {
+    background-color: white;
+    color: #333;
+    border-color: var(--accent-color);
+}
+
+.reset-code-input:not(:disabled):focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+.new-password-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.new-password-fields .password-input {
+    background-color: white;
+}
+
+.password-update-btn {
+    padding: 12px 24px;
+    background-color: var(--accent-color);
+    color: var(--accent-text);
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    transition: background-color 0.2s ease;
+    align-self: flex-start;
+}
+
+.password-update-btn:hover:not(:disabled) {
+    background-color: var(--accent-hover);
+}
+
+.password-update-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    color: #999;
 }
 
 .input-group {

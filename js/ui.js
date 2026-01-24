@@ -50,6 +50,10 @@ const UI = {
                                 Dashboard.update();
                             } else if (targetTab === 'ledger') {
                                 Ledger.update();
+                            } else if (targetTab === 'settings') {
+                                if (window.UserSettings && window.UserSettings.loadUserData) {
+                                    UserSettings.loadUserData();
+                                }
                             }
                         } catch (error) {
                             console.error(`Error updating ${targetTab} tab:`, error);
