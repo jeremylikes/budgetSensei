@@ -56,8 +56,8 @@
             <form id="login-form">
                 <div id="login-error" style="color: red; margin-bottom: 15px; min-height: 20px;"></div>
                 <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; color: #333; font-weight: bold;">Username</label>
-                    <input type="text" id="login-username" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box;">
+                    <label style="display: block; margin-bottom: 5px; color: #333; font-weight: bold;">Username or Email</label>
+                    <input type="text" id="login-username" placeholder="Enter username or email" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box;">
                 </div>
                 <div style="margin-bottom: 15px;">
                     <label style="display: block; margin-bottom: 5px; color: #333; font-weight: bold;">Password</label>
@@ -101,7 +101,8 @@
             <form id="forgot-password-form" style="display: none;">
                 <div id="forgot-password-error" style="color: red; margin-bottom: 15px; min-height: 20px;"></div>
                 <div id="forgot-password-success" style="color: green; margin-bottom: 15px; min-height: 20px;"></div>
-                <p style="color: #666; margin-bottom: 20px;">Enter your email address and we'll send you a link to reset your password.</p>
+                <p style="color: #666; margin-bottom: 20px;">Enter your email address and we'll send you a password reset link. This link will allow you to set a new password.</p>
+                <p style="color: #999; font-size: 12px; margin-bottom: 20px;">Note: If you're already logged in, you can change your password from the Settings page in your account menu.</p>
                 <div style="margin-bottom: 15px;">
                     <label style="display: block; margin-bottom: 5px; color: #333; font-weight: bold;">Email</label>
                     <input type="email" id="forgot-password-email" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box;">

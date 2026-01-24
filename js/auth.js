@@ -494,7 +494,7 @@ const Auth = {
                 const password = loginPassword ? loginPassword.value.trim() : '';
                 
                 if (!username || !password) {
-                    if (loginError) loginError.textContent = 'Please enter username and password';
+                    if (loginError) loginError.textContent = 'Please enter username or email and password';
                     return;
                 }
                 
@@ -656,14 +656,60 @@ const Auth = {
         
         // Handle reset password form
         const resetPasswordSubmit = document.getElementById('reset-password-submit');
+        const resetPasswordNew = document.getElementById('reset-password-new');
+        const resetPasswordConfirm = document.getElementById('reset-password-confirm');
+        const resetError = document.getElementById('reset-password-error');
+        
+        // Function to check if passwords match and show/hide button
+        const checkPasswordMatch = () => {
+            const newPassword = resetPasswordNew ? resetPasswordNew.value : '';
+            const confirmPassword = resetPasswordConfirm ? resetPasswordConfirm.value : '';
+            
+            // Hide button if passwords don't match or are too short
+            if (!newPassword || !confirmPassword || newPassword.length < 8 || newPassword !== confirmPassword) {
+                if (resetPasswordSubmit) {
+                    resetPasswordSubmit.style.display = 'none';
+                }
+                if (resetError && newPassword && confirmPassword && newPassword !== confirmPassword) {
+                    resetError.textContent = 'Passwords do not match';
+                } else if (resetError && newPassword && confirmPassword && newPassword.length < 8) {
+                    resetError.textContent = 'Password must be at least 8 characters';
+                } else if (resetError && (!newPassword || !confirmPassword)) {
+                    resetError.textContent = '';
+                }
+            } else {
+                // Show button if passwords match and meet requirements
+                if (resetPasswordSubmit) {
+                    resetPasswordSubmit.style.display = 'block';
+                }
+                if (resetError) {
+                    resetError.textContent = '';
+                }
+            }
+        };
+        
+        // Initially hide the button
+        if (resetPasswordSubmit) {
+            resetPasswordSubmit.style.display = 'none';
+        }
+        
+        // Add input listeners to check password match in real-time
+        if (resetPasswordNew) {
+            resetPasswordNew.addEventListener('input', checkPasswordMatch);
+            resetPasswordNew.addEventListener('keyup', checkPasswordMatch);
+        }
+        if (resetPasswordConfirm) {
+            resetPasswordConfirm.addEventListener('input', checkPasswordMatch);
+            resetPasswordConfirm.addEventListener('keyup', checkPasswordMatch);
+        }
+        
         if (resetPasswordSubmit) {
             resetPasswordSubmit.addEventListener('click', async (e) => {
                 e.preventDefault();
                 const urlParams = new URLSearchParams(window.location.search);
                 const token = urlParams.get('token');
-                const newPassword = document.getElementById('reset-password-new').value;
-                const confirmPassword = document.getElementById('reset-password-confirm').value;
-                const resetError = document.getElementById('reset-password-error');
+                const newPassword = resetPasswordNew ? resetPasswordNew.value : '';
+                const confirmPassword = resetPasswordConfirm ? resetPasswordConfirm.value : '';
                 
                 if (!token) {
                     if (resetError) resetError.textContent = 'Invalid reset token';

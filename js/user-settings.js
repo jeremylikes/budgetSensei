@@ -471,8 +471,12 @@ const UserSettings = {
                 const result = await response.json();
 
                 if (result.success) {
-                    alert('Password updated successfully');
+                    alert(result.message || 'Password updated successfully. You will be logged out and need to log in again with your new password.');
                     this.resetPasswordFlow();
+                    // Redirect to login after a short delay
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 2000);
                 } else {
                     alert(result.error || 'Failed to update password');
                     updateBtn.disabled = false;

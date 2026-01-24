@@ -198,9 +198,36 @@ router.put('/update-password', requireAuth, async (req, res) => {
 
         // Update password and clear reset token
         db.run(`UPDATE users SET password_hash = '${escapeSql(hashedPassword)}', reset_token = NULL, reset_token_expires = NULL WHERE id = ${userId}`);
-        await saveDatabase();
+        saveDatabase();
         
-        res.json({ success: true });
+        // Verify the password was updated by checking the hash matches
+        const verifyResult = db.exec(`SELECT password_hash FROM users WHERE id = ${userId}`);
+        if (!verifyResult[0] || verifyResult[0].values.length === 0) {
+            console.error('Failed to verify password update - user not found');
+            return res.status(500).json({ success: false, error: 'Failed to update password' });
+        }
+        
+        const updatedHash = verifyResult[0].values[0][0];
+        // Verify the hash was updated (should match our new hash)
+        if (!updatedHash || updatedHash !== hashedPassword) {
+            console.error('Password hash mismatch after update', {
+                expected: hashedPassword.substring(0, 20) + '...',
+                got: updatedHash ? updatedHash.substring(0, 20) + '...' : 'null'
+            });
+            return res.status(500).json({ success: false, error: 'Password update verification failed' });
+        }
+        
+        // Invalidate the current session - user must log in again with new password
+        req.logout((err) => {
+            if (err) {
+                console.error('Error logging out after password change:', err);
+            }
+        });
+        
+        res.json({ 
+            success: true,
+            message: 'Password updated successfully. Please log in again with your new password.'
+        });
     } catch (error) {
         console.error('Error in update-password route:', error);
         res.status(500).json({ success: false, error: 'Internal server error' });

@@ -20,8 +20,30 @@ passport.use(new LocalStrategy(
                 return done(new Error('Database not initialized'));
             }
             
-            // Find user
-            const userResult = db.exec(`SELECT id, username, password_hash FROM users WHERE username = '${escapeSql(username)}'`);
+            // Find user by username or email
+            // Check if input looks like an email (contains @)
+            const isEmail = username.includes('@');
+            let userResult;
+            
+            if (isEmail) {
+                // Search by email
+                userResult = db.exec(`SELECT id, username, password_hash FROM users WHERE email = '${escapeSql(username)}'`);
+            } else {
+                // Search by username
+                userResult = db.exec(`SELECT id, username, password_hash FROM users WHERE username = '${escapeSql(username)}'`);
+            }
+            
+            // If not found with first method, try the other (in case user enters email in username field or vice versa)
+            if (!userResult[0] || userResult[0].values.length === 0) {
+                if (isEmail) {
+                    // Already tried email, try username
+                    userResult = db.exec(`SELECT id, username, password_hash FROM users WHERE username = '${escapeSql(username)}'`);
+                } else {
+                    // Already tried username, try email
+                    userResult = db.exec(`SELECT id, username, password_hash FROM users WHERE email = '${escapeSql(username)}'`);
+                }
+            }
+            
             if (!userResult[0] || userResult[0].values.length === 0) {
                 // Don't reveal if user exists - generic error message
                 return done(null, false, { message: 'Invalid username or password' });
