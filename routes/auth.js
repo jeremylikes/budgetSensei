@@ -181,14 +181,19 @@ router.post('/api/auth/register', strictAuthLimiter, async (req, res) => {
 
 // Login using Passport.js
 router.post('/api/auth/login', strictAuthLimiter, (req, res, next) => {
+    // Log login attempt (without password)
+    const username = req.body.username || req.body.email || 'unknown';
+    console.log(`[Login Attempt] Username/Email: ${username.substring(0, 20)}... (length: ${username.length})`);
+    
     passport.authenticate('local', async (err, user, info) => {
         if (err) {
-            console.error('Error during authentication:', err);
+            console.error('[Login] Error during authentication:', err);
             return res.status(500).json({ error: 'Authentication failed' });
         }
         
         if (!user) {
             // Authentication failed
+            console.log(`[Login] Authentication failed for: ${username.substring(0, 20)}... - ${info?.message || 'Unknown error'}`);
             return res.status(401).json({ error: info.message || 'Invalid username or password' });
         }
         

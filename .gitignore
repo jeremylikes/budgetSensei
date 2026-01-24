@@ -4,5 +4,6 @@ budget.db
 budget-local.db
 *.log
 .env
+env
 .DS_Store
 

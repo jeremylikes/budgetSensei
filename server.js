@@ -2,7 +2,34 @@
 // Coordinates all modules and starts the Express server
 
 // Load environment variables from .env file (for local development)
-require('dotenv').config();
+// Try .env first, then fall back to 'env' if .env doesn't exist
+const fs = require('fs');
+const path = require('path');
+const envPath = path.join(__dirname, '.env');
+const envPathAlt = path.join(__dirname, 'env');
+
+if (fs.existsSync(envPath)) {
+    require('dotenv').config({ path: envPath });
+    console.log('Loaded environment variables from .env file');
+} else if (fs.existsSync(envPathAlt)) {
+    require('dotenv').config({ path: envPathAlt });
+    console.log('Loaded environment variables from "env" file (consider renaming to ".env")');
+} else {
+    require('dotenv').config(); // Try default .env
+}
+
+// Verify critical environment variables are loaded
+if (process.env.RESEND_API_KEY) {
+    console.log('✓ RESEND_API_KEY is configured');
+} else {
+    console.warn('⚠ RESEND_API_KEY is not set - email functionality will not work');
+}
+
+if (process.env.RESEND_FROM_EMAIL) {
+    console.log(`✓ RESEND_FROM_EMAIL is set to: ${process.env.RESEND_FROM_EMAIL}`);
+} else {
+    console.warn('⚠ RESEND_FROM_EMAIL is not set - using default: onboarding@resend.dev');
+}
 
 const express = require('express');
 const { initializeDatabase, saveDatabase, getDb } = require('./db/database');

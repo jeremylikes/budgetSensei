@@ -17,12 +17,14 @@ passport.use(new LocalStrategy(
         try {
             const db = getDb();
             if (!db) {
+                console.error('[Passport] Database not initialized');
                 return done(new Error('Database not initialized'));
             }
             
             // Find user by username or email
             // Check if input looks like an email (contains @)
             const isEmail = username.includes('@');
+            console.log(`[Passport] Attempting authentication for: ${username.substring(0, 20)}... (isEmail: ${isEmail})`);
             let userResult;
             
             if (isEmail) {
@@ -46,6 +48,7 @@ passport.use(new LocalStrategy(
             
             if (!userResult[0] || userResult[0].values.length === 0) {
                 // Don't reveal if user exists - generic error message
+                console.log(`[Passport] User not found: ${username.substring(0, 20)}...`);
                 return done(null, false, { message: 'Invalid username or password' });
             }
             
@@ -55,13 +58,17 @@ passport.use(new LocalStrategy(
                 passwordHash: userResult[0].values[0][2]
             };
             
+            console.log(`[Passport] User found: ${user.username} (id: ${user.id}), verifying password...`);
+            
             // Verify password
             const passwordMatch = await bcrypt.compare(password, user.passwordHash);
             if (!passwordMatch) {
+                console.log(`[Passport] Password mismatch for user: ${user.username}`);
                 return done(null, false, { message: 'Invalid username or password' });
             }
             
             // Success - return user object
+            console.log(`[Passport] Authentication successful for user: ${user.username}`);
             return done(null, user);
         } catch (error) {
             return done(error);
