@@ -5,7 +5,7 @@
 function updateUsernameGreeting() {
     const greeting = document.getElementById('username-greeting');
     if (greeting && Auth.currentUser && Auth.currentUser.username) {
-        greeting.textContent = `Hi, ${Auth.currentUser.username}`;
+        greeting.textContent = `Hi, ${Auth.currentUser.username}-Sensei`;
     } else if (greeting) {
         greeting.textContent = '';
     }
