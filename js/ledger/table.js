@@ -61,22 +61,47 @@ const LedgerTable = {
                 return false;
             }, true); // Use capture phase to catch early
         } else {
-            // Root transaction - show recurring icon (clickable)
-            recurringBtn.title = 'Generate recurring transactions';
-            recurringBtn.setAttribute('data-is-branch', 'false'); // Mark as root for debugging
-            // Recycle icon SVG
-            recurringBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-                <path d="M21 3v5h-5"/>
-                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-                <path d="M3 21v-5h5"/>
-            </svg>`;
-            recurringBtn.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                if (window.LedgerNewRow && window.LedgerNewRow.showRecurringModal) {
-                    await window.LedgerNewRow.showRecurringModal(recurringBtn, row, transaction.id);
-                }
-            });
+            // Check if this is a root transaction (has branch transactions)
+            const isRoot = this.isRootTransaction(transaction.id);
+            
+            if (isRoot) {
+                // Root transaction with branches - show yellow highlighted recurring icon
+                recurringBtn.title = 'View recurring settings';
+                recurringBtn.setAttribute('data-is-branch', 'false');
+                recurringBtn.setAttribute('data-is-root', 'true');
+                recurringBtn.classList.add('recurring-btn-root'); // Add class for yellow highlighting
+                // Recycle icon SVG
+                recurringBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                    <path d="M21 3v5h-5"/>
+                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                    <path d="M3 21v-5h5"/>
+                </svg>`;
+                recurringBtn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    if (window.LedgerNewRow && window.LedgerNewRow.showRecurringModal) {
+                        await window.LedgerNewRow.showRecurringModal(recurringBtn, row, transaction.id, true); // Pass isRoot=true
+                    }
+                });
+            } else {
+                // Regular transaction - show recurring icon (clickable)
+                recurringBtn.title = 'Generate recurring transactions';
+                recurringBtn.setAttribute('data-is-branch', 'false');
+                recurringBtn.setAttribute('data-is-root', 'false');
+                // Recycle icon SVG
+                recurringBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                    <path d="M21 3v5h-5"/>
+                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                    <path d="M3 21v-5h5"/>
+                </svg>`;
+                recurringBtn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    if (window.LedgerNewRow && window.LedgerNewRow.showRecurringModal) {
+                        await window.LedgerNewRow.showRecurringModal(recurringBtn, row, transaction.id, false); // Pass isRoot=false
+                    }
+                });
+            }
         }
         recurringCell.appendChild(recurringBtn);
         
@@ -241,6 +266,39 @@ const LedgerTable = {
             cell.textContent = value;
             cell.dataset.value = value;
         }
+    },
+    
+    // Check if a transaction is a root (has branch transactions)
+    isRootTransaction(transactionId) {
+        if (!DataStore || !DataStore.transactions) {
+            return false;
+        }
+        // Check if any transaction has this transaction's id as its root_id
+        return DataStore.transactions.some(t => {
+            const rootId = t.root_id;
+            return rootId != null && 
+                   rootId !== undefined && 
+                   rootId !== '' && 
+                   rootId !== 0 &&
+                   !isNaN(Number(rootId)) && 
+                   Number(rootId) === transactionId;
+        });
+    },
+    
+    // Get branch transactions for a root transaction
+    getBranchTransactions(rootId) {
+        if (!DataStore || !DataStore.transactions) {
+            return [];
+        }
+        return DataStore.transactions.filter(t => {
+            const tRootId = t.root_id;
+            return tRootId != null && 
+                   tRootId !== undefined && 
+                   tRootId !== '' && 
+                   tRootId !== 0 &&
+                   !isNaN(Number(tRootId)) && 
+                   Number(tRootId) === rootId;
+        });
     }
 };
 

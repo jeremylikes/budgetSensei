@@ -1126,10 +1126,33 @@ tbody tr.new-row .note-input:focus {
     color: #333;
 }
 
+.recurring-btn-root {
+    background-color: #ffd700;
+    border-color: #ffd700;
+    color: #333;
+}
+
+.recurring-btn-root:hover {
+    background-color: #ffed4e;
+    border-color: #ffed4e;
+}
+
 .recurring-btn svg {
     width: 16px;
     height: 16px;
     display: block;
+}
+
+.recurring-options.readonly .recurring-option {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.recurring-options.readonly .recurring-option.active {
+    opacity: 1;
+    background-color: #ffd700;
+    border-color: #ffd700;
+    color: #333;
 }
 
 /* Recurring modal */
