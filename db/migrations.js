@@ -460,6 +460,14 @@ async function runMigrations(db) {
             // Don't throw - allow server to continue
         }
         
+        // Migration: Add 'root_id' column to transactions table for recurring transaction relationships
+        const rootIdAdded = ensureColumn('transactions', 'root_id', 'INTEGER', db);
+        if (rootIdAdded) {
+            console.log('✓ Migration completed: root_id column added to transactions');
+        } else {
+            console.log('✓ Migration check completed: root_id column already exists');
+        }
+        
         // Add more migrations here as needed in the future
         // Example: ensureColumn('transactions', 'tags', 'TEXT');
         

@@ -22,25 +22,62 @@ const LedgerTable = {
         });
         checkboxCell.appendChild(checkbox);
         
-        // Recurring button cell (no highlighting - just a button to generate duplicates)
+        // Recurring/Link button cell
         const recurringCell = document.createElement('td');
         const recurringBtn = document.createElement('button');
         recurringBtn.className = 'recurring-btn';
         recurringBtn.type = 'button';
-        recurringBtn.title = 'Generate recurring transactions';
-        // Recycle icon SVG
-        recurringBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-            <path d="M21 3v5h-5"/>
-            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-            <path d="M3 21v-5h5"/>
-        </svg>`;
-        recurringBtn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            if (window.LedgerNewRow && window.LedgerNewRow.showRecurringModal) {
-                await window.LedgerNewRow.showRecurringModal(recurringBtn, row, transaction.id);
-            }
-        });
+        
+        // Check if this is a branch transaction (has root_id)
+        // A branch transaction has a non-null, non-undefined root_id that is a valid number
+        const rootId = transaction.root_id;
+        
+        // More robust check: root_id must be a valid positive number
+        // Handle cases where root_id might be null, undefined, empty string, 0, or a valid number
+        const isBranch = rootId != null && 
+                        rootId !== undefined && 
+                        rootId !== '' && 
+                        rootId !== 0 &&
+                        !isNaN(Number(rootId)) && 
+                        Number(rootId) > 0;
+        
+        if (isBranch) {
+            // Branch transaction - show link icon (non-clickable)
+            recurringBtn.title = 'Linked to recurring transaction';
+            recurringBtn.style.cursor = 'not-allowed';
+            recurringBtn.style.opacity = '0.6';
+            recurringBtn.disabled = true; // Disable the button
+            recurringBtn.setAttribute('data-is-branch', 'true'); // Mark as branch for debugging
+            // Link icon SVG
+            recurringBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>`;
+            // Explicitly prevent any clicks on branch transactions
+            recurringBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('[DEBUG] Branch transaction click prevented');
+                return false;
+            }, true); // Use capture phase to catch early
+        } else {
+            // Root transaction - show recurring icon (clickable)
+            recurringBtn.title = 'Generate recurring transactions';
+            recurringBtn.setAttribute('data-is-branch', 'false'); // Mark as root for debugging
+            // Recycle icon SVG
+            recurringBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                <path d="M21 3v5h-5"/>
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                <path d="M3 21v-5h5"/>
+            </svg>`;
+            recurringBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (window.LedgerNewRow && window.LedgerNewRow.showRecurringModal) {
+                    await window.LedgerNewRow.showRecurringModal(recurringBtn, row, transaction.id);
+                }
+            });
+        }
         recurringCell.appendChild(recurringBtn);
         
         // Date cell

@@ -85,6 +85,7 @@ const LedgerNewRow = {
         dateInput.value = `${yearStr}-${monthStr}-${dayStr}`;
         
         dateInput.required = true;
+        dateInput.autocomplete = 'off';
         dateInput.dataset.field = 'date';
         dateInput.addEventListener('input', () => this.validate());
         dateCell.appendChild(dateInput);
@@ -95,6 +96,7 @@ const LedgerNewRow = {
         descInput.type = 'text';
         descInput.maxLength = 40;
         descInput.required = true;
+        descInput.autocomplete = 'off';
         descInput.dataset.field = 'description';
         descInput.addEventListener('input', () => this.validate());
         descCell.appendChild(descInput);
@@ -103,6 +105,7 @@ const LedgerNewRow = {
         const catCell = document.createElement('td');
         const catSelect = document.createElement('select');
         catSelect.required = true;
+        catSelect.autocomplete = 'off';
         catSelect.dataset.field = 'category';
         catSelect.addEventListener('change', () => this.validate());
         // Combine income and expenses, sort alphabetically
@@ -130,6 +133,7 @@ const LedgerNewRow = {
         const methodCell = document.createElement('td');
         const methodSelect = document.createElement('select');
         methodSelect.required = false;
+        methodSelect.autocomplete = 'off';
         methodSelect.dataset.field = 'method';
         methodSelect.addEventListener('change', () => this.validate());
         
@@ -156,6 +160,7 @@ const LedgerNewRow = {
         amountInput.type = 'text';
         amountInput.placeholder = '0.00';
         amountInput.required = true;
+        amountInput.autocomplete = 'off';
         amountInput.dataset.field = 'amount';
         amountInput.addEventListener('input', (e) => {
             this.validate();
@@ -194,6 +199,7 @@ const LedgerNewRow = {
         noteInput.rows = 1;
         noteInput.maxLength = 40;
         noteInput.placeholder = 'Optional note...';
+        noteInput.autocomplete = 'off';
         noteCell.appendChild(noteInput);
         
         // Delete/Save button cell (Save button for new row)

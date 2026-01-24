@@ -21,10 +21,20 @@ router.get('/api/data', requireAuth, (req, res) => {
             ensureDefaultCategories(userId, db);
         }
         
-        const transactions = db.exec(`SELECT * FROM transactions WHERE user_id = ${userId} ORDER BY date DESC`);
+        // Check if root_id column exists and use explicit column selection
+        const { columnExists, ensureColumn } = require('../db/helpers');
+        const hasRootIdColumn = columnExists('transactions', 'root_id', db);
+        
+        let transactionQuery;
+        if (hasRootIdColumn) {
+            transactionQuery = `SELECT id, date, description, category, method, type, amount, note, user_id, root_id FROM transactions WHERE user_id = ${userId} ORDER BY date DESC`;
+        } else {
+            transactionQuery = `SELECT id, date, description, category, method, type, amount, note, user_id FROM transactions WHERE user_id = ${userId} ORDER BY date DESC`;
+        }
+        
+        const transactions = db.exec(transactionQuery);
         
         // Check if type column exists in categories table
-        const { columnExists, ensureColumn } = require('../db/helpers');
         const hasTypeColumn = columnExists('categories', 'type', db);
         
         let incomeCategories = { values: [] };
@@ -95,6 +105,15 @@ router.get('/api/data', requireAuth, (req, res) => {
                 needsSave = true;
             }
             
+            // Extract root_id if column exists (it's the last column when present)
+            let rootId = null;
+            if (hasRootIdColumn && row.length > 9) {
+                const rootIdValue = row[9]; // root_id is at index 9 (10th column)
+                if (rootIdValue != null && rootIdValue !== undefined && rootIdValue !== '' && !isNaN(Number(rootIdValue)) && Number(rootIdValue) > 0) {
+                    rootId = Number(rootIdValue);
+                }
+            }
+            
             return {
                 id: row[0],
                 date: row[1],
@@ -103,7 +122,8 @@ router.get('/api/data', requireAuth, (req, res) => {
                 method: row[4],
                 type: transactionType,
                 amount: row[6],
-                note: row[7] || '' // Note field (may not exist in old databases)
+                note: row[7] || '', // Note field (may not exist in old databases)
+                root_id: rootId // Include root_id if it exists
             };
         }) : [];
         

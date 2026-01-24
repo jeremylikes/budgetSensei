@@ -16,9 +16,43 @@ router.get('/api/transactions', requireAuth, (req, res) => {
         }
         
         const userId = getCurrentUserId(req);
-        const result = db.exec(`SELECT * FROM transactions WHERE user_id = ${userId} ORDER BY date DESC`);
-        const transactions = result[0] ? result[0].values.map(row => {
-            // Don't return recurring field - we don't persist it anymore
+        
+        // Check if root_id column exists
+        const { columnExists } = require('../db/helpers');
+        const hasRootIdColumn = columnExists('transactions', 'root_id', db);
+        
+        // Use explicit column selection to ensure root_id is included if it exists
+        let query;
+        if (hasRootIdColumn) {
+            query = `SELECT id, date, description, category, method, type, amount, note, user_id, root_id FROM transactions WHERE user_id = ${userId} ORDER BY date DESC`;
+        } else {
+            query = `SELECT id, date, description, category, method, type, amount, note, user_id FROM transactions WHERE user_id = ${userId} ORDER BY date DESC`;
+            console.log(`[GET /api/transactions] WARNING: root_id column does not exist! Migration may not have run.`);
+        }
+        
+        const result = db.exec(query);
+        const transactions = result[0] ? result[0].values.map((row, index) => {
+            // If root_id column exists, it's the last column
+            let rootId = null;
+            if (hasRootIdColumn) {
+                // root_id is the last column in our SELECT statement (index 9)
+                const rootIdIndex = 9; // Explicitly use index 9 since we know the column order
+                if (row.length > rootIdIndex) {
+                    const rootIdValue = row[rootIdIndex];
+                    // root_id can be null, undefined, empty string, or a number
+                    // In SQLite/sql.js, NULL values are returned as null (not undefined)
+                    // Check if it's a valid positive number
+                    if (rootIdValue !== null && rootIdValue !== undefined && rootIdValue !== '' && !isNaN(Number(rootIdValue))) {
+                        const numValue = Number(rootIdValue);
+                        if (numValue > 0) {
+                            rootId = numValue;
+                        }
+                    }
+                }
+            }
+            
+            // Column order when root_id exists: id, date, description, category, method, type, amount, note, user_id, root_id
+            // Column order when root_id doesn't exist: id, date, description, category, method, type, amount, note, user_id
             return {
                 id: row[0],
                 date: row[1],
@@ -27,9 +61,11 @@ router.get('/api/transactions', requireAuth, (req, res) => {
                 method: row[4],
                 type: row[5],
                 amount: row[6],
-                note: row[7] || '' // Note field (may not exist in old databases)
+                note: row[7] || '', // Note field (may not exist in old databases)
+                root_id: rootId // Always include root_id, even if null
             };
         }) : [];
+        
         res.json(transactions);
     } catch (error) {
         console.error('Error reading transactions:', error);
@@ -158,13 +194,33 @@ router.post('/api/transactions', requireAuth, (req, res) => {
         const transactions = [];
         let baseId = Date.now();
         
-        // Create a transaction for each date (don't store recurring field)
+        // Check if root_id column exists
+        const { columnExists } = require('../db/helpers');
+        const hasRootIdColumn = columnExists('transactions', 'root_id', db);
+        
+        // Determine if this is a recurring transaction (more than one date)
+        const isRecurring = dates.length > 1;
+        const rootId = isRecurring ? baseId : null; // First transaction is the root
+        
+        // Create a transaction for each date
         for (let i = 0; i < dates.length; i++) {
             const transactionId = baseId + i;
             const transactionDate = dates[i];
             
-            // Don't store recurring field - just generate duplicates
-            db.run(`INSERT INTO transactions (id, date, description, category, method, type, amount, note, user_id) VALUES (${transactionId}, '${escapeSql(transactionDate)}', '${escapeSql(description)}', '${escapeSql(category)}', '${escapeSql(methodValue)}', '${escapeSql(type)}', ${amountNum}, '${escapeSql(noteValue)}', ${userId})`);
+            // Root transaction has root_id = NULL, branches have root_id = rootId
+            const transactionRootId = (isRecurring && i > 0) ? rootId : null;
+            
+            // Insert transaction with root_id if column exists
+            if (hasRootIdColumn) {
+                if (transactionRootId !== null) {
+                    db.run(`INSERT INTO transactions (id, date, description, category, method, type, amount, note, user_id, root_id) VALUES (${transactionId}, '${escapeSql(transactionDate)}', '${escapeSql(description)}', '${escapeSql(category)}', '${escapeSql(methodValue)}', '${escapeSql(type)}', ${amountNum}, '${escapeSql(noteValue)}', ${userId}, ${transactionRootId})`);
+                } else {
+                    db.run(`INSERT INTO transactions (id, date, description, category, method, type, amount, note, user_id, root_id) VALUES (${transactionId}, '${escapeSql(transactionDate)}', '${escapeSql(description)}', '${escapeSql(category)}', '${escapeSql(methodValue)}', '${escapeSql(type)}', ${amountNum}, '${escapeSql(noteValue)}', ${userId}, NULL)`);
+                }
+            } else {
+                // Column doesn't exist - insert without root_id
+                db.run(`INSERT INTO transactions (id, date, description, category, method, type, amount, note, user_id) VALUES (${transactionId}, '${escapeSql(transactionDate)}', '${escapeSql(description)}', '${escapeSql(category)}', '${escapeSql(methodValue)}', '${escapeSql(type)}', ${amountNum}, '${escapeSql(noteValue)}', ${userId})`);
+            }
             
             transactions.push({
                 id: transactionId,
@@ -174,7 +230,8 @@ router.post('/api/transactions', requireAuth, (req, res) => {
                 method: methodValue,
                 type,
                 amount: amountNum,
-                note: noteValue
+                note: noteValue,
+                root_id: transactionRootId
             });
         }
         
@@ -211,11 +268,20 @@ router.put('/api/transactions/:id', requireAuth, (req, res) => {
             return res.status(404).json({ error: 'Transaction not found' });
         }
         
-        // Update the transaction (don't store recurring field)
+        // Check if this transaction is already a branch (has a root_id)
+        const existingRow = existing[0].values[0];
+        const existingRootId = existingRow.length > 9 ? existingRow[9] : null; // root_id is the 10th column (index 9)
+        const isBranch = existingRootId !== null && existingRootId !== undefined;
+        
+        // If this is a branch, we can't make it recurring - branches can't have their own branches
+        // Only root transactions can generate branches
+        const rootId = isBranch ? existingRootId : id;
+        
+        // Update the transaction
         db.run(`UPDATE transactions SET date = '${escapeSql(date)}', description = '${escapeSql(description)}', category = '${escapeSql(category)}', method = '${escapeSql(method)}', type = '${escapeSql(type)}', amount = ${amount}, note = '${escapeSql(noteValue)}' WHERE id = ${id} AND user_id = ${userId}`);
         
-        // If recurring is set, generate recurring transactions (don't store recurring field)
-        if (recurringValue && recurringValue !== 'none') {
+        // If recurring is set and this is not a branch, generate recurring transactions
+        if (recurringValue && recurringValue !== 'none' && !isBranch) {
             const dates = generateRecurringDates(date, recurringValue);
             // Skip the first date (it's the current transaction we just updated)
             if (dates.length > 1) {
@@ -226,8 +292,8 @@ router.put('/api/transactions/:id', requireAuth, (req, res) => {
                     const transactionId = baseId + i;
                     const transactionDate = dates[i];
                     
-                    // Don't store recurring field
-                    db.run(`INSERT INTO transactions (id, date, description, category, method, type, amount, note, user_id) VALUES (${transactionId}, '${escapeSql(transactionDate)}', '${escapeSql(description)}', '${escapeSql(category)}', '${escapeSql(method)}', '${escapeSql(type)}', ${amount}, '${escapeSql(noteValue)}', ${userId})`);
+                    // Create branch transactions with root_id pointing to the root
+                    db.run(`INSERT INTO transactions (id, date, description, category, method, type, amount, note, user_id, root_id) VALUES (${transactionId}, '${escapeSql(transactionDate)}', '${escapeSql(description)}', '${escapeSql(category)}', '${escapeSql(method)}', '${escapeSql(type)}', ${amount}, '${escapeSql(noteValue)}', ${userId}, ${rootId})`);
                     
                     transactions.push({
                         id: transactionId,
@@ -237,7 +303,8 @@ router.put('/api/transactions/:id', requireAuth, (req, res) => {
                         method,
                         type,
                         amount,
-                        note: noteValue
+                        note: noteValue,
+                        root_id: rootId
                     });
                 }
                 console.log(`[PUT /api/transactions/${id}] Created ${transactions.length} recurring transactions`);
@@ -267,11 +334,41 @@ router.delete('/api/transactions/:id', requireAuth, (req, res) => {
         const id = parseInt(req.params.id);
         
         // Check if transaction exists and belongs to user
-        const existing = db.exec(`SELECT id FROM transactions WHERE id = ${id} AND user_id = ${userId}`);
+        const existing = db.exec(`SELECT id, root_id, date FROM transactions WHERE id = ${id} AND user_id = ${userId}`);
         if (!existing[0] || existing[0].values.length === 0) {
             return res.status(404).json({ error: 'Transaction not found' });
         }
         
+        const transaction = existing[0].values[0];
+        const rootId = transaction[1]; // root_id is the second column (index 1)
+        const transactionDate = transaction[2]; // date is the third column (index 2)
+        
+        if (rootId === null || rootId === undefined) {
+            // This is a root transaction - delete all its branches
+            const branches = db.exec(`SELECT id FROM transactions WHERE root_id = ${id} AND user_id = ${userId}`);
+            if (branches[0] && branches[0].values.length > 0) {
+                const branchIds = branches[0].values.map(row => row[0]);
+                // Delete all branches
+                branchIds.forEach(branchId => {
+                    db.run(`DELETE FROM transactions WHERE id = ${branchId} AND user_id = ${userId}`);
+                });
+                console.log(`[DELETE /api/transactions/${id}] Deleted root transaction and ${branchIds.length} branches`);
+            }
+        } else {
+            // This is a branch transaction - delete it and all subsequent branches (later dates)
+            // Find all branches with the same root_id that have dates >= this transaction's date
+            const subsequentBranches = db.exec(`SELECT id FROM transactions WHERE root_id = ${rootId} AND user_id = ${userId} AND date >= '${escapeSql(transactionDate)}' AND id != ${id}`);
+            if (subsequentBranches[0] && subsequentBranches[0].values.length > 0) {
+                const branchIds = subsequentBranches[0].values.map(row => row[0]);
+                // Delete all subsequent branches
+                branchIds.forEach(branchId => {
+                    db.run(`DELETE FROM transactions WHERE id = ${branchId} AND user_id = ${userId}`);
+                });
+                console.log(`[DELETE /api/transactions/${id}] Deleted branch transaction and ${branchIds.length} subsequent branches`);
+            }
+        }
+        
+        // Delete the transaction itself
         db.run(`DELETE FROM transactions WHERE id = ${id} AND user_id = ${userId}`);
         saveDatabase();
         res.json({ success: true });

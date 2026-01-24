@@ -415,30 +415,30 @@
         <div class="modal-content">
             <span class="close">&times;</span>
             <h2>Add New Transaction</h2>
-            <form id="transaction-form">
+            <form id="transaction-form" autocomplete="off">
                 <div class="form-group">
                     <label for="transaction-date">Date:</label>
-                    <input type="date" id="transaction-date" required>
+                    <input type="date" id="transaction-date" autocomplete="off" required>
                 </div>
                 <div class="form-group">
                     <label for="transaction-description">Description:</label>
-                    <input type="text" id="transaction-description" maxlength="40" required>
+                    <input type="text" id="transaction-description" autocomplete="off" maxlength="40" required>
                 </div>
                 <div class="form-group">
                     <label for="transaction-category">Category:</label>
-                    <select id="transaction-category" required></select>
+                    <select id="transaction-category" autocomplete="off" required></select>
                 </div>
                 <div class="form-group">
                     <label for="transaction-method">Method:</label>
-                    <select id="transaction-method"></select>
+                    <select id="transaction-method" autocomplete="off"></select>
                 </div>
                 <div class="form-group">
                     <label for="transaction-amount">Amount:</label>
-                    <input type="text" id="transaction-amount" placeholder="0.00" required>
+                    <input type="text" id="transaction-amount" autocomplete="off" placeholder="0.00" required>
                 </div>
                 <div class="form-group">
                     <label for="transaction-recurring">Recurring:</label>
-                    <select id="transaction-recurring">
+                    <select id="transaction-recurring" autocomplete="off">
                         <option value="none">One-time</option>
                         <option value="weekly">Weekly</option>
                         <option value="bi-weekly">Bi-weekly</option>
@@ -447,7 +447,7 @@
                 </div>
                 <div class="form-group">
                     <label for="transaction-note">Note (optional):</label>
-                    <textarea id="transaction-note" rows="3" placeholder="Add a note about this transaction..." maxlength="40"></textarea>
+                    <textarea id="transaction-note" autocomplete="off" rows="3" placeholder="Add a note about this transaction..." maxlength="40"></textarea>
                 </div>
                 <div class="form-actions">
                     <button type="submit" class="submit-btn">Save</button>

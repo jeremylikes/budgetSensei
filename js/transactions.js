@@ -135,7 +135,7 @@ const Transactions = {
             }
             
             const count = checkedIds.length;
-            if (confirm(`Are you sure you want to delete ${count} transaction${count > 1 ? 's' : ''}?`)) {
+            if (confirm(`Are you sure you want to delete ${count} transaction${count > 1 ? 's' : ''} and any recurring transactions?`)) {
                 try {
                     // Delete all checked transactions and check responses
                     const deletePromises = checkedIds.map(async (id) => {
@@ -172,7 +172,7 @@ const Transactions = {
             }
         } else {
             // Single delete
-            if (confirm('Are you sure you want to delete this transaction?')) {
+            if (confirm('Are you sure you want to delete this transaction and any recurring transactions?')) {
                 try {
                     const response = await fetch(`${API.BASE}/transactions/${id}`, {
                         method: 'DELETE'
