@@ -86,6 +86,12 @@ const Ledger = {
         // Update select all checkbox
         this.updateSelectAllCheckbox();
         this.updateAddTransactionButton();
+
+        // Initialize history controls once DOM is ready and Ledger has run at least once
+        if (window.LedgerHistory && !Ledger._historyInitialized) {
+            LedgerHistory.init();
+            Ledger._historyInitialized = true;
+        }
     },
     
     restoreNewRowData(newRowData) {

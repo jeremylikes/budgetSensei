@@ -151,7 +151,7 @@ router.post('/api/auth/register', strictAuthLimiter, async (req, res) => {
         
         // Send verification email
         const baseUrl = process.env.BASE_URL || req.protocol + '://' + req.get('host');
-        const emailSent = await sendVerificationEmail(email, verificationToken, baseUrl);
+        const emailSent = await sendVerificationEmail(email, verificationToken, baseUrl, username);
         
         if (!emailSent) {
             console.error('Failed to send verification email, but user was created');
@@ -529,7 +529,7 @@ router.post('/api/auth/resend-verification', strictAuthLimiter, async (req, res)
         
         // Send verification email
         const baseUrl = process.env.BASE_URL || req.protocol + '://' + req.get('host');
-        const emailSent = await sendVerificationEmail(emailStr, verificationToken, baseUrl);
+        const emailSent = await sendVerificationEmail(emailStr, verificationToken, baseUrl, username);
         
         if (!emailSent) {
             console.error('Failed to send verification email');
@@ -597,7 +597,7 @@ router.post('/api/auth/request-email-association', strictAuthLimiter, async (req
         // Send verification email
         const baseUrl = process.env.BASE_URL || req.protocol + '://' + req.get('host');
         try {
-            const emailSent = await sendVerificationEmail(email, verificationToken, baseUrl);
+            const emailSent = await sendVerificationEmail(email, verificationToken, baseUrl, username);
             
             if (!emailSent) {
                 console.error('Failed to send verification email for email association');

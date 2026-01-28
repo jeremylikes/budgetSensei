@@ -79,7 +79,12 @@ const Transactions = {
             // Check if this was a recurring transaction
             const responseData = await response.json();
             const recurringCount = responseData._recurringCount || 1;
-            
+
+            // Capture created transaction for history (only for new, single transactions)
+            const createdTransaction = this.editingTransactionId === null && recurringCount === 1
+                ? responseData
+                : null;
+
             const data = await API.loadData();
             DataStore.init(data);
 
@@ -89,7 +94,61 @@ const Transactions = {
                 document.getElementById('transaction-form').reset();
             }
             this.editingTransactionId = null;
-            
+
+            // Record undo history for new transaction creation
+            if (createdTransaction && window.LedgerHistory) {
+                const t = createdTransaction;
+                const baseBody = {
+                    date: t.date,
+                    description: t.description,
+                    category: t.category,
+                    method: t.method,
+                    type: t.type,
+                    amount: t.amount,
+                    note: t.note || ''
+                };
+
+                const command = {
+                    type: 'createTransaction',
+                    transaction: { ...baseBody },
+                    id: t.id,
+                    async apply() {
+                        // Re-create transaction
+                        const response = await fetch(`${API.BASE}/transactions`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ ...baseBody, recurring: 'none' })
+                        });
+                        if (!response.ok) {
+                            throw new Error('Failed to recreate transaction');
+                        }
+                        const created = await response.json();
+                        this.id = created.id;
+
+                        const data = await API.loadData();
+                        DataStore.init(data);
+                        if (window.Dashboard) Dashboard.update();
+                        if (window.Ledger) Ledger.update();
+                    },
+                    async revert() {
+                        if (!this.id) return;
+                        const response = await fetch(`${API.BASE}/transactions/${this.id}`, {
+                            method: 'DELETE'
+                        });
+                        if (!response.ok) {
+                            throw new Error('Failed to delete transaction for undo');
+                        }
+
+                        const data = await API.loadData();
+                        DataStore.init(data);
+                        if (window.Dashboard) Dashboard.update();
+                        if (window.Ledger) Ledger.update();
+                    }
+                };
+
+                LedgerHistory.push(command);
+            }
+
             // Log success message if multiple transactions were created
             if (recurringCount > 1) {
                 console.log(`Created ${recurringCount} recurring transactions`);
@@ -135,6 +194,12 @@ const Transactions = {
             }
             
             const count = checkedIds.length;
+
+            // Capture transactions for history BEFORE deleting
+            const transactionsToDelete = DataStore && Array.isArray(DataStore.transactions)
+                ? DataStore.transactions.filter(t => checkedIds.includes(t.id))
+                : [];
+
             if (confirm(`Are you sure you want to delete ${count} transaction${count > 1 ? 's' : ''} and any recurring transactions?`)) {
                 try {
                     // Delete all checked transactions and check responses
@@ -154,6 +219,67 @@ const Transactions = {
                     DataStore.init(data);
                     Dashboard.update();
                     Ledger.update();
+
+                    // Record history for bulk delete
+                    if (window.LedgerHistory && transactionsToDelete.length > 0) {
+                        const snapshot = transactionsToDelete.map(t => ({ ...t }));
+
+                        const command = {
+                            type: 'deleteTransactions',
+                            transactions: snapshot,
+                            async apply() {
+                                // Re-delete current ids
+                                const ids = this.transactions.map(t => t.id).filter(id => !!id);
+                                const deletePromises = ids.map(async (tid) => {
+                                    const resp = await fetch(`${API.BASE}/transactions/${tid}`, { method: 'DELETE' });
+                                    if (!resp.ok) {
+                                        throw new Error(`Failed to delete transaction ${tid}`);
+                                    }
+                                });
+                                await Promise.all(deletePromises);
+
+                                const data = await API.loadData();
+                                DataStore.init(data);
+                                if (window.Dashboard) Dashboard.update();
+                                if (window.Ledger) Ledger.update();
+                            },
+                            async revert() {
+                                // Recreate all deleted transactions
+                                const recreatePromises = this.transactions.map(async (t, index) => {
+                                    const body = {
+                                        date: t.date,
+                                        description: t.description,
+                                        category: t.category,
+                                        method: t.method,
+                                        type: t.type,
+                                        amount: t.amount,
+                                        note: t.note || '',
+                                        recurring: 'none'
+                                    };
+                                    const resp = await fetch(`${API.BASE}/transactions`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify(body)
+                                    });
+                                    if (!resp.ok) {
+                                        throw new Error('Failed to recreate transaction');
+                                    }
+                                    const created = await resp.json();
+                                    // Update stored id so redo can delete the right rows
+                                    this.transactions[index].id = created.id;
+                                });
+
+                                await Promise.all(recreatePromises);
+
+                                const data = await API.loadData();
+                                DataStore.init(data);
+                                if (window.Dashboard) Dashboard.update();
+                                if (window.Ledger) Ledger.update();
+                            }
+                        };
+
+                        LedgerHistory.push(command);
+                    }
                 } catch (error) {
                     console.error('Error deleting transactions:', error);
                     console.error('Error details:', error.message, error.stack);
@@ -174,6 +300,11 @@ const Transactions = {
             // Single delete
             if (confirm('Are you sure you want to delete this transaction and any recurring transactions?')) {
                 try {
+                    // Capture transaction for history BEFORE deleting
+                    const transaction = DataStore && Array.isArray(DataStore.transactions)
+                        ? DataStore.transactions.find(t => t.id === id)
+                        : null;
+
                     const response = await fetch(`${API.BASE}/transactions/${id}`, {
                         method: 'DELETE'
                     });
@@ -186,6 +317,60 @@ const Transactions = {
                     DataStore.init(data);
                     Dashboard.update();
                     Ledger.update();
+
+                    // Record history for single delete
+                    if (window.LedgerHistory && transaction) {
+                        const snapshot = { ...transaction };
+
+                        const command = {
+                            type: 'deleteTransaction',
+                            transaction: snapshot,
+                            async apply() {
+                                if (!this.transaction.id) return;
+                                const resp = await fetch(`${API.BASE}/transactions/${this.transaction.id}`, {
+                                    method: 'DELETE'
+                                });
+                                if (!resp.ok) {
+                                    throw new Error('Failed to delete transaction');
+                                }
+
+                                const data = await API.loadData();
+                                DataStore.init(data);
+                                if (window.Dashboard) Dashboard.update();
+                                if (window.Ledger) Ledger.update();
+                            },
+                            async revert() {
+                                const t = this.transaction;
+                                const body = {
+                                    date: t.date,
+                                    description: t.description,
+                                    category: t.category,
+                                    method: t.method,
+                                    type: t.type,
+                                    amount: t.amount,
+                                    note: t.note || '',
+                                    recurring: 'none'
+                                };
+                                const resp = await fetch(`${API.BASE}/transactions`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(body)
+                                });
+                                if (!resp.ok) {
+                                    throw new Error('Failed to recreate transaction');
+                                }
+                                const created = await resp.json();
+                                this.transaction.id = created.id;
+
+                                const data = await API.loadData();
+                                DataStore.init(data);
+                                if (window.Dashboard) Dashboard.update();
+                                if (window.Ledger) Ledger.update();
+                            }
+                        };
+
+                        LedgerHistory.push(command);
+                    }
                 } catch (error) {
                     console.error('Error deleting transaction:', error);
                     console.error('Error details:', error.message, error.stack);

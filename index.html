@@ -338,6 +338,10 @@
                     <strong>Sum: <span id="ledger-sum-amount">$0.00</span></strong>
                 </div>
                 <div class="ledger-actions">
+                    <div class="ledger-history-controls">
+                        <button id="ledger-undo-btn" class="history-btn" type="button" disabled>Undo</button>
+                        <button id="ledger-redo-btn" class="history-btn" type="button" disabled>Redo</button>
+                    </div>
                     <input type="text" id="ledger-search" class="ledger-search" placeholder="Search">
                     <button id="add-transaction-btn" class="add-transaction-btn">+ Add Transaction</button>
                 </div>
@@ -512,6 +516,7 @@
     <script src="js/ledger/filtering.js"></script>
     <script src="js/ledger/new-row.js"></script>
     <script src="js/ledger/bulk.js"></script>
+    <script src="js/ledger/history.js"></script>
     <script src="js/ledger/table.js"></script>
     <script src="js/ledger/editing.js"></script>
     <script src="js/ledger-main.js"></script>

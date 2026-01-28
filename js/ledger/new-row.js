@@ -364,6 +364,11 @@ const LedgerNewRow = {
             if (saveBtn) saveBtn.disabled = false;
             return;
         }
+
+        // Capture existing transaction IDs for history diff
+        const previousIds = (DataStore && Array.isArray(DataStore.transactions))
+            ? new Set(DataStore.transactions.map(t => t.id))
+            : new Set();
         
         try {
             const response = await fetch(`${API.BASE}/transactions`, {
@@ -397,7 +402,10 @@ const LedgerNewRow = {
             // Success - reload data and update views
             const data = await API.loadData();
             DataStore.init(data);
-            
+
+            // Determine newly created transactions (could be 1 or many if recurring)
+            const newTransactions = DataStore.transactions.filter(t => !previousIds.has(t.id));
+
             // Remove the new row
             row.remove();
             
@@ -415,6 +423,66 @@ const LedgerNewRow = {
             }
             if (window.Dashboard) {
                 window.Dashboard.update();
+            }
+
+            // Record history for created transactions
+            if (window.LedgerHistory && newTransactions.length > 0) {
+                const snapshot = newTransactions.map(t => ({
+                    id: t.id,
+                    body: {
+                        date: t.date,
+                        description: t.description,
+                        category: t.category,
+                        method: t.method,
+                        type: t.type,
+                        amount: t.amount,
+                        note: t.note || ''
+                    }
+                }));
+
+                const command = {
+                    type: 'createTransactions',
+                    transactions: snapshot,
+                    async apply() {
+                        // Re-create all transactions from stored bodies
+                        const recreatePromises = this.transactions.map(async (entry, index) => {
+                            const resp = await fetch(`${API.BASE}/transactions`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ ...entry.body, recurring: 'none' })
+                            });
+                            if (!resp.ok) {
+                                throw new Error('Failed to recreate transaction');
+                            }
+                            const created = await resp.json();
+                            this.transactions[index].id = created.id;
+                        });
+                        await Promise.all(recreatePromises);
+
+                        const data = await API.loadData();
+                        DataStore.init(data);
+                        if (window.Dashboard) Dashboard.update();
+                        if (window.Ledger) Ledger.update();
+                    },
+                    async revert() {
+                        // Delete all currently-tracked ids
+                        const ids = this.transactions.map(t => t.id).filter(id => !!id);
+                        const deletePromises = ids.map(async (tid) => {
+                            const resp = await fetch(`${API.BASE}/transactions/${tid}`, { method: 'DELETE' });
+                            if (!resp.ok) {
+                                throw new Error('Failed to delete transaction');
+                            }
+                        });
+                        await Promise.all(deletePromises);
+
+                        const data = await API.loadData();
+                        DataStore.init(data);
+                        if (window.Dashboard) Dashboard.update();
+                        if (window.Ledger) Ledger.update();
+                    }
+                };
+
+            LedgerHistory.push(command);
             }
         } catch (error) {
             console.error('Error saving transaction:', error);
