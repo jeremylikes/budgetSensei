@@ -510,7 +510,7 @@ const LedgerNewRow = {
         }
     },
 
-    async showRecurringModal(recurringBtn, row, transactionId = null) {
+    async showRecurringModal(recurringBtn, row, transactionId = null, isRoot = false) {
         // Remove any existing modal
         const existingModal = document.getElementById('recurring-modal');
         if (existingModal) {
@@ -518,29 +518,63 @@ const LedgerNewRow = {
         }
 
         // Get current recurring value from button dataset (for new rows)
-        const currentRecurring = recurringBtn ? (recurringBtn.dataset.recurring || null) : null;
+        let currentRecurring = recurringBtn ? (recurringBtn.dataset.recurring || null) : null;
+        
+        // If this is a root transaction, infer the recurring frequency from branch dates
+        if (isRoot && transactionId && window.LedgerTable) {
+            const branches = window.LedgerTable.getBranchTransactions(transactionId);
+            if (branches.length > 0) {
+                // Get the root transaction
+                const rootTransaction = DataStore.transactions.find(t => t.id === transactionId);
+                if (rootTransaction) {
+                    // Sort branches by date
+                    const sortedBranches = branches.sort((a, b) => new Date(a.date) - new Date(b.date));
+                    // Calculate average days between transactions
+                    const rootDate = new Date(rootTransaction.date);
+                    const firstBranchDate = new Date(sortedBranches[0].date);
+                    const daysDiff = Math.round((firstBranchDate - rootDate) / (1000 * 60 * 60 * 24));
+                    
+                    // Infer frequency based on days difference
+                    if (daysDiff >= 25 && daysDiff <= 35) {
+                        currentRecurring = 'monthly';
+                    } else if (daysDiff >= 12 && daysDiff <= 16) {
+                        currentRecurring = 'bi-weekly';
+                    } else if (daysDiff >= 5 && daysDiff <= 9) {
+                        currentRecurring = 'weekly';
+                    }
+                }
+            }
+        }
 
         // Create modal
         const modal = document.createElement('div');
         modal.id = 'recurring-modal';
         modal.className = 'recurring-modal-overlay';
+        
+        // If this is a root transaction, show read-only mode
+        const isReadOnly = isRoot && transactionId;
+        const saveButtonText = isReadOnly ? 'Close' : 'Save';
+        const modalTitle = isReadOnly ? 'Recurring Settings (Read-Only)' : 'Recurring Frequency';
+        const readonlyClass = isReadOnly ? 'readonly' : '';
+        
         modal.innerHTML = `
             <div class="recurring-modal-content">
-                <h3>Recurring Frequency</h3>
-                <div class="recurring-options">
-                    <button class="recurring-option ${currentRecurring === 'weekly' ? 'active' : ''}" data-value="weekly">
+                <h3>${modalTitle}</h3>
+                ${isReadOnly ? '<p style="color: #666; font-size: 14px; margin-bottom: 15px;">This transaction has recurring transactions. Settings cannot be modified.</p>' : ''}
+                <div class="recurring-options ${readonlyClass}">
+                    <button class="recurring-option ${currentRecurring === 'weekly' ? 'active' : ''} ${isReadOnly ? 'disabled' : ''}" data-value="weekly" ${isReadOnly ? 'disabled' : ''}>
                         <span class="option-label">Weekly</span>
                     </button>
-                    <button class="recurring-option ${currentRecurring === 'bi-weekly' ? 'active' : ''}" data-value="bi-weekly">
+                    <button class="recurring-option ${currentRecurring === 'bi-weekly' ? 'active' : ''} ${isReadOnly ? 'disabled' : ''}" data-value="bi-weekly" ${isReadOnly ? 'disabled' : ''}>
                         <span class="option-label">Bi-weekly</span>
                     </button>
-                    <button class="recurring-option ${currentRecurring === 'monthly' ? 'active' : ''}" data-value="monthly">
+                    <button class="recurring-option ${currentRecurring === 'monthly' ? 'active' : ''} ${isReadOnly ? 'disabled' : ''}" data-value="monthly" ${isReadOnly ? 'disabled' : ''}>
                         <span class="option-label">Monthly</span>
                     </button>
                 </div>
                 <div class="recurring-modal-actions">
-                    <button class="recurring-cancel-btn">Cancel</button>
-                    <button class="recurring-save-btn">Save</button>
+                    <button class="recurring-cancel-btn">${isReadOnly ? 'Close' : 'Cancel'}</button>
+                    ${!isReadOnly ? '<button class="recurring-save-btn">Save</button>' : ''}
                 </div>
             </div>
         `;
@@ -548,48 +582,55 @@ const LedgerNewRow = {
         // Initialize selectedValue with current value if it exists
         let selectedValue = currentRecurring;
 
-        // Handle option selection
-        modal.querySelectorAll('.recurring-option').forEach(option => {
-            option.addEventListener('click', () => {
-                modal.querySelectorAll('.recurring-option').forEach(opt => opt.classList.remove('active'));
-                option.classList.add('active');
-                selectedValue = option.dataset.value;
+        // Handle option selection (only if not read-only)
+        if (!isReadOnly) {
+            modal.querySelectorAll('.recurring-option').forEach(option => {
+                option.addEventListener('click', () => {
+                    modal.querySelectorAll('.recurring-option').forEach(opt => opt.classList.remove('active'));
+                    option.classList.add('active');
+                    selectedValue = option.dataset.value;
+                });
             });
-        });
+        }
 
-        // Handle save
-        modal.querySelector('.recurring-save-btn').addEventListener('click', async () => {
-            // Only proceed if a value was selected
-            if (!selectedValue) {
-                modal.remove();
-                return;
-            }
-            
-            // If this is an existing transaction, generate recurring duplicates
-            if (transactionId && window.LedgerBulk) {
-                try {
-                    // Update the transaction with recurring to generate duplicates
-                    // The backend will generate duplicates but not store the recurring field
-                    await window.LedgerBulk.updateTransactionField(transactionId, 'recurring', selectedValue);
-                    
-                    // Refresh the view to show the new transactions
-                    if (window.Ledger) {
-                        await window.Ledger.update();
+        // Handle save (only if not read-only)
+        if (!isReadOnly) {
+            const saveBtn = modal.querySelector('.recurring-save-btn');
+            if (saveBtn) {
+                saveBtn.addEventListener('click', async () => {
+                    // Only proceed if a value was selected
+                    if (!selectedValue) {
+                        modal.remove();
+                        return;
                     }
-                } catch (error) {
-                    console.error('Error generating recurring transactions:', error);
-                    alert('Failed to generate recurring transactions. Please try again.');
+                    
+                    // If this is an existing transaction, generate recurring duplicates
+                    if (transactionId && window.LedgerBulk) {
+                        try {
+                            // Update the transaction with recurring to generate duplicates
+                            // The backend will generate duplicates but not store the recurring field
+                            await window.LedgerBulk.updateTransactionField(transactionId, 'recurring', selectedValue);
+                            
+                            // Refresh the view to show the new transactions
+                            if (window.Ledger) {
+                                await window.Ledger.update();
+                            }
+                        } catch (error) {
+                            console.error('Error generating recurring transactions:', error);
+                            alert('Failed to generate recurring transactions. Please try again.');
+                            modal.remove();
+                            return;
+                        }
+                    } else {
+                        // For new rows, store the selected value and highlight the button
+                        recurringBtn.dataset.recurring = selectedValue;
+                        this.updateRecurringButtonStyle(recurringBtn, selectedValue);
+                    }
+                    
                     modal.remove();
-                    return;
-                }
-            } else {
-                // For new rows, store the selected value and highlight the button
-                recurringBtn.dataset.recurring = selectedValue;
-                this.updateRecurringButtonStyle(recurringBtn, selectedValue);
+                });
             }
-            
-            modal.remove();
-        });
+        }
 
         // Handle cancel
         modal.querySelector('.recurring-cancel-btn').addEventListener('click', () => {
