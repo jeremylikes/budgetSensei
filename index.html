@@ -197,6 +197,11 @@
                 <h1 class="logo-text">BudgetSensei</h1>
             </div>
             <div class="header-actions">
+                <button id="theme-toggle-header" class="theme-toggle-btn" title="Switch to Dark Mode" aria-pressed="false">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                </button>
                 <div class="user-menu-container">
                     <button id="user-btn" class="user-btn" title="User Menu">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -463,33 +468,43 @@
 
         <!-- Settings Tab -->
         <div id="settings" class="tab-content">
-            <div class="user-settings-container">
-                <h2 id="user-settings-name" class="user-settings-title"></h2>
-                
-                <div class="user-settings-section">
-                    <label class="user-settings-label">Username</label>
-                    <div class="inline-edit-container">
-                        <input type="text" id="username-edit" class="inline-edit-input" readonly>
-                        <button id="username-save-btn" class="inline-edit-save-btn" style="display: none;">Save</button>
-                    </div>
+            <h2 id="user-settings-name" class="user-settings-title"></h2>
+            
+            <div class="user-settings-section">
+                <label class="user-settings-label">Username</label>
+                <div class="inline-edit-container">
+                    <input type="text" id="username-edit" class="inline-edit-input" readonly>
+                    <button id="username-save-btn" class="inline-edit-save-btn" style="display: none;">Save</button>
                 </div>
+            </div>
 
-                <div class="user-settings-section">
-                    <label class="user-settings-label">Password</label>
-                    <div class="password-container">
-                        <input type="password" id="password-display" class="password-input" value="••••••••" readonly>
-                        <button id="password-reset-btn" class="password-reset-btn">Reset</button>
+            <div class="user-settings-section">
+                <label class="user-settings-label">Theme: Light Mode</label>
+                <div class="theme-toggle-container">
+                    <button id="theme-toggle-settings" class="theme-toggle-settings-btn" aria-pressed="false">
+                        <span class="theme-toggle-label">Light Mode</span>
+                        <span class="theme-toggle-switch">
+                            <span class="theme-toggle-slider"></span>
+                        </span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="user-settings-section">
+                <label class="user-settings-label">Password</label>
+                <div class="password-container">
+                    <input type="password" id="password-display" class="password-input" value="••••••••" readonly>
+                    <button id="password-reset-btn" class="password-reset-btn">Reset</button>
+                </div>
+                
+                <div id="password-reset-section" class="password-reset-section" style="display: none;">
+                    <div class="password-reset-field">
+                        <input type="text" id="reset-code-input" class="reset-code-input" placeholder="Enter secret code" disabled>
                     </div>
-                    
-                    <div id="password-reset-section" class="password-reset-section" style="display: none;">
-                        <div class="password-reset-field">
-                            <input type="text" id="reset-code-input" class="reset-code-input" placeholder="Enter secret code" disabled>
-                        </div>
-                        <div id="new-password-fields" class="new-password-fields" style="display: none;">
-                            <input type="password" id="new-password-input" class="password-input" placeholder="New Password">
-                            <input type="password" id="verify-password-input" class="password-input" placeholder="Verify Password">
-                            <button id="password-update-btn" class="password-update-btn" disabled>Reset</button>
-                        </div>
+                    <div id="new-password-fields" class="new-password-fields" style="display: none;">
+                        <input type="password" id="new-password-input" class="password-input" placeholder="New Password">
+                        <input type="password" id="verify-password-input" class="password-input" placeholder="Verify Password">
+                        <button id="password-update-btn" class="password-update-btn" disabled>Reset</button>
                     </div>
                 </div>
             </div>
@@ -504,6 +519,7 @@
     </div>
 
     <!-- Load modules in dependency order -->
+    <script src="js/theme.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/api.js"></script>
     <script src="js/data.js"></script>

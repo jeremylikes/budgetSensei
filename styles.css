@@ -1850,3 +1850,832 @@ emoji-picker::part(search-input) {
     cursor: not-allowed !important;
     pointer-events: none;
 }
+
+/* Dark Mode Styles */
+:root[data-theme="dark"] {
+    --bg-primary: #0d1117;
+    --bg-secondary: #161b22;
+    --bg-tertiary: #21262d;
+    --bg-elevated: #1c2128;
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --text-muted: #6e7681;
+    --border-color: #30363d;
+    --border-hover: #484f58;
+    --shadow-color: rgba(0, 0, 0, 0.8);
+    --shadow-elevated: rgba(0, 0, 0, 0.4);
+    --accent-glow: rgba(255, 183, 206, 0.2);
+}
+
+:root[data-theme="dark"] body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+/* All text elements in dark mode */
+:root[data-theme="dark"] h1,
+:root[data-theme="dark"] h2,
+:root[data-theme="dark"] h3,
+:root[data-theme="dark"] h4,
+:root[data-theme="dark"] h5,
+:root[data-theme="dark"] h6 {
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] p {
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] label {
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] span {
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .container {
+    background: var(--bg-secondary);
+    box-shadow: 0 2px 10px var(--shadow-color);
+}
+
+:root[data-theme="dark"] .app-header {
+    background: var(--bg-secondary);
+    border-bottom-color: var(--border-color);
+}
+
+:root[data-theme="dark"] .logo-text {
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .tabs {
+    background: var(--bg-secondary);
+    border-bottom-color: var(--border-color);
+}
+
+:root[data-theme="dark"] .tab-btn {
+    color: var(--text-secondary);
+    background: transparent;
+}
+
+:root[data-theme="dark"] .tab-btn:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .tab-btn.active {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-bottom-color: var(--accent-color);
+}
+
+:root[data-theme="dark"] .tab-content {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .date-selector {
+    background: var(--bg-tertiary);
+    border-bottom-color: var(--border-color);
+}
+
+:root[data-theme="dark"] .date-selector label {
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] select {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+:root[data-theme="dark"] select:hover {
+    border-color: var(--accent-color);
+}
+
+:root[data-theme="dark"] .ledger-table {
+    background: var(--bg-secondary) !important;
+}
+
+:root[data-theme="dark"] table {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] thead {
+    background: var(--bg-tertiary);
+}
+
+:root[data-theme="dark"] th {
+    color: var(--text-primary);
+    border-bottom-color: var(--border-color);
+}
+
+:root[data-theme="dark"] tbody tr {
+    border-bottom-color: var(--border-color);
+}
+
+:root[data-theme="dark"] tbody tr:hover {
+    background: var(--bg-tertiary);
+}
+
+:root[data-theme="dark"] tbody tr.editing {
+    background: var(--bg-tertiary);
+}
+
+:root[data-theme="dark"] .editable-cell {
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] input[type="text"],
+:root[data-theme="dark"] input[type="date"],
+:root[data-theme="dark"] input[type="number"],
+:root[data-theme="dark"] textarea {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+:root[data-theme="dark"] input[type="text"]:focus,
+:root[data-theme="dark"] input[type="date"]:focus,
+:root[data-theme="dark"] input[type="number"]:focus,
+:root[data-theme="dark"] textarea:focus {
+    border-color: var(--accent-color);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--accent-glow);
+    background: var(--bg-elevated);
+}
+
+:root[data-theme="dark"] .inline-edit-input {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+:root[data-theme="dark"] .inline-edit-input:focus {
+    border-color: var(--accent-color) !important;
+    outline: none;
+    box-shadow: 0 0 0 3px var(--accent-glow);
+    background: var(--bg-elevated) !important;
+    color: var(--text-primary) !important;
+}
+
+:root[data-theme="dark"] .inline-edit-input[readonly] {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+}
+
+:root[data-theme="dark"] .inline-edit-input[readonly]:hover {
+    background: var(--bg-elevated) !important;
+}
+
+:root[data-theme="dark"] .inline-edit-input[readonly]:active {
+    background: var(--bg-elevated) !important;
+}
+
+:root[data-theme="dark"] .ledger-search {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+:root[data-theme="dark"] .ledger-search:focus {
+    border-color: var(--accent-color);
+    outline-color: var(--accent-color);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* Dashboard Dark Mode Styles */
+:root[data-theme="dark"] .tiles {
+    gap: 16px;
+}
+
+:root[data-theme="dark"] .tile {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 8px var(--shadow-elevated);
+    transition: all 0.3s ease;
+}
+
+:root[data-theme="dark"] .tile:hover {
+    border-color: var(--border-hover);
+    box-shadow: 0 4px 12px var(--shadow-elevated);
+    transform: translateY(-2px);
+}
+
+:root[data-theme="dark"] .tile h3 {
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+:root[data-theme="dark"] .tile .amount {
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+:root[data-theme="dark"] .allocation-section {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+
+:root[data-theme="dark"] .allocation-section h3 {
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .chart-box {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 8px var(--shadow-elevated);
+}
+
+:root[data-theme="dark"] .chart-box h3 {
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .breakdown-container {
+    border-top-color: var(--border-color);
+}
+
+:root[data-theme="dark"] .breakdown-column {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 8px var(--shadow-elevated);
+}
+
+:root[data-theme="dark"] .breakdown-column h4 {
+    color: var(--text-primary);
+    border-bottom-color: var(--border-color);
+}
+
+:root[data-theme="dark"] .breakdown-item {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+}
+
+:root[data-theme="dark"] .breakdown-item:hover {
+    background: var(--bg-elevated);
+    border-color: var(--border-hover);
+    box-shadow: 0 2px 4px var(--shadow-elevated);
+}
+
+:root[data-theme="dark"] .breakdown-category {
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .breakdown-amount {
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .breakdown-percent {
+    color: #58a6ff;
+}
+
+:root[data-theme="dark"] .breakdown-empty {
+    color: var(--text-muted);
+}
+
+:root[data-theme="dark"] .payment-section {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 8px var(--shadow-elevated);
+}
+
+:root[data-theme="dark"] .payment-section h3 {
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .payment-item {
+    border-bottom-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .payment-item:hover {
+    background: var(--bg-tertiary);
+}
+
+:root[data-theme="dark"] .cash-flow-section {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 8px var(--shadow-elevated);
+}
+
+:root[data-theme="dark"] .cash-flow-section h3 {
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .budget-section {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 8px var(--shadow-elevated);
+}
+
+:root[data-theme="dark"] .budget-section h3 {
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .budget-tiles {
+    background: var(--bg-elevated);
+}
+
+:root[data-theme="dark"] .budget-tiles .tile {
+    background: var(--bg-tertiary);
+}
+
+:root[data-theme="dark"] .budget-tiles .tile:hover {
+    background: var(--bg-elevated);
+}
+
+/* Enhanced form elements for dark mode */
+:root[data-theme="dark"] select:focus {
+    border-color: var(--accent-color);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--accent-glow);
+    background: var(--bg-elevated);
+}
+
+:root[data-theme="dark"] .password-input:focus,
+:root[data-theme="dark"] .reset-code-input:focus {
+    border-color: var(--accent-color);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--accent-glow);
+    background: var(--bg-elevated);
+}
+
+/* Enhanced button hover states for dark mode */
+:root[data-theme="dark"] .add-transaction-btn:hover {
+    box-shadow: 0 4px 12px rgba(255, 183, 206, 0.4);
+}
+
+:root[data-theme="dark"] .add-btn:hover,
+:root[data-theme="dark"] .password-reset-btn:hover,
+:root[data-theme="dark"] .password-update-btn:hover {
+    box-shadow: 0 2px 8px var(--shadow-elevated);
+}
+
+/* Enhanced table row hover for dark mode */
+:root[data-theme="dark"] tbody tr:hover {
+    background: var(--bg-tertiary);
+    box-shadow: inset 0 0 0 1px var(--border-hover);
+}
+
+/* Enhanced modal for dark mode */
+:root[data-theme="dark"] .modal-content {
+    background: var(--bg-elevated) !important;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary) !important;
+}
+
+:root[data-theme="dark"] .modal-content h2 {
+    color: var(--text-primary) !important;
+}
+
+:root[data-theme="dark"] .modal-content label {
+    color: var(--text-primary) !important;
+}
+
+:root[data-theme="dark"] .modal-content p {
+    color: var(--text-primary) !important;
+}
+
+:root[data-theme="dark"] .close {
+    color: var(--text-secondary) !important;
+}
+
+:root[data-theme="dark"] .close:hover {
+    color: var(--text-primary) !important;
+}
+
+/* Enhanced data list items for dark mode */
+:root[data-theme="dark"] .data-list input[type="text"] {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+:root[data-theme="dark"] .data-list input[type="text"]:focus {
+    border-color: var(--accent-color);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--accent-glow);
+    background: var(--bg-elevated);
+}
+
+/* Chart canvas background for dark mode */
+:root[data-theme="dark"] canvas {
+    background: transparent;
+}
+
+/* Budget table dark mode */
+:root[data-theme="dark"] #budget-table {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] #budget-table thead {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] #budget-table th {
+    color: var(--text-primary);
+    border-bottom-color: var(--border-color);
+}
+
+:root[data-theme="dark"] #budget-table td {
+    color: var(--text-primary);
+    border-bottom-color: var(--border-color);
+}
+
+:root[data-theme="dark"] #budget-table tbody tr:hover {
+    background: var(--bg-tertiary);
+}
+
+:root[data-theme="dark"] .budget-planned-input {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+:root[data-theme="dark"] .budget-planned-input:focus {
+    border-color: var(--accent-color) !important;
+    outline: none;
+    box-shadow: 0 0 0 3px var(--accent-glow);
+    background: var(--bg-elevated) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Ensure all input placeholders are visible in dark mode */
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder {
+    color: var(--text-muted);
+    opacity: 0.7;
+}
+
+/* Fix any remaining white text */
+:root[data-theme="dark"] .data-list p {
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .payment-item p {
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .user-menu {
+    background: var(--bg-tertiary);
+    border-color: var(--border-color);
+    box-shadow: 0 4px 12px var(--shadow-color);
+}
+
+:root[data-theme="dark"] .user-menu-item {
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .user-menu-item:hover {
+    background: var(--bg-secondary);
+}
+
+:root[data-theme="dark"] .user-menu-divider {
+    border-color: var(--border-color);
+}
+
+:root[data-theme="dark"] .user-menu-greeting {
+    color: var(--text-secondary);
+}
+
+:root[data-theme="dark"] .modal {
+    background: var(--bg-secondary);
+    box-shadow: 0 4px 20px var(--shadow-color);
+}
+
+:root[data-theme="dark"] .modal h2 {
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .form-group label {
+    color: var(--text-primary) !important;
+}
+
+:root[data-theme="dark"] .form-group input,
+:root[data-theme="dark"] .form-group select,
+:root[data-theme="dark"] .form-group textarea {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+:root[data-theme="dark"] .form-group input:focus,
+:root[data-theme="dark"] .form-group select:focus,
+:root[data-theme="dark"] .form-group textarea:focus {
+    border-color: var(--accent-color) !important;
+    outline: none;
+    box-shadow: 0 0 0 3px var(--accent-glow);
+    background: var(--bg-elevated) !important;
+    color: var(--text-primary) !important;
+}
+
+:root[data-theme="dark"] .user-settings-container {
+    background: var(--bg-secondary);
+}
+
+:root[data-theme="dark"] .user-settings-title {
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .user-settings-label {
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .password-input,
+:root[data-theme="dark"] .reset-code-input {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+:root[data-theme="dark"] .password-input:focus,
+:root[data-theme="dark"] .reset-code-input:focus {
+    border-color: var(--accent-color) !important;
+    outline: none;
+    box-shadow: 0 0 0 3px var(--accent-glow);
+    background: var(--bg-elevated) !important;
+    color: var(--text-primary) !important;
+}
+
+:root[data-theme="dark"] .password-input[readonly] {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+}
+
+:root[data-theme="dark"] .data-section {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+
+:root[data-theme="dark"] .data-section h2 {
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .data-list li {
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+:root[data-theme="dark"] .data-list li:hover {
+    background: var(--bg-tertiary);
+}
+
+:root[data-theme="dark"] .delete-btn {
+    color: var(--text-secondary);
+}
+
+:root[data-theme="dark"] .delete-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 0, 0, 0.1);
+}
+
+:root[data-theme="dark"] .sum-display {
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .sum-display strong {
+    color: #4CAF50;
+}
+
+:root[data-theme="dark"] .app-footer {
+    background: var(--bg-secondary);
+    border-top-color: var(--border-color);
+}
+
+:root[data-theme="dark"] .app-footer p {
+    color: var(--text-secondary);
+}
+
+:root[data-theme="dark"] .note-box {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+:root[data-theme="dark"] .recurring-btn {
+    background: var(--bg-tertiary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .recurring-btn:hover {
+    background: var(--bg-secondary);
+    border-color: var(--accent-color);
+}
+
+:root[data-theme="dark"] .recurring-btn.recurring-active {
+    background: #fff9c4;
+    border-color: #fdd835;
+    color: #333;
+}
+
+:root[data-theme="dark"] .recurring-modal-content {
+    background: var(--bg-secondary);
+    box-shadow: 0 4px 20px var(--shadow-color);
+}
+
+:root[data-theme="dark"] .recurring-modal-content h3 {
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .recurring-option {
+    background: var(--bg-tertiary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .recurring-option:hover {
+    border-color: var(--accent-color);
+    background: var(--bg-secondary);
+}
+
+:root[data-theme="dark"] .recurring-option.active {
+    border-color: var(--accent-color);
+    background: var(--accent-color);
+    color: var(--accent-text);
+}
+
+:root[data-theme="dark"] .recurring-cancel-btn,
+:root[data-theme="dark"] .recurring-save-btn {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+:root[data-theme="dark"] .recurring-cancel-btn:hover,
+:root[data-theme="dark"] .recurring-save-btn:hover {
+    background: var(--bg-secondary);
+    border-color: var(--accent-color);
+}
+
+/* Theme Toggle Button Styles */
+.theme-toggle-btn {
+    background: linear-gradient(135deg, #ffb7ce 0%, #ff9bb5 100%);
+    border: 2px solid #ffb7ce;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+    padding: 0;
+}
+
+.theme-toggle-btn:hover {
+    background: #e0e0e0;
+    border-color: #ffb7ce;
+    color: #666;
+    transform: scale(1.05);
+}
+
+.theme-toggle-btn:active {
+    transform: scale(0.95);
+}
+
+:root[data-theme="dark"] .theme-toggle-btn {
+    background: linear-gradient(135deg, #ffb7ce 0%, #ff9bb5 100%);
+    color: white;
+}
+
+:root[data-theme="dark"] .theme-toggle-btn:hover {
+    background: #e0e0e0;
+    color: #333;
+}
+
+.theme-toggle-btn svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    fill: none;
+}
+
+/* Settings Page Theme Toggle */
+.theme-toggle-container {
+    display: flex;
+    align-items: center;
+    margin-top: 8px;
+}
+
+.theme-toggle-settings-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--bg-tertiary, #f5f5f5);
+    border: 2px solid var(--border-color, #ddd);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text-primary, #333);
+}
+
+.theme-toggle-settings-btn:hover {
+    border-color: var(--accent-color);
+    background: var(--bg-secondary, #fff);
+}
+
+:root[data-theme="dark"] .theme-toggle-settings-btn {
+    background: var(--bg-tertiary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .theme-toggle-settings-btn:hover {
+    background: var(--bg-secondary);
+    border-color: var(--accent-color);
+}
+
+.theme-toggle-label {
+    font-weight: 500;
+    margin-right: auto;
+}
+
+.theme-toggle-switch {
+    position: relative;
+    width: 48px;
+    height: 24px;
+    background: #ccc;
+    border-radius: 12px;
+    transition: background 0.3s ease;
+    margin-left: 12px;
+}
+
+:root[data-theme="dark"] .theme-toggle-switch {
+    background: #555;
+}
+
+.theme-toggle-slider {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+:root[data-theme="dark"] .theme-toggle-slider {
+    transform: translateX(24px);
+    background: white;
+}
+
+.theme-toggle-settings-btn[aria-pressed="true"] .theme-toggle-switch {
+    background: var(--accent-color);
+}
+
+:root[data-theme="dark"] .theme-toggle-settings-btn[aria-pressed="true"] .theme-toggle-switch {
+    background: var(--accent-color);
+}
+
+/* Login Screen Dark Mode */
+:root[data-theme="dark"] #login-screen {
+    background: var(--bg-primary);
+}
+
+:root[data-theme="dark"] #login-screen > div {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    box-shadow: 0 10px 40px var(--shadow-color);
+}
+
+:root[data-theme="dark"] #login-screen h2 {
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] #login-screen p {
+    color: var(--text-secondary);
+}
+
+:root[data-theme="dark"] #login-screen label {
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] #login-screen input[type="text"],
+:root[data-theme="dark"] #login-screen input[type="email"],
+:root[data-theme="dark"] #login-screen input[type="password"] {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+:root[data-theme="dark"] #login-screen input[type="text"]:focus,
+:root[data-theme="dark"] #login-screen input[type="email"]:focus,
+:root[data-theme="dark"] #login-screen input[type="password"]:focus {
+    border-color: var(--accent-color);
+    outline-color: var(--accent-color);
+}
+
+:root[data-theme="dark"] #login-screen a {
+    color: var(--accent-color);
+}

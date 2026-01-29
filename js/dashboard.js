@@ -126,7 +126,10 @@ const Dashboard = {
     },
 
     updateCharts(income, expenses) {
-        // Pastel color palette matching site theme
+        // Check if dark mode is active
+        const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+        
+        // Pastel color palette matching site theme (works for both light and dark)
         const pastelColors = [
             '#ffb7ce',  // Site accent pink
             '#87CEEB',  // Sky blue (from budget chart)
@@ -140,14 +143,36 @@ const Dashboard = {
             '#AFEEEE'   // Pale turquoise
         ];
         
+        // Dark mode optimized colors (more vibrant for better contrast)
+        const darkModeColors = [
+            '#ffb7ce',  // Site accent pink
+            '#58a6ff',  // Bright blue
+            '#f85149',  // Coral red
+            '#79c0ff',  // Light blue
+            '#d2a8ff',  // Lavender
+            '#ffa657',  // Orange
+            '#7ee787',  // Green
+            '#ffb3ba',  // Light pink
+            '#c9d1d9',  // Light gray
+            '#a5d6ff'   // Sky blue
+        ];
+        
         // Helper function to get colors, cycling through the palette
         const getPastelColors = (count) => {
-            const colors = [];
+            const colors = isDarkMode ? darkModeColors : pastelColors;
+            const result = [];
             for (let i = 0; i < count; i++) {
-                colors.push(pastelColors[i % pastelColors.length]);
+                result.push(colors[i % colors.length]);
             }
-            return colors;
+            return result;
         };
+        
+        // Chart.js color configuration for dark mode
+        const chartTextColor = isDarkMode ? '#e6edf3' : '#333';
+        const chartGridColor = isDarkMode ? '#30363d' : '#e0e0e0';
+        const chartTooltipBg = isDarkMode ? '#21262d' : '#fff';
+        const chartTooltipBorder = isDarkMode ? '#30363d' : '#ddd';
+        const chartTooltipText = isDarkMode ? '#e6edf3' : '#333';
         
         // Income Chart
         const incomeData = {};
@@ -168,7 +193,9 @@ const Dashboard = {
                 labels: incomeLabels,
                 datasets: [{
                     data: incomeValues,
-                    backgroundColor: getPastelColors(incomeLabels.length)
+                    backgroundColor: getPastelColors(incomeLabels.length),
+                    borderColor: isDarkMode ? '#161b22' : '#fff',
+                    borderWidth: 2
                 }]
             },
             options: {
@@ -179,6 +206,12 @@ const Dashboard = {
                         display: false
                     },
                     tooltip: {
+                        backgroundColor: chartTooltipBg,
+                        titleColor: chartTooltipText,
+                        bodyColor: chartTooltipText,
+                        borderColor: chartTooltipBorder,
+                        borderWidth: 1,
+                        padding: 12,
                         callbacks: {
                             label: function(context) {
                                 const label = context.label || '';
@@ -211,7 +244,9 @@ const Dashboard = {
                 labels: expenseLabels,
                 datasets: [{
                     data: expenseValues,
-                    backgroundColor: getPastelColors(expenseLabels.length)
+                    backgroundColor: getPastelColors(expenseLabels.length),
+                    borderColor: isDarkMode ? '#161b22' : '#fff',
+                    borderWidth: 2
                 }]
             },
             options: {
@@ -222,6 +257,12 @@ const Dashboard = {
                         display: false
                     },
                     tooltip: {
+                        backgroundColor: chartTooltipBg,
+                        titleColor: chartTooltipText,
+                        bodyColor: chartTooltipText,
+                        borderColor: chartTooltipBorder,
+                        borderWidth: 1,
+                        padding: 12,
                         callbacks: {
                             label: function(context) {
                                 const label = context.label || '';
@@ -616,6 +657,14 @@ const Dashboard = {
             window.budgetChart.destroy();
         }
 
+        // Check if dark mode is active
+        const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+        const chartTextColor = isDarkMode ? '#e6edf3' : undefined;
+        const chartGridColor = isDarkMode ? '#30363d' : 'rgba(0, 0, 0, 0.1)';
+        const chartTooltipBg = isDarkMode ? '#21262d' : undefined;
+        const chartTooltipBorder = isDarkMode ? '#30363d' : undefined;
+        const chartTooltipText = isDarkMode ? '#e6edf3' : undefined;
+
         window.budgetChart = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -646,49 +695,78 @@ const Dashboard = {
                     legend: {
                         display: true,
                         position: 'top',
-                        labels: {
-                            font: {
-                                family: "'Nunito', sans-serif",
-                                size: 12,
-                                weight: 600
-                            },
-                            padding: 15,
-                            usePointStyle: true
-                        }
-                    },
-                    tooltip: {
-                        enabled: true,
-                        callbacks: {
-                            label: function(context) {
-                                return `${context.dataset.label}: ${Utils.formatCurrency(context.parsed.y)}`;
+                        labels: (() => {
+                            const labels = {
+                                font: {
+                                    family: "'Nunito', sans-serif",
+                                    size: 12,
+                                    weight: 600
+                                },
+                                padding: 15,
+                                usePointStyle: true
+                            };
+                            if (isDarkMode) {
+                                labels.color = chartTextColor;
                             }
+                            return labels;
+                        })()
+                    },
+                    tooltip: (() => {
+                        const tooltip = {
+                            enabled: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${Utils.formatCurrency(context.parsed.y)}`;
+                                }
+                            }
+                        };
+                        if (isDarkMode) {
+                            tooltip.backgroundColor = chartTooltipBg;
+                            tooltip.titleColor = chartTooltipText;
+                            tooltip.bodyColor = chartTooltipText;
+                            tooltip.borderColor = chartTooltipBorder;
+                            tooltip.borderWidth = 1;
+                            tooltip.padding = 12;
                         }
-                    }
+                        return tooltip;
+                    })()
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
-                        ticks: {
-                            callback: function(value) {
-                                return Utils.formatCurrency(value);
-                            },
-                            font: {
-                                family: "'Nunito', sans-serif",
-                                size: 11
+                        ticks: (() => {
+                            const ticks = {
+                                callback: function(value) {
+                                    return Utils.formatCurrency(value);
+                                },
+                                font: {
+                                    family: "'Nunito', sans-serif",
+                                    size: 11
+                                }
+                            };
+                            if (isDarkMode) {
+                                ticks.color = chartTextColor;
                             }
-                        },
+                            return ticks;
+                        })(),
                         grid: {
-                            color: 'rgba(0, 0, 0, 0.1)'
+                            color: chartGridColor
                         }
                     },
                     x: {
-                        ticks: {
-                            font: {
-                                family: "'Nunito', sans-serif",
-                                size: 11,
-                                weight: 600
+                        ticks: (() => {
+                            const ticks = {
+                                font: {
+                                    family: "'Nunito', sans-serif",
+                                    size: 11,
+                                    weight: 600
+                                }
+                            };
+                            if (isDarkMode) {
+                                ticks.color = chartTextColor;
                             }
-                        },
+                            return ticks;
+                        })(),
                         grid: {
                             display: false
                         }
@@ -737,9 +815,18 @@ const Dashboard = {
             window.cashFlowChart.destroy();
         }
 
+        // Check if dark mode is active
+        const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+        const chartTextColor = isDarkMode ? '#e6edf3' : undefined;
+        const chartGridColor = isDarkMode ? '#30363d' : 'rgba(0, 0, 0, 0.1)';
+        const chartTooltipBg = isDarkMode ? '#21262d' : undefined;
+        const chartTooltipBorder = isDarkMode ? '#30363d' : undefined;
+        const chartTooltipText = isDarkMode ? '#e6edf3' : undefined;
+
         // Pastel colors for cashflow chart (matching pie chart theme)
-        const pastelGreen = '#98D8C8';  // Mint green for positive values
-        const pastelRed = '#FFA0A0';    // Pastel red for negative values
+        const pastelGreen = isDarkMode ? '#7ee787' : '#98D8C8';  // Mint green for positive values
+        const pastelRed = isDarkMode ? '#f85149' : '#FFA0A0';    // Pastel red for negative values
+        const averageLineColor = isDarkMode ? '#58a6ff' : '#333';
         
         window.cashFlowChart = new Chart(ctx, {
             type: 'bar',
@@ -759,17 +846,17 @@ const Dashboard = {
                         label: 'Yearly Average',
                         type: 'line',
                         data: Array(12).fill(yearlyAverage),
-                        borderColor: '#333',
+                        borderColor: averageLineColor,
                         backgroundColor: 'transparent',
                         borderWidth: 2,
                         borderDash: [5, 5],
                         pointRadius: 0,
                         pointHoverRadius: 6,
                         pointHoverBorderWidth: 2,
-                        pointHoverBorderColor: '#333',
-                        pointHoverBackgroundColor: '#333',
-                        pointBackgroundColor: '#333',
-                        pointBorderColor: '#333',
+                        pointHoverBorderColor: averageLineColor,
+                        pointHoverBackgroundColor: averageLineColor,
+                        pointBackgroundColor: averageLineColor,
+                        pointBorderColor: averageLineColor,
                         order: 1
                     }
                 ]
@@ -780,12 +867,32 @@ const Dashboard = {
                 plugins: {
                     legend: {
                         display: true,
-                        position: 'top'
+                        position: 'top',
+                        ...(isDarkMode && {
+                            labels: {
+                                color: chartTextColor,
+                                font: {
+                                    family: "'Nunito', sans-serif",
+                                    size: 12,
+                                    weight: 600
+                                },
+                                padding: 15,
+                                usePointStyle: true
+                            }
+                        })
                     },
                     tooltip: {
                         enabled: true,
                         intersect: false,
                         mode: 'index',
+                        ...(isDarkMode && {
+                            backgroundColor: chartTooltipBg,
+                            titleColor: chartTooltipText,
+                            bodyColor: chartTooltipText,
+                            borderColor: chartTooltipBorder,
+                            borderWidth: 1,
+                            padding: 12
+                        }),
                         callbacks: {
                             label: function(context) {
                                 if (context.datasetIndex === 0) {
@@ -804,16 +911,39 @@ const Dashboard = {
                 scales: {
                     y: {
                         beginAtZero: false,
-                        ticks: {
-                            callback: function(value) {
-                                return Utils.formatCurrency(value);
+                        ticks: (() => {
+                            const ticks = {
+                                callback: function(value) {
+                                    return Utils.formatCurrency(value);
+                                },
+                                font: {
+                                    family: "'Nunito', sans-serif",
+                                    size: 11
+                                }
+                            };
+                            if (isDarkMode) {
+                                ticks.color = chartTextColor;
                             }
-                        },
+                            return ticks;
+                        })(),
                         grid: {
-                            color: 'rgba(0, 0, 0, 0.1)'
+                            color: chartGridColor
                         }
                     },
                     x: {
+                        ticks: (() => {
+                            const ticks = {
+                                font: {
+                                    family: "'Nunito', sans-serif",
+                                    size: 11,
+                                    weight: 600
+                                }
+                            };
+                            if (isDarkMode) {
+                                ticks.color = chartTextColor;
+                            }
+                            return ticks;
+                        })(),
                         grid: {
                             display: false
                         }

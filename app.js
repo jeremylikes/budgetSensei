@@ -114,6 +114,11 @@ async function initializeApp() {
             methods: DataStore.methods.length
         });
         
+        // Initialize theme (must be early to apply before rendering)
+        if (window.Theme && window.Theme.init) {
+            Theme.init();
+        }
+        
         // Setup UI components
         UI.setupTabs();
         UI.setupDateSelectors();
